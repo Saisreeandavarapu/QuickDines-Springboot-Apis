@@ -3,7 +3,6 @@ package com.HRMS.QuickDines.Auth.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import org.springframework.data.annotation.Id;
 
 import java.time.LocalDateTime;
 
