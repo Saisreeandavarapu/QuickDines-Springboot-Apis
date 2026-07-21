@@ -3,6 +3,7 @@ package com.HRMS.QuickDines.Auth.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
+
 import java.time.LocalDateTime;
 
 @Entity
