@@ -1,4 +1,4 @@
-package com.HRMS.QuickDines.DTO;
+package com.HRMS.QuickDines.Auth.DTO;
 
 import lombok.Builder;
 import lombok.Data;

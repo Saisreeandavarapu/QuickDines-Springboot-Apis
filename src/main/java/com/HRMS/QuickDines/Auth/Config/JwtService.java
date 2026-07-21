@@ -1,4 +1,4 @@
-package com.HRMS.QuickDines.Config;
+package com.HRMS.QuickDines.Auth.Config;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,22 +20,11 @@ public class JwtService {
 
 
     public String generateToken(String username){
-
         return Jwts.builder()
-
                 .subject(username)
-
                 .issuedAt(new Date())
-
-                .expiration(
-                        new Date(
-                                System.currentTimeMillis()
-                                        + expiration
-                        )
-                )
-
+                .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSignKey())
-
                 .compact();
     }
 
@@ -49,19 +38,13 @@ public class JwtService {
 
 
 
-    public boolean isTokenValid(String token,
-                                String username){
-
-        return extractUsername(token)
-                .equals(username)
-
-                && !isTokenExpired(token);
+    public boolean isTokenValid(String token,String username){
+        return extractUsername(token).equals(username) && !isTokenExpired(token);
 
     }
 
 
     private boolean isTokenExpired(String token){
-
         return extractAllClaims(token)
                 .getExpiration()
                 .before(new Date());
