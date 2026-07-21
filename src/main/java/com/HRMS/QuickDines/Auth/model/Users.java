@@ -53,31 +53,31 @@ public class Users {
 
     //USER ROLES
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "users")
     private List<UserRole> roles;
 
 
     //OTP
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "users")
     private List<OtpVerification> otpVerifications;
 
 
     //TOKENS
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "users")
     private List<RefreshToken> refreshTokens;
 
 
     //LOGIN HISTORY
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "users")
     private List<LoginHistory> loginHistories;
 
 
     //DEVICES
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "users")
     private List<UserDevice> devices;
 
 }
