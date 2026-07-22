@@ -2,6 +2,7 @@ package com.HRMS.QuickDines.Auth.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
 
 
 import java.time.LocalDate;
@@ -36,7 +37,7 @@ public class LoginHistory{
     private String loginStatus;
 
     private String remarks;
-
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
 }

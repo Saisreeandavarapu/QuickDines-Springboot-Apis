@@ -3,6 +3,7 @@ package com.HRMS.QuickDines.Auth.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
 
 
 import java.time.LocalDateTime;
@@ -33,7 +34,7 @@ public class UserDevice{
     private LocalDateTime lastLogin;
 
     private String deviceStatus;
-
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
 }

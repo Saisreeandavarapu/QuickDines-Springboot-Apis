@@ -2,6 +2,7 @@ package com.HRMS.QuickDines.Auth.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
 
 
 import java.time.LocalDateTime;
@@ -26,7 +27,7 @@ public class RefreshToken{
     private boolean revoked;
 
     private String status;
-
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
 }

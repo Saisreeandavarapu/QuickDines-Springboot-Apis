@@ -4,7 +4,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jdk.jfr.Timestamp;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 
 import java.time.LocalDateTime;
@@ -20,9 +23,9 @@ public class Role{
     private String roleName;
 
     private String description;
-
+    @CreationTimestamp
     private LocalDateTime createdAt;
-
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
 
 

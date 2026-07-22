@@ -5,6 +5,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
 
 
 import java.time.LocalDateTime;
@@ -22,7 +23,7 @@ public class Permission{
     private String moduleName;
 
     private String description;
-
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
 }

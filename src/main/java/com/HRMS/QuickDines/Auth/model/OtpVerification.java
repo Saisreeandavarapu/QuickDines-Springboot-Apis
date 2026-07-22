@@ -2,6 +2,7 @@ package com.HRMS.QuickDines.Auth.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
 
 
 import java.time.LocalDateTime;
@@ -30,7 +31,7 @@ public class OtpVerification{
     private LocalDateTime expiryTime;
 
     private String verificationStatus;
-
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
 }
