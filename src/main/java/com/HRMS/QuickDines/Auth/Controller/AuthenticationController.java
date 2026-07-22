@@ -135,10 +135,10 @@ public class AuthenticationController {
 
 
     @PutMapping("/profile/{id}")
-    public ResponseEntity<String> updateProfile(@PathVariable String employeeid,@RequestBody Users request) {
+    public ResponseEntity<String> updateProfile(@PathVariable String employeeId,@RequestBody Users request) {
 
         return ResponseEntity.ok(
-                service.updateProfile(employeeid,request));
+                service.updateProfile(employeeId,request));
 
     }
 
