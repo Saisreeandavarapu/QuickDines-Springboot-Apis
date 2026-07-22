@@ -135,10 +135,10 @@ public class AuthenticationController {
 
 
     @PutMapping("/profile/{id}")
-    public ResponseEntity<String> updateProfile(@PathVariable String employeed,@RequestBody Users request) {
+    public ResponseEntity<String> updateProfile(@PathVariable String employeeid,@RequestBody Users request) {
 
         return ResponseEntity.ok(
-                service.updateProfile(employeed,request));
+                service.updateProfile(employeeid,request));
 
     }
 
@@ -146,10 +146,9 @@ public class AuthenticationController {
     // Login History
 
     @GetMapping("/login-history")
-    public ResponseEntity<?> loginHistory() {
+    public ResponseEntity<LoginHistory> loginHistory() {
 
-        return ResponseEntity.ok(
-                service.getLoginHistory());
+        return ResponseEntity.ok((LoginHistory) service.getLoginHistory());
 
     }
 
@@ -157,10 +156,10 @@ public class AuthenticationController {
     // Devices
 
     @GetMapping("/devices")
-    public ResponseEntity<?> devices() {
+    public ResponseEntity<UserDevice> devices() {
 
         return ResponseEntity.ok(
-                service.getDevices());
+                (UserDevice) service.getDevices());
 
     }
 
