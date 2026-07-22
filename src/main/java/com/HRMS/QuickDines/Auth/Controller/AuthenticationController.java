@@ -281,4 +281,73 @@ public class AuthenticationController {
 
     }
 
+    // PERMISSION APIs
+
+    @PostMapping("/permissions")
+    public ResponseEntity<?> createPermission(
+            @RequestBody Permission permission){
+
+        return ResponseEntity.ok(
+                service.createPermission(permission)
+        );
+
+    }
+
+
+    @GetMapping("/permissions")
+    public ResponseEntity<?> getPermissions(){
+
+        return ResponseEntity.ok(
+                service.getPermissions()
+        );
+
+    }
+
+
+    @GetMapping("/permissions/{id}")
+    public ResponseEntity<?> getPermission(
+            @PathVariable Long id){
+
+        return ResponseEntity.ok(
+                service.getPermission(id)
+        );
+
+    }
+
+
+    @PutMapping("/permissions/{id}")
+    public ResponseEntity<?> updatePermission(
+            @PathVariable Long id,
+            @RequestBody Permission permission){
+
+        return ResponseEntity.ok(
+                service.updatePermission(id,permission)
+        );
+
+    }
+
+
+    @DeleteMapping("/permissions/{id}")
+    public ResponseEntity<?> deletePermission(
+            @PathVariable Long id){
+
+        return ResponseEntity.ok(
+                service.deletePermission(id)
+        );
+
+    }
+
+
+    @GetMapping("/permissions/module/{moduleName}")
+    public ResponseEntity<?> getModulePermissions(
+            @PathVariable String moduleName){
+
+        return ResponseEntity.ok(
+                service.getModulePermissions(moduleName)
+        );
+
+    }
+
+
+
 }

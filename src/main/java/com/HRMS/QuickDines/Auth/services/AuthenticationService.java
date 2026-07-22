@@ -881,6 +881,61 @@ public class AuthenticationService {
         return "Role Removed Successfully.";
     }
 
+// CREATE
+
+    public Permission createPermission(
+            Permission permission){
+
+        return permissionRepository.save(permission);
+
+    }
+
+
+// GET ALL
+
+    public List<Permission> getPermissions(){
+
+        return permissionRepository.findAll();
+
+    }
+
+
+// GET BY ID
+
+    public Permission getPermission(Long id){
+
+        return permissionRepository.findById(Math.toIntExact(id)).orElseThrow(() -> new RuntimeException("Permission Not Found"));
+
+    }
+
+
+// UPDATE
+
+    public Permission updatePermission(Long id, Permission request){
+        Permission permission = permissionRepository.findById(Math.toIntExact(id)).orElseThrow(() -> new RuntimeException("Permission Not Found"));
+
+        permission.setPermissionName(request.getPermissionName());
+        permission.setModuleName(request.getModuleName());
+        permission.setDescription(request.getDescription());
+        return permissionRepository.save(permission);}
+
+
+// DELETE
+
+    public String deletePermission(Long id){
+        permissionRepository.deleteById(Math.toIntExact(id));
+        return "Permission Deleted Successfully";
+    }
+
+
+// MODULE WISE
+
+    public List<Permission> getModulePermissions(String moduleName){
+
+        return permissionRepository.findByModuleName(moduleName);
+
+    }
+
 
 
 }
