@@ -1,137 +1,285 @@
 package com.HRMS.QuickDines.Auth.Controller;
 
+import com.HRMS.QuickDines.Auth.DTO.ChangePasswordRequest;
 import com.HRMS.QuickDines.Auth.DTO.LoginRequest;
 import com.HRMS.QuickDines.Auth.DTO.LoginResponse;
+import com.HRMS.QuickDines.Auth.DTO.ResetPasswordRequest;
 import com.HRMS.QuickDines.Auth.model.*;
 import com.HRMS.QuickDines.Auth.services.AuthenticationService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.apache.catalina.User;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-public class AuthenticationController{
-
+public class AuthenticationController {
 
     private final AuthenticationService service;
 
+    // Registration
 
+    @PostMapping("/super-admin/register")
+    public ResponseEntity<String> registerSuperAdmin(
+            @RequestBody Users request) {
 
-    @PostMapping("/register")
-    public Users register(
-            @RequestBody Users user){
-
-        return service.register(user);
+        return ResponseEntity.ok(service.registerSuperAdmin(request));
 
     }
 
+
+    // Login
 
     @PostMapping("/login")
-    public LoginResponse login(
-            @RequestBody LoginRequest dto){
+    public ResponseEntity<LoginResponse> login(
+            @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
 
-        return service.login(dto);
-
-    }
-
-
-    @PostMapping("/send-otp")
-    public String sendOTP(){
-
-        return service.sendOTP();
+        return ResponseEntity.ok(
+                service.login(request,httpRequest));
 
     }
 
 
-    @PostMapping("/verify-otp")
-    public String verifyOTP(){
+    // Logout
 
-        return service.verifyOTP();
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(HttpServletRequest httpRequest) {
+        return ResponseEntity.ok(
+                service.logout(httpRequest));
 
     }
 
+
+    // Password APIs
 
     @PostMapping("/forgot-password")
-    public String forgotPassword(){
+    public ResponseEntity<String> forgotPassword(@RequestParam String email) {
 
-        return service.forgotPassword();
+        return ResponseEntity.ok(
+                service.forgotPassword(email));
 
     }
 
 
     @PostMapping("/reset-password")
-    public String resetPassword(){
+    public ResponseEntity<String> resetPassword(
+            @RequestBody ResetPasswordRequest request) {
 
-        return service.resetPassword();
+        return ResponseEntity.ok(
+                service.resetPassword(request.getEmail(), request.getOtp(), request.getNewPassword())
+
+        );
 
     }
 
+
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(
+            @RequestBody ChangePasswordRequest request) {
+
+        return ResponseEntity.ok(
+                service.changePassword(request)
+        );
+
+    }
+
+
+    // OTP APIs
+
+    @PostMapping("/send-otp")
+    public ResponseEntity<String> sendOTP(@RequestParam String email) {
+
+        return ResponseEntity.ok(
+                service.sendOTP(email));
+
+    }
+
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<String> verifyOTP(@RequestParam String email, @RequestParam String otp) {
+
+        return ResponseEntity.ok(
+                service.verifyOTP(email, otp));
+
+    }
+
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<String> resendOTP(@RequestParam String email) {
+
+        return ResponseEntity.ok(
+                service.resendOTP(email));
+
+    }
+
+
+    // JWT
 
     @PostMapping("/refresh-token")
-    public String refreshToken(){
+    public ResponseEntity<?> refreshToken(
+            @RequestParam String refreshToken) {
 
-        return service.refreshToken();
-
-    }
-
-
-    @PostMapping("/logout")
-    public String logout(){
-
-        return service.logout();
+        return ResponseEntity.ok(
+                service.refreshToken(refreshToken));
 
     }
 
 
-    @GetMapping("/users")
-    public List<Users> users(){
+    // Profile
 
-        return service.getAllUsers();
+    @GetMapping("/profile")
+    public ResponseEntity<Users> getProfile(@RequestParam String employeeId) {
+        return ResponseEntity.ok(service.getProfile(employeeId));}
+
+
+
+    @PutMapping("/profile/{id}")
+    public ResponseEntity<String> updateProfile(@PathVariable String employeed,@RequestBody Users request) {
+
+        return ResponseEntity.ok(
+                service.updateProfile(employeed,request));
 
     }
 
 
-    @GetMapping("/users/{id}")
-    public Users user(@PathVariable Long id){
+    // Login History
 
-        return service.getUser(id);
+    @GetMapping("/login-history")
+    public ResponseEntity<?> loginHistory() {
+
+        return ResponseEntity.ok(
+                service.getLoginHistory());
+
+    }
+
+
+    // Devices
+
+    @GetMapping("/devices")
+    public ResponseEntity<?> devices() {
+
+        return ResponseEntity.ok(
+                service.getDevices());
+
+    }
+
+
+    @DeleteMapping("/remove-device/{id}")
+    public ResponseEntity<?> removeDevice(
+            @PathVariable Long id) {
+        return ResponseEntity.ok(
+                service.removeDevice(id));
+    }
+    // User Management
+
+    @PostMapping("/create-user")
+    public ResponseEntity<String> createUser(@RequestBody Users request) {
+
+        return ResponseEntity.ok(
+                service.createUser(request));
+
+    }
+
+
+    @PutMapping("/block-user/{id}")
+    public ResponseEntity<?> blockUser(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.blockUser(id));
+
+    }
+
+
+    @PutMapping("/unblock-user/{id}")
+    public ResponseEntity<?> unblockUser(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.unblockUser(id));
+
+    }
+
+
+    @DeleteMapping("/delete-user/{id}")
+    public ResponseEntity<?> deleteUser(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteUser(id));
+
+    }
+
+
+    // Roles
+
+    @PostMapping("/roles")
+    public ResponseEntity<?> createRole(@RequestBody Role role) {
+
+        return ResponseEntity.ok(
+                service.createRole(role));
 
     }
 
 
     @GetMapping("/roles")
-    public List<Role> roles(){
+    public ResponseEntity<?> getRoles() {
 
-        return service.getRoles();
-
-    }
-
-
-    @GetMapping("/permissions")
-    public List<Permission> permissions(){
-
-        return service.getPermissions();
+        return ResponseEntity.ok(
+                service.getRoles());
 
     }
 
 
-    @GetMapping("/login-history")
-    public List<LoginHistory> history(){
+    @GetMapping("/roles/{id}")
+    public ResponseEntity<?> getRole(
+            @PathVariable Long id) {
 
-        return service.loginHistory();
+        return ResponseEntity.ok(
+                service.getRole(id));
+
+    }
+
+
+    @PutMapping("/roles/{id}")
+    public ResponseEntity<?> updateRole(
+            @PathVariable Long id,@RequestBody Role role) {
+
+        return ResponseEntity.ok(
+                service.updateRole(id,role));
 
     }
 
 
-    @GetMapping("/devices")
-    public List<UserDevice> devices(){
+    @DeleteMapping("/roles/{id}")
+    public ResponseEntity<?> deleteRole(
+            @PathVariable Long id) {
 
-        return service.userDevices();
+        return ResponseEntity.ok(
+                service.deleteRole(id));
 
     }
 
+
+    // User Roles
+
+    @PutMapping("/assign-role/{userId}/{roleId}")
+    public ResponseEntity<?> assignRole(@PathVariable String userId, @PathVariable Long roleId) {
+
+        return ResponseEntity.ok(
+                service.assignRole(userId, roleId));
+
+    }
+
+
+    @DeleteMapping("/remove-role/{userId}")
+    public ResponseEntity<?> removeRole(
+            @PathVariable String userId) {
+
+        return ResponseEntity.ok(
+                service.removeRole(userId));
+
+    }
 
 }

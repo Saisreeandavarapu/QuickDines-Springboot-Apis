@@ -11,4 +11,7 @@ public class LoginResponse {
     private String role;
 
     private String message;
+
+    private String refreshToken;
+
 }
