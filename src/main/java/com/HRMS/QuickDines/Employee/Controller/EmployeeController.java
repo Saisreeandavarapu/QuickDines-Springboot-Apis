@@ -23,7 +23,7 @@ public class EmployeeController {
     //-------------------------
 
     @PostMapping("/create")
-    @PreAuthorize("hasAuthority('EMPLOYEE_CREATE')")
+   // @PreAuthorize("hasAuthority('EMPLOYEE_CREATE')")
     public ResponseEntity<?> createEmployee(
             @RequestBody Employee employee){
 
@@ -34,7 +34,7 @@ public class EmployeeController {
 
 
     @GetMapping
-    @PreAuthorize("hasAuthority('EMPLOYEE_READ')")
+    //@PreAuthorize("hasAuthority('EMPLOYEE_READ')")
     public ResponseEntity<?> getAllEmployees(){
 
         return ResponseEntity.ok(
@@ -44,7 +44,7 @@ public class EmployeeController {
 
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('EMPLOYEE_READ')")
+   // @PreAuthorize("hasAuthority('EMPLOYEE_READ')")
     public ResponseEntity<?> getEmployee(
             @PathVariable Long id){
 
@@ -55,7 +55,7 @@ public class EmployeeController {
 
 
     @PutMapping("/update/{id}")
-    @PreAuthorize("hasAuthority('EMPLOYEE_UPDATE')")
+    //@PreAuthorize("hasAuthority('EMPLOYEE_UPDATE')")
     public ResponseEntity<?> updateEmployee(
             @PathVariable Long id,
             @RequestBody Employee employee){
@@ -67,7 +67,7 @@ public class EmployeeController {
 
 
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasAuthority('EMPLOYEE_DELETE')")
+    //@PreAuthorize("hasAuthority('EMPLOYEE_DELETE')")
     public ResponseEntity<?> deleteEmployee(
             @PathVariable Long id){
 
@@ -82,7 +82,7 @@ public class EmployeeController {
     //-------------------------
 
     @GetMapping("/details/{id}")
-    @PreAuthorize("hasAuthority('EMPLOYEE_READ')")
+    //@PreAuthorize("hasAuthority('EMPLOYEE_READ')")
     public ResponseEntity<?> getEmployeeDetails(
             @PathVariable Long id){
 
