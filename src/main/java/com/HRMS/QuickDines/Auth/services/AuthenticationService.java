@@ -5,6 +5,9 @@ import com.HRMS.QuickDines.Auth.DTO.*;
 import com.HRMS.QuickDines.Auth.model.*;
 import com.HRMS.QuickDines.Auth.repo.*;
 import com.HRMS.QuickDines.AdvanceServices.EmailService;
+import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
+import com.HRMS.QuickDines.Organization.model.Department;
+import com.HRMS.QuickDines.Organization.repo.DepartmentRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -46,6 +49,8 @@ public class AuthenticationService {
     private final RefreshTokenRepository tokenRepository;
     private final LoginHistoryRepository historyRepository;
     private final UserDeviceRepository deviceRepository;
+    private final DepartmentRepository departmentRepository;
+    private final EmployeeRepository employeeRepository;
 
 
     // Email Service
@@ -62,6 +67,25 @@ public class AuthenticationService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already exists.");
         }
+
+        // Fetch Department
+        Department department = departmentRepository.findById(Long.valueOf(request.getRole()))
+                .orElseThrow(() -> new RuntimeException("Department not found"));
+
+        // Department code (example: HR, DEV, SALES)
+        String departmentCode = department.getDepartmentCode().toUpperCase();
+
+        // Generate employee sequence number
+        Long count = employeeRepository.count() + 1;
+
+        // Generate Employee Code
+        String employeeCode = "QD-"
+                + departmentCode + "-"
+                + LocalDate.now().getYear()
+                + "-"
+                + String.format("%03d", count);
+
+        request.setEmployeeId(employeeCode);
         // Encrypt Password
         request.setPassword(
                 passwordEncoder.encode(request.getPassword())

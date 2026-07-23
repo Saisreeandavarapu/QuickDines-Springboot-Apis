@@ -6,11 +6,16 @@ import com.HRMS.QuickDines.Auth.DTO.LoginResponse;
 import com.HRMS.QuickDines.Auth.DTO.ResetPasswordRequest;
 import com.HRMS.QuickDines.Auth.model.*;
 import com.HRMS.QuickDines.Auth.services.AuthenticationService;
+import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
+import com.HRMS.QuickDines.Organization.model.Department;
+import com.HRMS.QuickDines.Organization.repo.DepartmentRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -18,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthenticationController {
 
     private final AuthenticationService service;
+
 
     // Registration
 
