@@ -1,4 +1,4 @@
-package com.HRMS.QuickDines.Email;
+package com.HRMS.QuickDines.AdvanceServices;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;

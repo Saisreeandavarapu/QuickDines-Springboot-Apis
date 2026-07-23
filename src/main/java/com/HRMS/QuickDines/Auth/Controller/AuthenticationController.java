@@ -9,6 +9,7 @@ import com.HRMS.QuickDines.Auth.services.AuthenticationService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -129,12 +130,14 @@ public class AuthenticationController {
     // Profile
 
     @GetMapping("/profile")
+    @PreAuthorize("hasAuthority('PROFILE_READ')")
     public ResponseEntity<Users> getProfile(@RequestParam String employeeId) {
         return ResponseEntity.ok(service.getProfile(employeeId));}
 
 
 
     @PutMapping("/profile/{id}")
+    @PreAuthorize("hasAuthority('PROFILE_UPDATE')")
     public ResponseEntity<String> updateProfile(@PathVariable String employeeId,@RequestBody Users request) {
 
         return ResponseEntity.ok(
@@ -146,8 +149,8 @@ public class AuthenticationController {
     // Login History
 
     @GetMapping("/login-history")
+    @PreAuthorize("hasAuthority('LOGIN_HISTORY_READ')")
     public ResponseEntity<LoginHistory> loginHistory() {
-
         return ResponseEntity.ok((LoginHistory) service.getLoginHistory());
 
     }
@@ -156,6 +159,7 @@ public class AuthenticationController {
     // Devices
 
     @GetMapping("/devices")
+    @PreAuthorize("hasAuthority('DEVICE_READ')")
     public ResponseEntity<UserDevice> devices() {
 
         return ResponseEntity.ok(
@@ -165,6 +169,7 @@ public class AuthenticationController {
 
 
     @DeleteMapping("/remove-device/{id}")
+    @PreAuthorize("hasAuthority('DEVICE_DELETE')")
     public ResponseEntity<?> removeDevice(
             @PathVariable Long id) {
         return ResponseEntity.ok(
@@ -173,6 +178,7 @@ public class AuthenticationController {
     // User Management
 
     @PostMapping("/create-user")
+    @PreAuthorize("hasAuthority('USER_CREATE')")
     public ResponseEntity<String> createUser(@RequestBody Users request) {
 
         return ResponseEntity.ok(
@@ -182,6 +188,7 @@ public class AuthenticationController {
 
 
     @PutMapping("/block-user/{id}")
+    @PreAuthorize("hasAuthority('USER_UPDATE')")
     public ResponseEntity<?> blockUser(
             @PathVariable Long id) {
 
@@ -192,6 +199,7 @@ public class AuthenticationController {
 
 
     @PutMapping("/unblock-user/{id}")
+    @PreAuthorize("hasAuthority('USER_UPDATE')")
     public ResponseEntity<?> unblockUser(
             @PathVariable Long id) {
 
@@ -202,6 +210,7 @@ public class AuthenticationController {
 
 
     @DeleteMapping("/delete-user/{id}")
+    @PreAuthorize("hasAuthority('USER_DELETE')")
     public ResponseEntity<?> deleteUser(
             @PathVariable Long id) {
 
@@ -214,6 +223,7 @@ public class AuthenticationController {
     // Roles
 
     @PostMapping("/roles")
+    @PreAuthorize("hasAuthority('ROLE_CREATE')")
     public ResponseEntity<?> createRole(@RequestBody Role role) {
 
         return ResponseEntity.ok(
@@ -223,6 +233,7 @@ public class AuthenticationController {
 
 
     @GetMapping("/roles")
+    @PreAuthorize("hasAuthority('ROLE_READ')")
     public ResponseEntity<?> getRoles() {
 
         return ResponseEntity.ok(
@@ -232,6 +243,7 @@ public class AuthenticationController {
 
 
     @GetMapping("/roles/{id}")
+    @PreAuthorize("hasAuthority('ROLE_READ')")
     public ResponseEntity<?> getRole(
             @PathVariable Long id) {
 
@@ -242,6 +254,7 @@ public class AuthenticationController {
 
 
     @PutMapping("/roles/{id}")
+    @PreAuthorize("hasAuthority('ROLE_UPDATE')")
     public ResponseEntity<?> updateRole(
             @PathVariable Long id,@RequestBody Role role) {
 
@@ -252,6 +265,7 @@ public class AuthenticationController {
 
 
     @DeleteMapping("/roles/{id}")
+    @PreAuthorize("hasAuthority('ROLE_DELETE')")
     public ResponseEntity<?> deleteRole(
             @PathVariable Long id) {
 
@@ -284,6 +298,7 @@ public class AuthenticationController {
     // PERMISSION APIs
 
     @PostMapping("/permissions")
+    @PreAuthorize("hasAuthority('PERMISSION_CREATE')")
     public ResponseEntity<?> createPermission(
             @RequestBody Permission permission){
 
@@ -295,6 +310,7 @@ public class AuthenticationController {
 
 
     @GetMapping("/permissions")
+    @PreAuthorize("hasAuthority('PERMISSION_READ')")
     public ResponseEntity<?> getPermissions(){
 
         return ResponseEntity.ok(
@@ -305,6 +321,7 @@ public class AuthenticationController {
 
 
     @GetMapping("/permissions/{id}")
+    @PreAuthorize("hasAuthority('PERMISSION_READ')")
     public ResponseEntity<?> getPermission(
             @PathVariable Long id){
 
@@ -316,6 +333,7 @@ public class AuthenticationController {
 
 
     @PutMapping("/permissions/{id}")
+    @PreAuthorize("hasAuthority('PERMISSION_UPDATE')")
     public ResponseEntity<?> updatePermission(
             @PathVariable Long id,
             @RequestBody Permission permission){
@@ -328,6 +346,7 @@ public class AuthenticationController {
 
 
     @DeleteMapping("/permissions/{id}")
+    @PreAuthorize("hasAuthority('PERMISSION_DELETE')")
     public ResponseEntity<?> deletePermission(
             @PathVariable Long id){
 
