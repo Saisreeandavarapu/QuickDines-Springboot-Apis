@@ -145,10 +145,10 @@ public class AttendanceSchedulerService {
 
 
     // Every day at 12:15 AM
-    @Scheduled(cron = "0 15 0 * * ?")
-    public String markLeave( String EmployeeId) {
-        return "Attendance Marked Successfully";
-    }
+//    @Scheduled(cron = "0 15 0 * * ?")
+//    public void markLeave( String EmployeeId) {
+////        return "Attendance Marked Successfully";
+//    }
 
 
     //--------------------------------------------------
