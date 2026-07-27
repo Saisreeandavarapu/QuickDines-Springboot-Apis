@@ -51,7 +51,7 @@ public class WalletService {
         return "Wallet Created Successfully";
     }
 
-    public Object getWallet(String employeeId){
+    public EmployeeWallet getWallet(String employeeId){
 
         Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
         return employeeWalletRepository.findByEmployee(employee).orElseThrow(() -> new RuntimeException("Wallet Not Found"));
@@ -126,7 +126,7 @@ public class WalletService {
         return "Transaction Successful";
     }
 
-    public List<EmployeeWallet> getTransactions(String employeeId){
+    public List<WalletTransactions> getTransactions(String employeeId){
 
         return walletTransactionsRepository.findByEmployeeEmployeeId(employeeId);
     }
