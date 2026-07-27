@@ -17,44 +17,44 @@ public class CloudinaryService {
     private final Cloudinary cloudinary;
 
 
-//    public String uploadFile(MultipartFile file) {
-//
-//        try {
-//
-//            Map<?, ?> uploadResult =
-//                    cloudinary.uploader()
-//                            .upload(file.getBytes(),
-//                                    ObjectUtils.emptyMap());
-//
-//            return uploadResult.get("secure_url").toString();
-//
-//        } catch (Exception e) {
-//
-//            throw new RuntimeException("File Upload Failed");
-//        }
-//
-//    }
     public String uploadFile(MultipartFile file) {
 
         try {
 
-            Map<String, Object> options = new HashMap<>();
+            Map<?, ?> uploadResult =
+                    cloudinary.uploader()
+                            .upload(file.getBytes(),
+                                    ObjectUtils.emptyMap());
 
-            options.put("resource_type", "auto");
+            return uploadResult.get("secure_url").toString();
 
-            Map<?, ?> result = cloudinary.uploader().upload(
-                    file.getBytes(),
-                    options
-            );
+        } catch (Exception e) {
 
-            return result.get("secure_url").toString();
-
-        } catch (IOException e) {
-
-            throw new RuntimeException(
-                    "Cloudinary File Upload Failed");
+            throw new RuntimeException("File Upload Failed");
         }
 
     }
+//    public String uploadFile(MultipartFile file) {
+//
+//        try {
+//
+//            Map<String, Object> options = new HashMap<>();
+//
+//            options.put("resource_type", "auto");
+//
+//            Map<?, ?> result = cloudinary.uploader().upload(
+//                    file.getBytes(),
+//                    options
+//            );
+//
+//            return result.get("secure_url").toString();
+//
+//        } catch (IOException e) {
+//
+//            throw new RuntimeException(
+//                    "Cloudinary File Upload Failed");
+//        }
+//
+//    }
 
 }
