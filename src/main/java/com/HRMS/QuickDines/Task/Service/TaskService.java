@@ -259,30 +259,30 @@ public class TaskService {
 
     public Long getCompletedTaskCount(String employeeId) {
 
-        return taskAssignmentsRepository.countByAssignedToEmployeeEmployeeIdAndTaskStatus(employeeId, "COMPLETED");
+        return taskAssignmentsRepository.countByAssignedToEmployeeIdAndTaskStatus(employeeId, "COMPLETED");
     }
 
 
     public Long getPendingTaskCount(String employeeId) {
 
-        return taskAssignmentsRepository.countByAssignedToEmployeeEmployeeIdAndTaskStatus(employeeId, "PENDING");
+        return taskAssignmentsRepository.countByAssignedToEmployeeIdAndTaskStatus(employeeId, "PENDING");
     }
 
 
     public Long getRejectedTaskCount(String employeeId) {
 
-        return taskAssignmentsRepository.countByAssignedToEmployeeEmployeeIdAndTaskStatus(employeeId, "REJECTED");
+        return taskAssignmentsRepository.countByAssignedToEmployeeIdAndTaskStatus(employeeId, "REJECTED");
     }
 
 
     public Long getInProgressTaskCount(String employeeId) {
 
-        return taskAssignmentsRepository.countByAssignedToEmployeeEmployeeIdAndTaskStatus(employeeId, "IN_PROGRESS");
+        return taskAssignmentsRepository.countByAssignedToEmployeeIdAndTaskStatus(employeeId, "IN_PROGRESS");
     }
 
 
     public Long getOnHoldTaskCount(String employeeId) {
 
-        return taskAssignmentsRepository.countByAssignedToEmployeeEmployeeIdAndTaskStatus(employeeId, "ON_HOLD");
+        return taskAssignmentsRepository.countByAssignedToEmployeeIdAndTaskStatus(employeeId, "ON_HOLD");
     }
 }
