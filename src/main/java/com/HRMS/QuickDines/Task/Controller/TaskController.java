@@ -168,4 +168,93 @@ public class TaskController {
         return ResponseEntity.ok(service.rejectTask(taskId));
     }
 
+    //=================================
+// TASK STATUS REPORTS
+//=================================
+
+    @GetMapping("/completed/{employeeId}")
+    public ResponseEntity<?> getCompletedTasks(
+            @PathVariable String employeeId) {
+
+        return ResponseEntity.ok(service.getCompletedTasks(employeeId));
+    }
+
+
+    @GetMapping("/pending/{employeeId}")
+    public ResponseEntity<?> getPendingTasks(
+            @PathVariable String employeeId) {
+
+        return ResponseEntity.ok(service.getPendingTasks(employeeId));
+    }
+
+
+    @GetMapping("/rejected/{employeeId}")
+    public ResponseEntity<?> getRejectedTasks(
+            @PathVariable String employeeId) {
+
+        return ResponseEntity.ok(
+                service.getRejectedTasks(employeeId));
+    }
+
+
+    @GetMapping("/in-progress/{employeeId}")
+    public ResponseEntity<?> getInProgressTasks(
+            @PathVariable String employeeId) {
+
+        return ResponseEntity.ok(
+                service.getInProgressTasks(employeeId));
+    }
+
+
+    @GetMapping("/on-hold/{employeeId}")
+    public ResponseEntity<?> getOnHoldTasks(
+            @PathVariable String employeeId) {
+
+        return ResponseEntity.ok(
+                service.getOnHoldTasks(employeeId));
+    }
+
+    //=================================
+// TASK COUNTS
+//=================================
+
+    @GetMapping("/completed-count/{employeeId}")
+    public ResponseEntity<?> getCompletedTaskCount(
+            @PathVariable String employeeId) {
+
+        return ResponseEntity.ok(service.getCompletedTaskCount(employeeId));
+    }
+
+
+    @GetMapping("/pending-count/{employeeId}")
+    public ResponseEntity<?> getPendingTaskCount(
+            @PathVariable String employeeId) {
+
+        return ResponseEntity.ok(service.getPendingTaskCount(employeeId));
+    }
+
+
+    @GetMapping("/rejected-count/{employeeId}")
+    public ResponseEntity<?> getRejectedTaskCount(
+            @PathVariable String employeeId) {
+
+        return ResponseEntity.ok(service.getRejectedTaskCount(employeeId));
+    }
+
+
+    @GetMapping("/in-progress-count/{employeeId}")
+    public ResponseEntity<?> getInProgressTaskCount(
+            @PathVariable String employeeId) {
+
+        return ResponseEntity.ok(service.getInProgressTaskCount(employeeId));
+    }
+
+
+    @GetMapping("/on-hold-count/{employeeId}")
+    public ResponseEntity<?> getOnHoldTaskCount(
+            @PathVariable String employeeId) {
+
+        return ResponseEntity.ok(service.getOnHoldTaskCount(employeeId));
+    }
+
 }

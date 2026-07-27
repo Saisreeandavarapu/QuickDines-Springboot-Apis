@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -15,20 +17,42 @@ public class CloudinaryService {
     private final Cloudinary cloudinary;
 
 
+//    public String uploadFile(MultipartFile file) {
+//
+//        try {
+//
+//            Map<?, ?> uploadResult =
+//                    cloudinary.uploader()
+//                            .upload(file.getBytes(),
+//                                    ObjectUtils.emptyMap());
+//
+//            return uploadResult.get("secure_url").toString();
+//
+//        } catch (Exception e) {
+//
+//            throw new RuntimeException("File Upload Failed");
+//        }
+//
+//    }
     public String uploadFile(MultipartFile file) {
 
         try {
 
-            Map<?, ?> uploadResult =
-                    cloudinary.uploader()
-                            .upload(file.getBytes(),
-                                    ObjectUtils.emptyMap());
+            Map<String, Object> options = new HashMap<>();
 
-            return uploadResult.get("secure_url").toString();
+            options.put("resource_type", "auto");
 
-        } catch (Exception e) {
+            Map<?, ?> result = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    options
+            );
 
-            throw new RuntimeException("File Upload Failed");
+            return result.get("secure_url").toString();
+
+        } catch (IOException e) {
+
+            throw new RuntimeException(
+                    "Cloudinary File Upload Failed");
         }
 
     }

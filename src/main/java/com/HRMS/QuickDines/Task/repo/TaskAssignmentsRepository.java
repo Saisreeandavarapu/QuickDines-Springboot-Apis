@@ -9,4 +9,7 @@ import java.util.List;
 @Repository
 public interface TaskAssignmentsRepository extends JpaRepository<TaskAssignments, Long> {
     List<TaskAssignments> findByAssignedToEmployeeId(String employeeId);
+    List<TaskAssignments> findByAssignedToEmployeeIdAndTaskStatus(String employeeId, String status);
+    Long countByAssignedToEmployeeEmployeeIdAndTaskStatus(String employeeId, String status);
+
 }

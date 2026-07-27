@@ -219,4 +219,70 @@ public class TaskService {
 
         return "Task Rejected Successfully";
     }
+
+    //=================================
+// TASK STATUS REPORTS
+//=================================
+
+    public Object getCompletedTasks(String employeeId) {
+
+        return taskAssignmentsRepository.findByAssignedToEmployeeIdAndTaskStatus(employeeId, "COMPLETED");
+    }
+
+
+    public Object getPendingTasks(String employeeId) {
+
+        return taskAssignmentsRepository.findByAssignedToEmployeeIdAndTaskStatus(employeeId, "PENDING");
+    }
+
+
+    public Object getRejectedTasks(String employeeId) {
+
+        return taskAssignmentsRepository.findByAssignedToEmployeeIdAndTaskStatus(employeeId, "REJECTED");
+    }
+
+
+    public Object getInProgressTasks(String employeeId) {
+
+        return taskAssignmentsRepository.findByAssignedToEmployeeIdAndTaskStatus(employeeId, "IN_PROGRESS");
+    }
+
+
+    public Object getOnHoldTasks(String employeeId) {
+
+        return taskAssignmentsRepository.findByAssignedToEmployeeIdAndTaskStatus(employeeId, "ON_HOLD");
+    }
+
+    //=================================
+// TASK COUNTS
+//=================================
+
+    public Long getCompletedTaskCount(String employeeId) {
+
+        return taskAssignmentsRepository.countByAssignedToEmployeeEmployeeIdAndTaskStatus(employeeId, "COMPLETED");
+    }
+
+
+    public Long getPendingTaskCount(String employeeId) {
+
+        return taskAssignmentsRepository.countByAssignedToEmployeeEmployeeIdAndTaskStatus(employeeId, "PENDING");
+    }
+
+
+    public Long getRejectedTaskCount(String employeeId) {
+
+        return taskAssignmentsRepository.countByAssignedToEmployeeEmployeeIdAndTaskStatus(employeeId, "REJECTED");
+    }
+
+
+    public Long getInProgressTaskCount(String employeeId) {
+
+        return taskAssignmentsRepository.countByAssignedToEmployeeEmployeeIdAndTaskStatus(employeeId, "IN_PROGRESS");
+    }
+
+
+    public Long getOnHoldTaskCount(String employeeId) {
+
+        return taskAssignmentsRepository.countByAssignedToEmployeeEmployeeIdAndTaskStatus(employeeId, "ON_HOLD");
+    }
 }
