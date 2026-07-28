@@ -1,0 +1,13 @@
+package com.HRMS.QuickDines.Notification.repo;
+
+import com.HRMS.QuickDines.Notification.model.EmailNotification;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface EmailNotificationRepository extends JpaRepository<EmailNotification, Long> {
+    List<EmailNotification> findBySentStatus(String sentStatus);
+
+}
