@@ -1,0 +1,38 @@
+package com.HRMS.QuickDines.Recruitment.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Entity
+@Data
+public class JobOpening {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String designation;
+
+    private String department;
+
+    private String experienceRequired;
+
+    private Double salaryPackage;
+
+    private Integer openings;
+
+    private String status;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    @OneToMany(mappedBy = "jobOpening", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<Application> applications;
+
+}
