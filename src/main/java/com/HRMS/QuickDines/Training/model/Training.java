@@ -6,6 +6,7 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -45,7 +46,7 @@ public class Training {
     private LocalDate endDate;
 
     @Column(precision = 5, scale = 2)
-    private Double durationHours;
+    private BigDecimal durationHours;
 
     @Column(length = 255)
     private String location;

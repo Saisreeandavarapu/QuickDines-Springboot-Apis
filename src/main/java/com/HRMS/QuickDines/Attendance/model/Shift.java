@@ -6,6 +6,7 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
@@ -33,8 +34,8 @@ public class Shift {
     private LocalTime breakEnd;
 
     private Integer graceTime;
-
-    private Double workingHours;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal workingHours;
 
     private String status;
 

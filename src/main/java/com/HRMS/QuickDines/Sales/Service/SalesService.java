@@ -7,6 +7,7 @@ import com.HRMS.QuickDines.Sales.repo.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -121,12 +122,12 @@ public class SalesService {
         salesTarget.setEmployee(employee);
 
         if(salesTarget.getAchievedTarget() == null){
-            salesTarget.setAchievedTarget(0);
+            salesTarget.setAchievedTarget(BigDecimal.ZERO);
         }
 
-        if(salesTarget.getAchievedTarget() >= salesTarget.getMonthlyTarget()){
+        if (salesTarget.getAchievedTarget().compareTo(salesTarget.getMonthlyTarget()) >= 0) {
             salesTarget.setTargetStatus("ACHIEVED");
-        }else{
+        } else {
             salesTarget.setTargetStatus("PENDING");
         }
 
@@ -152,9 +153,9 @@ public class SalesService {
         target.setMonthlyTarget(salesTarget.getMonthlyTarget());
         target.setAchievedTarget(salesTarget.getAchievedTarget());
 
-        if(target.getAchievedTarget() >= target.getMonthlyTarget()){
+        if (target.getAchievedTarget().compareTo(target.getMonthlyTarget()) >= 0) {
             target.setTargetStatus("ACHIEVED");
-        }else{
+        } else {
             target.setTargetStatus("PENDING");
         }
 

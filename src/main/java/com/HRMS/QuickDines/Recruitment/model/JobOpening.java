@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -21,8 +22,8 @@ public class JobOpening {
     private String department;
 
     private String experienceRequired;
-
-    private Double salaryPackage;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal salaryPackage;
 
     private Integer openings;
 

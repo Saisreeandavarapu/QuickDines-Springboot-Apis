@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -13,14 +14,14 @@ public class WorkingHours {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    private Double expectedHours;
-
-    private Double completedHours;
-
-    private Double overtimeHours;
-
-    private Double breakHours;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal expectedHours;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal completedHours;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal overtimeHours;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal breakHours;
 
     private String status;
 

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -21,8 +22,8 @@ public class SalesReport {
     private Integer totalVisits;
 
     private Integer completedDeals;
-
-    private Double incentives;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal incentives;
 
     private String remarks;
 

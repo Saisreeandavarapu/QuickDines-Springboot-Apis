@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -18,8 +19,8 @@ public class Attendance {
     private LocalDateTime loginTime;
 
     private LocalDateTime logoutTime;
-
-    private Double totalHours;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal totalHours;
 
     private String attendanceStatus;
     private Boolean late;

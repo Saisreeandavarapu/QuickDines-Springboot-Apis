@@ -8,6 +8,7 @@ import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -74,7 +75,7 @@ public class AttendanceService {
                         attendance.getLogoutTime())
                 .toMinutes() / 60.0;
 
-        attendance.setTotalHours(totalHours);
+        attendance.setTotalHours(BigDecimal.valueOf(totalHours));
         attendance.setRemarks("Checked Out");
         attendanceRepository.save(attendance);
         return "Check Out Successful";
@@ -116,7 +117,7 @@ public class AttendanceService {
                 attendance.getLogoutTime() != null) {
             double totalHours = Duration.between(attendance.getLoginTime(), attendance.getLogoutTime())
                     .toMinutes() / 60.0;
-            existingAttendance.setTotalHours(totalHours);
+            existingAttendance.setTotalHours(BigDecimal.valueOf(totalHours));
         }
         attendanceRepository.save(existingAttendance);
 
@@ -172,7 +173,7 @@ public class AttendanceService {
         attendance.setEmployee(employee);
         attendance.setAttendanceStatus("LEAVE");
         attendance.setRemarks("Approved Leave");
-        attendance.setTotalHours(0.0);
+        attendance.setTotalHours(BigDecimal.valueOf(0.0));
 
         attendanceRepository.save(attendance);
 

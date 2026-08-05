@@ -31,11 +31,11 @@ public class EmployeeExperience {
     private LocalDate startDate;
 
     private LocalDate endDate;
-
-    private Double totalExperience;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal totalExperience;
 
     private Boolean currentCompany;
-
+    @Column(precision = 10, scale = 2)
     private BigDecimal salary;
 
     @Column(length = 1000)

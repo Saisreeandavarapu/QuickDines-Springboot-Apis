@@ -11,6 +11,7 @@ import com.HRMS.QuickDines.Task.repo.TasksRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -163,7 +164,7 @@ public class TaskService {
         report.setEmployee(employee);
         report.setCompletedTasks(completedTasks);
         report.setPendingTasks(pendingTasks);
-        report.setPerformancePercentage(performancePercentage);
+        report.setPerformancePercentage(BigDecimal.valueOf(performancePercentage));
         taskReportsRepository.save(report);
         return "Task Report Generated Successfully";
     }

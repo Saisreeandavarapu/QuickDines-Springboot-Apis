@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -14,14 +15,14 @@ public class PerformanceReports {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    private Double attendancePercentage;
-
-    private Double taskCompletion;
-
-    private Double targetAchievement;
-
-    private Double performanceScore;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal attendancePercentage;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal taskCompletion;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal targetAchievement;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal performanceScore;
 
     private String remarks;
 

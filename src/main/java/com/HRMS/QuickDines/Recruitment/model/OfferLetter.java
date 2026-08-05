@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -17,8 +18,8 @@ public class OfferLetter {
     private Long id;
 
     private String designation;
-
-    private Double offeredSalary;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal offeredSalary;
 
     private LocalDate joiningDate;
 

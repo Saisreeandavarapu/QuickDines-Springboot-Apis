@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -24,8 +25,8 @@ public class TaskReports {
     private Integer completedTasks;
 
     private Integer pendingTasks;
-
-    private Double performancePercentage;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal performancePercentage;
 
 
     @CreationTimestamp

@@ -5,6 +5,7 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -26,8 +27,8 @@ public class EmployeeSkill {
     private String skillCategory;
 
     private String proficiencyLevel;
-
-    private Double experienceYears;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal experienceYears;
 
     private LocalDate lastUsed;
 
