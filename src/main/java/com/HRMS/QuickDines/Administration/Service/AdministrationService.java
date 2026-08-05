@@ -130,8 +130,7 @@ public class AdministrationService {
                 .orElseThrow(() ->
                         new RuntimeException("Employee Not Found"));
 
-        Employee assignedBy = EmployeeRepository.findByEmployeeId(assignedById).orElseThrow(() ->
-                        new RuntimeException("User Not Found"));
+        Employee assignedBy = employeeRepository.findByEmployeeId(assignedById).orElseThrow(() -> new RuntimeException("User Not Found"));
 
         assignment.setAsset(asset);
         assignment.setEmployee(employee);
