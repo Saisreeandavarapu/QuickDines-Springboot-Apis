@@ -852,7 +852,7 @@ public class PayrollService {
 
         if (payrollHistory.getSalarySlip() != null && payrollHistory.getSalarySlip().getId() != null) {
 
-            SalarySlips salarySlip = salariesRepository.findById(payrollHistory.getSalarySlip().getId()).orElseThrow();
+            SalarySlips salarySlip = salarySlipsRepository.findById(payrollHistory.getSalarySlip().getId()).orElseThrow();
 
             payrollHistory.setSalarySlip(salarySlip);
         }
