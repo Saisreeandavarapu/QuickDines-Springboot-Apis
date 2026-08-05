@@ -5,24 +5,38 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-@Data
+
 @Entity
+@Data
+@Table(name = "email_notifications")
 public class EmailNotification {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "employee_id")
+    // notification_id -> notifications.id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "notification_id", nullable = false)
+    private Notification notification;
+
+    // employee_id -> employees.id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 
-    private String emailSubject;
+    @Column(name = "email_address", length = 150)
+    private String emailAddress;
 
-    private String emailMessage;
+    @Column(length = 255)
+    private String subject;
 
-    private String sentStatus;
+    // PENDING, SENT, FAILED
+    @Column(name = "email_status")
+    private String emailStatus;
 
-    private LocalDateTime sentDate;
+    @Column(name = "sent_at")
+    private LocalDateTime sentAt;
 
     private LocalDateTime createdAt;
 }

@@ -61,8 +61,8 @@ public class PayrollController {
 
 
     //=================================
-// SALARY SLIPS
-//=================================
+    // SALARY SLIPS
+    //=================================
 
     @PostMapping("/salary-slip/{employeeId}")
     public ResponseEntity<?> generateSalarySlip(
@@ -93,8 +93,8 @@ public class PayrollController {
 
 
     //=================================
-// PF DETAILS
-//=================================
+    // PF DETAILS
+    //=================================
 
     @PostMapping("/pf/{employeeId}")
     public ResponseEntity<?> createPfDetails(
@@ -124,8 +124,8 @@ public class PayrollController {
 
 
     //=================================
-// ESI DETAILS
-//=================================
+    // ESI DETAILS
+    //=================================
 
     @PostMapping("/esi/{employeeId}")
     public ResponseEntity<?> createEsiDetails(
@@ -154,8 +154,8 @@ public class PayrollController {
 
 
     //=================================
-// TDS DETAILS
-//=================================
+    // TDS DETAILS
+    //=================================
 
     @PostMapping("/tds/{employeeId}")
     public ResponseEntity<?> createTdsDetails(
@@ -185,8 +185,8 @@ public class PayrollController {
 
 
     //=================================
-// INCREMENTS
-//=================================
+    // INCREMENTS
+    //=================================
 
     @PostMapping("/increment/{employeeId}")
     public ResponseEntity<?> createIncrement(
@@ -207,8 +207,8 @@ public class PayrollController {
 
 
     //=================================
-// BONUS MANAGEMENT
-//=================================
+    // BONUS MANAGEMENT
+    //=================================
 
     @PostMapping("/bonus/{employeeId}")
     public ResponseEntity<?> createBonus(
@@ -238,8 +238,8 @@ public class PayrollController {
 
 
     //=================================
-// REPORTS
-//=================================
+    // REPORTS
+    //=================================
 
     @GetMapping("/monthly-report")
     public ResponseEntity<?> getMonthlyPayrollReport() {
@@ -269,6 +269,314 @@ public class PayrollController {
             @PathVariable String employeeId) {
 
         return ResponseEntity.ok(service.getTdsReport(employeeId));
+    }
+    //=================================
+// SALARY COMPONENTS
+//=================================
+
+    @PostMapping("/component/{companyId}")
+    public ResponseEntity<?> createSalaryComponent(
+            @PathVariable Long companyId,
+            @RequestBody SalaryComponent salaryComponent) {
+
+        return ResponseEntity.ok(
+                service.createSalaryComponent(companyId, salaryComponent));
+    }
+
+    @GetMapping("/components")
+    public ResponseEntity<?> getSalaryComponents() {
+
+        return ResponseEntity.ok(
+                service.getSalaryComponents());
+    }
+
+    @GetMapping("/component/{id}")
+    public ResponseEntity<?> getSalaryComponent(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getSalaryComponent(id));
+    }
+
+    @PutMapping("/component/{id}")
+    public ResponseEntity<?> updateSalaryComponent(
+            @PathVariable Long id,
+            @RequestBody SalaryComponent salaryComponent) {
+
+        return ResponseEntity.ok(
+                service.updateSalaryComponent(id, salaryComponent));
+    }
+
+    @DeleteMapping("/component/{id}")
+    public ResponseEntity<?> deleteSalaryComponent(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteSalaryComponent(id));
+    }
+    //=================================
+// ALLOWANCES
+//=================================
+
+    @PostMapping("/allowance/{employeeId}")
+    public ResponseEntity<?> createAllowance(
+            @PathVariable String employeeId,
+            @RequestBody Allowance allowance) {
+
+        return ResponseEntity.ok(
+                service.createAllowance(employeeId, allowance));
+    }
+
+    @GetMapping("/allowances")
+    public ResponseEntity<?> getAllowances() {
+
+        return ResponseEntity.ok(
+                service.getAllowances());
+    }
+
+    @GetMapping("/allowance/{id}")
+    public ResponseEntity<?> getAllowance(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getAllowance(id));
+    }
+
+    @PutMapping("/allowance/{id}")
+    public ResponseEntity<?> updateAllowance(
+            @PathVariable Long id,
+            @RequestBody Allowance allowance) {
+
+        return ResponseEntity.ok(
+                service.updateAllowance(id, allowance));
+    }
+
+    @DeleteMapping("/allowance/{id}")
+    public ResponseEntity<?> deleteAllowance(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteAllowance(id));
+    }
+    //=================================
+// DEDUCTIONS
+//=================================
+
+    @PostMapping("/deduction/{employeeId}")
+    public ResponseEntity<?> createDeduction(
+            @PathVariable String employeeId,
+            @RequestBody Deduction deduction) {
+
+        return ResponseEntity.ok(
+                service.createDeduction(employeeId, deduction));
+    }
+
+    @GetMapping("/deductions")
+    public ResponseEntity<?> getDeductions() {
+
+        return ResponseEntity.ok(
+                service.getDeductions());
+    }
+
+    @GetMapping("/deduction/{id}")
+    public ResponseEntity<?> getDeduction(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getDeduction(id));
+    }
+
+    @PutMapping("/deduction/{id}")
+    public ResponseEntity<?> updateDeduction(
+            @PathVariable Long id,
+            @RequestBody Deduction deduction) {
+
+        return ResponseEntity.ok(
+                service.updateDeduction(id, deduction));
+    }
+
+    @DeleteMapping("/deduction/{id}")
+    public ResponseEntity<?> deleteDeduction(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteDeduction(id));
+    }
+    //=================================
+// REIMBURSEMENTS
+//=================================
+
+    @PostMapping("/reimbursement/{employeeId}")
+    public ResponseEntity<?> createReimbursement(
+            @PathVariable String employeeId,
+            @RequestBody Reimbursement reimbursement) {
+
+        return ResponseEntity.ok(
+                service.createReimbursement(employeeId, reimbursement));
+    }
+
+    @GetMapping("/reimbursements")
+    public ResponseEntity<?> getReimbursements() {
+
+        return ResponseEntity.ok(
+                service.getReimbursements());
+    }
+
+    @GetMapping("/reimbursement/{id}")
+    public ResponseEntity<?> getReimbursement(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getReimbursement(id));
+    }
+
+    @PutMapping("/reimbursement/{id}")
+    public ResponseEntity<?> updateReimbursement(
+            @PathVariable Long id,
+            @RequestBody Reimbursement reimbursement) {
+
+        return ResponseEntity.ok(
+                service.updateReimbursement(id, reimbursement));
+    }
+
+    @DeleteMapping("/reimbursement/{id}")
+    public ResponseEntity<?> deleteReimbursement(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteReimbursement(id));
+    }
+    //=================================
+// EMPLOYEE LOANS
+//=================================
+
+    @PostMapping("/loan/{employeeId}")
+    public ResponseEntity<?> createEmployeeLoan(
+            @PathVariable String employeeId,
+            @RequestBody EmployeeLoan employeeLoan) {
+
+        return ResponseEntity.ok(
+                service.createEmployeeLoan(employeeId, employeeLoan));
+    }
+
+    @GetMapping("/loans")
+    public ResponseEntity<?> getEmployeeLoans() {
+
+        return ResponseEntity.ok(
+                service.getEmployeeLoans());
+    }
+
+    @GetMapping("/loan/{id}")
+    public ResponseEntity<?> getEmployeeLoan(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getEmployeeLoan(id));
+    }
+
+    @PutMapping("/loan/{id}")
+    public ResponseEntity<?> updateEmployeeLoan(
+            @PathVariable Long id,
+            @RequestBody EmployeeLoan employeeLoan) {
+
+        return ResponseEntity.ok(
+                service.updateEmployeeLoan(id, employeeLoan));
+    }
+
+    @DeleteMapping("/loan/{id}")
+    public ResponseEntity<?> deleteEmployeeLoan(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteEmployeeLoan(id));
+    }
+    //=================================
+// LOAN INSTALLMENTS
+//=================================
+
+    @PostMapping("/loan-installment/{loanId}")
+    public ResponseEntity<?> createLoanInstallment(
+            @PathVariable Long loanId,
+            @RequestBody LoanInstallment loanInstallment) {
+
+        return ResponseEntity.ok(
+                service.createLoanInstallment(loanId, loanInstallment));
+    }
+
+    @GetMapping("/loan-installments")
+    public ResponseEntity<?> getLoanInstallments() {
+
+        return ResponseEntity.ok(
+                service.getLoanInstallments());
+    }
+
+    @GetMapping("/loan-installment/{id}")
+    public ResponseEntity<?> getLoanInstallment(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getLoanInstallment(id));
+    }
+
+    @PutMapping("/loan-installment/{id}")
+    public ResponseEntity<?> updateLoanInstallment(
+            @PathVariable Long id,
+            @RequestBody LoanInstallment loanInstallment) {
+
+        return ResponseEntity.ok(
+                service.updateLoanInstallment(id, loanInstallment));
+    }
+
+    @DeleteMapping("/loan-installment/{id}")
+    public ResponseEntity<?> deleteLoanInstallment(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteLoanInstallment(id));
+    }
+    //=================================
+    // PAYROLL HISTORY
+    //=================================
+
+    @PostMapping("/history/{employeeId}")
+    public ResponseEntity<?> createPayrollHistory(
+            @PathVariable String employeeId,
+            @RequestBody PayrollHistory payrollHistory) {
+
+        return ResponseEntity.ok(
+                service.createPayrollHistory(employeeId, payrollHistory));
+    }
+
+    @GetMapping("/histories")
+    public ResponseEntity<?> getPayrollHistories() {
+
+        return ResponseEntity.ok(
+                service.getPayrollHistories());
+    }
+
+    @GetMapping("/history/{id}")
+    public ResponseEntity<?> getPayrollHistory(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getPayrollHistory(id));
+    }
+
+    @PutMapping("/history/{id}")
+    public ResponseEntity<?> updatePayrollHistory(
+            @PathVariable Long id,
+            @RequestBody PayrollHistory payrollHistory) {
+
+        return ResponseEntity.ok(
+                service.updatePayrollHistory(id, payrollHistory));
+    }
+
+    @DeleteMapping("/history/{id}")
+    public ResponseEntity<?> deletePayrollHistory(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deletePayrollHistory(id));
     }
 
 }

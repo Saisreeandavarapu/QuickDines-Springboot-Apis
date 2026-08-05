@@ -22,6 +22,10 @@ public class Attendance {
     private Double totalHours;
 
     private String attendanceStatus;
+    private Boolean late;
+
+    private Boolean earlyLeaving;
+
 
     private String remarks;
 

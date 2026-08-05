@@ -1,172 +1,431 @@
 package com.HRMS.QuickDines.Notification.Controller;
 
 import com.HRMS.QuickDines.Notification.Services.NotificationService;
+import com.HRMS.QuickDines.Notification.model.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/notification")
+@RequestMapping("/api/notifications")
 @RequiredArgsConstructor
 public class NotificationController {
 
     private final NotificationService service;
 
 
-    //=================================
+    //=========================================================
     // NOTIFICATIONS
-    //=================================
+    //=========================================================
 
-    @PostMapping("/notification/{employeeId}")
-    public ResponseEntity<?> createNotification(@PathVariable String employeeId) {
+    @PostMapping("/{employeeId}")
+    public ResponseEntity<?> createNotification(
+            @PathVariable String employeeId,
+            @RequestBody Notification notification) {
+
         return ResponseEntity.ok(
-                service.createNotification(employeeId));
+                service.createNotification(employeeId, notification));
     }
 
-    @GetMapping("/notifications")
+
+    @GetMapping
     public ResponseEntity<?> getNotifications() {
+
         return ResponseEntity.ok(
                 service.getNotifications());
     }
 
-    @GetMapping("/notification/{id}")
-    public ResponseEntity<?> getNotification(@PathVariable Long id) {
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getNotification(
+            @PathVariable Long id) {
+
         return ResponseEntity.ok(
                 service.getNotification(id));
     }
 
-    @PutMapping("/notification/{id}")
-    public ResponseEntity<?> updateNotification(@PathVariable Long id) {
+
+    @GetMapping("/employee/{employeeId}")
+    public ResponseEntity<?> getEmployeeNotifications(
+            @PathVariable String employeeId) {
+
         return ResponseEntity.ok(
-                service.updateNotification(id));
+                service.getEmployeeNotifications(employeeId));
     }
 
-    @DeleteMapping("/notification/{id}")
-    public ResponseEntity<?> deleteNotification(@PathVariable Long id) {
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateNotification(
+            @PathVariable Long id,
+            @RequestBody Notification notification) {
+
+        return ResponseEntity.ok(
+                service.updateNotification(id, notification));
+    }
+
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteNotification(
+            @PathVariable Long id) {
+
         return ResponseEntity.ok(
                 service.deleteNotification(id));
     }
 
 
-    //=================================
-    // EMAIL NOTIFICATIONS
-    //=================================
+    @PutMapping("/{id}/read")
+    public ResponseEntity<?> markAsRead(
+            @PathVariable Long id) {
 
-    @PostMapping("/email/{employeeId}")
-    public ResponseEntity<?> createEmailNotification(@PathVariable String employeeId) {
         return ResponseEntity.ok(
-                service.createEmailNotification(employeeId));
+                service.markAsRead(id));
     }
+
+
+    @PutMapping("/{id}/archive")
+    public ResponseEntity<?> archiveNotification(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.archiveNotification(id));
+    }
+
+
+    //=========================================================
+    // EMAIL NOTIFICATIONS
+    //=========================================================
+
+    @PostMapping("/email/{notificationId}/{employeeId}")
+    public ResponseEntity<?> createEmailNotification(
+            @PathVariable Long notificationId,
+            @PathVariable String employeeId,
+            @RequestBody EmailNotification emailNotification) {
+
+        return ResponseEntity.ok(
+                service.createEmailNotification(
+                        notificationId,
+                        employeeId,
+                        emailNotification));
+    }
+
 
     @GetMapping("/emails")
     public ResponseEntity<?> getEmailNotifications() {
+
         return ResponseEntity.ok(
                 service.getEmailNotifications());
     }
 
+
     @GetMapping("/email/{id}")
-    public ResponseEntity<?> getEmailNotification(@PathVariable Long id) {
+    public ResponseEntity<?> getEmailNotification(
+            @PathVariable Long id) {
+
         return ResponseEntity.ok(
                 service.getEmailNotification(id));
     }
 
+
     @PutMapping("/email/{id}")
-    public ResponseEntity<?> updateEmailNotification(@PathVariable Long id) {
+    public ResponseEntity<?> updateEmailNotification(
+            @PathVariable Long id,
+            @RequestBody EmailNotification emailNotification) {
+
         return ResponseEntity.ok(
-                service.updateEmailNotification(id));
+                service.updateEmailNotification(
+                        id,
+                        emailNotification));
     }
 
+
     @DeleteMapping("/email/{id}")
-    public ResponseEntity<?> deleteEmailNotification(@PathVariable Long id) {
+    public ResponseEntity<?> deleteEmailNotification(
+            @PathVariable Long id) {
+
         return ResponseEntity.ok(
                 service.deleteEmailNotification(id));
     }
 
 
-    //=================================
+    //=========================================================
     // PUSH NOTIFICATIONS
-    //=================================
+    //=========================================================
 
-    @PostMapping("/push/{employeeId}")
-    public ResponseEntity<?> createPushNotification(@PathVariable String employeeId) {
+    @PostMapping("/push/{notificationId}/{employeeId}")
+    public ResponseEntity<?> createPushNotification(
+            @PathVariable Long notificationId,
+            @PathVariable String employeeId,
+            @RequestBody PushNotification pushNotification) {
+
         return ResponseEntity.ok(
-                service.createPushNotification(employeeId));
+                service.createPushNotification(
+                        notificationId,
+                        employeeId,
+                        pushNotification));
     }
+
 
     @GetMapping("/pushes")
     public ResponseEntity<?> getPushNotifications() {
+
         return ResponseEntity.ok(
                 service.getPushNotifications());
     }
 
+
     @GetMapping("/push/{id}")
-    public ResponseEntity<?> getPushNotification(@PathVariable Long id) {
+    public ResponseEntity<?> getPushNotification(
+            @PathVariable Long id) {
+
         return ResponseEntity.ok(
                 service.getPushNotification(id));
     }
 
+
     @PutMapping("/push/{id}")
-    public ResponseEntity<?> updatePushNotification(@PathVariable Long id) {
+    public ResponseEntity<?> updatePushNotification(
+            @PathVariable Long id,
+            @RequestBody PushNotification pushNotification) {
+
         return ResponseEntity.ok(
-                service.updatePushNotification(id));
+                service.updatePushNotification(
+                        id,
+                        pushNotification));
     }
 
+
     @DeleteMapping("/push/{id}")
-    public ResponseEntity<?> deletePushNotification(@PathVariable Long id) {
+    public ResponseEntity<?> deletePushNotification(
+            @PathVariable Long id) {
+
         return ResponseEntity.ok(
                 service.deletePushNotification(id));
     }
 
 
-    //=================================
-    // REPORTS
-    //=================================
+    //=========================================================
+    // SMS NOTIFICATIONS
+    //=========================================================
 
-    @GetMapping("/notifications/read")
-    public ResponseEntity<?> readNotifications() {
-        return ResponseEntity.ok(
-                service.readNotifications());
-    }
+    @PostMapping("/sms/{notificationId}/{employeeId}")
+    public ResponseEntity<?> createSmsNotification(
+            @PathVariable Long notificationId,
+            @PathVariable String employeeId,
+            @RequestBody SmsNotification smsNotification) {
 
-    @GetMapping("/notifications/unread")
-    public ResponseEntity<?> unreadNotifications() {
         return ResponseEntity.ok(
-                service.unreadNotifications());
-    }
-
-    @GetMapping("/emails/sent")
-    public ResponseEntity<?> sentEmails() {
-        return ResponseEntity.ok(
-                service.sentEmails());
-    }
-
-    @GetMapping("/emails/pending")
-    public ResponseEntity<?> pendingEmails() {
-        return ResponseEntity.ok(
-                service.pendingEmails());
-    }
-
-    @GetMapping("/push/sent")
-    public ResponseEntity<?> sentPushNotifications() {
-        return ResponseEntity.ok(
-                service.sentPushNotifications());
-    }
-
-    @GetMapping("/push/pending")
-    public ResponseEntity<?> pendingPushNotifications() {
-        return ResponseEntity.ok(
-                service.pendingPushNotifications());
+                service.createSmsNotification(
+                        notificationId,
+                        employeeId,
+                        smsNotification));
     }
 
 
-    //=================================
-    // DASHBOARD COUNTS
-    //=================================
+    @GetMapping("/sms")
+    public ResponseEntity<?> getSmsNotifications() {
 
-    @GetMapping("/counts")
-    public ResponseEntity<?> getCounts() {
         return ResponseEntity.ok(
-                service.getCounts());
+                service.getSmsNotifications());
+    }
+
+
+    @GetMapping("/sms/{id}")
+    public ResponseEntity<?> getSmsNotification(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getSmsNotification(id));
+    }
+
+
+    @PutMapping("/sms/{id}")
+    public ResponseEntity<?> updateSmsNotification(
+            @PathVariable Long id,
+            @RequestBody SmsNotification smsNotification) {
+
+        return ResponseEntity.ok(
+                service.updateSmsNotification(
+                        id,
+                        smsNotification));
+    }
+
+
+    @DeleteMapping("/sms/{id}")
+    public ResponseEntity<?> deleteSmsNotification(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteSmsNotification(id));
+    }
+
+
+    //=========================================================
+    // WHATSAPP NOTIFICATIONS
+    //=========================================================
+
+    @PostMapping("/whatsapp/{notificationId}/{employeeId}")
+    public ResponseEntity<?> createWhatsappNotification(
+            @PathVariable Long notificationId,
+            @PathVariable String employeeId,
+            @RequestBody WhatsappNotification whatsappNotification) {
+
+        return ResponseEntity.ok(
+                service.createWhatsappNotification(
+                        notificationId,
+                        employeeId,
+                        whatsappNotification));
+    }
+
+
+    @GetMapping("/whatsapps")
+    public ResponseEntity<?> getWhatsappNotifications() {
+
+        return ResponseEntity.ok(
+                service.getWhatsappNotifications());
+    }
+
+
+    @GetMapping("/whatsapp/{id}")
+    public ResponseEntity<?> getWhatsappNotification(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getWhatsappNotification(id));
+    }
+
+
+    @PutMapping("/whatsapp/{id}")
+    public ResponseEntity<?> updateWhatsappNotification(
+            @PathVariable Long id,
+            @RequestBody WhatsappNotification whatsappNotification) {
+
+        return ResponseEntity.ok(
+                service.updateWhatsappNotification(
+                        id,
+                        whatsappNotification));
+    }
+
+
+    @DeleteMapping("/whatsapp/{id}")
+    public ResponseEntity<?> deleteWhatsappNotification(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteWhatsappNotification(id));
+    }
+
+
+    //=========================================================
+    // NOTIFICATION TEMPLATES
+    //=========================================================
+
+    @PostMapping("/template")
+    public ResponseEntity<?> createTemplate(
+            @RequestBody NotificationTemplate template) {
+
+        return ResponseEntity.ok(
+                service.createTemplate(template));
+    }
+
+
+    @GetMapping("/templates")
+    public ResponseEntity<?> getTemplates() {
+
+        return ResponseEntity.ok(
+                service.getTemplates());
+    }
+
+
+    @GetMapping("/template/{id}")
+    public ResponseEntity<?> getTemplate(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getTemplate(id));
+    }
+
+
+    @PutMapping("/template/{id}")
+    public ResponseEntity<?> updateTemplate(
+            @PathVariable Long id,
+            @RequestBody NotificationTemplate template) {
+
+        return ResponseEntity.ok(
+                service.updateTemplate(id, template));
+    }
+
+
+    @DeleteMapping("/template/{id}")
+    public ResponseEntity<?> deleteTemplate(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteTemplate(id));
+    }
+
+
+    //=========================================================
+    // NOTIFICATION LOGS
+    //=========================================================
+
+    @PostMapping("/log/{notificationId}/{employeeId}")
+    public ResponseEntity<?> createNotificationLog(
+            @PathVariable Long notificationId,
+            @PathVariable String employeeId,
+            @RequestBody NotificationLog notificationLog) {
+
+        return ResponseEntity.ok(
+                service.createNotificationLog(
+                        notificationId,
+                        employeeId,
+                        notificationLog));
+    }
+
+
+    @GetMapping("/logs")
+    public ResponseEntity<?> getNotificationLogs() {
+
+        return ResponseEntity.ok(
+                service.getNotificationLogs());
+    }
+
+
+    @GetMapping("/log/{id}")
+    public ResponseEntity<?> getNotificationLog(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getNotificationLog(id));
+    }
+
+
+    @GetMapping("/logs/employee/{employeeId}")
+    public ResponseEntity<?> getEmployeeNotificationLogs(
+            @PathVariable String employeeId) {
+
+        return ResponseEntity.ok(
+                service.getEmployeeNotificationLogs(employeeId));
+    }
+
+
+    @PutMapping("/log/{id}")
+    public ResponseEntity<?> updateNotificationLog(
+            @PathVariable Long id,
+            @RequestBody NotificationLog notificationLog) {
+
+        return ResponseEntity.ok(
+                service.updateNotificationLog(
+                        id,
+                        notificationLog));
+    }
+
+
+    @DeleteMapping("/log/{id}")
+    public ResponseEntity<?> deleteNotificationLog(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteNotificationLog(id));
     }
 
 }

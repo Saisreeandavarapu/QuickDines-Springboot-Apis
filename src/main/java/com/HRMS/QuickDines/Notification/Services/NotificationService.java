@@ -2,47 +2,50 @@ package com.HRMS.QuickDines.Notification.Services;
 
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
-import com.HRMS.QuickDines.Notification.model.EmailNotification;
-import com.HRMS.QuickDines.Notification.model.Notification;
-import com.HRMS.QuickDines.Notification.model.PushNotification;
-import com.HRMS.QuickDines.Notification.repo.EmailNotificationRepository;
-import com.HRMS.QuickDines.Notification.repo.NotificationRepository;
-import com.HRMS.QuickDines.Notification.repo.PushNotificationRepository;
+import com.HRMS.QuickDines.Notification.model.*;
+import com.HRMS.QuickDines.Notification.repo.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
-    private final EmployeeRepository employeeRepository;
     private final EmailNotificationRepository emailNotificationRepository;
     private final PushNotificationRepository pushNotificationRepository;
+    private final SmsNotificationRepository smsNotificationRepository;
+    private final WhatsappNotificationRepository whatsappNotificationRepository;
+    private final NotificationTemplateRepository notificationTemplateRepository;
+    private final NotificationLogRepository notificationLogRepository;
+
+    private final EmployeeRepository employeeRepository;
 
 
-    //=================================
+    //=========================================================
     // NOTIFICATIONS
-    //=================================
+    //=========================================================
 
-    public String createNotification(String employeeId) {
+    public String createNotification(
+            String employeeId,
+            Notification notification) {
 
-        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
-
-        Notification notification = new Notification();
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() ->
+                        new RuntimeException("Employee Not Found"));
 
         notification.setEmployee(employee);
-        notification.setTitle("Welcome");
-        notification.setMessage("Welcome to QuickDines");
-        notification.setNotificationType("SYSTEM");
-        notification.setNotificationStatus("UNREAD");
+
+        if (notification.getIsRead() == null) {
+            notification.setIsRead(false);
+        }
+
+        if (notification.getStatus() == null) {
+            notification.setStatus("ACTIVE");
+        }
 
         notificationRepository.save(notification);
 
@@ -50,26 +53,51 @@ public class NotificationService {
     }
 
 
-    public Object getNotifications() {
+    public List<Notification> getNotifications() {
 
         return notificationRepository.findAll();
     }
 
 
-    public Object getNotification(Long id) {
+    public Notification getNotification(Long id) {
 
-        return notificationRepository.findById(id).orElseThrow(() -> new RuntimeException("Notification Not Found"));
+        return notificationRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Notification Not Found"));
     }
 
 
-    public String updateNotification(Long id) {
+    public List<Notification> getEmployeeNotifications(
+            String employeeId) {
 
-        Notification notification = notificationRepository.findById(id).orElseThrow(() ->
-                        new RuntimeException("Notification Not Found"));
+        employeeRepository.findById(employeeId)
+                .orElseThrow(() ->
+                        new RuntimeException("Employee Not Found"));
 
-        notification.setNotificationStatus("READ");
+        return notificationRepository
+                .findByEmployeeEmployeeId(employeeId);
+    }
 
-        notificationRepository.save(notification);
+
+    public String updateNotification(
+            Long id,
+            Notification notification) {
+
+        Notification existing =
+                notificationRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Notification Not Found"));
+
+        existing.setTitle(notification.getTitle());
+        existing.setMessage(notification.getMessage());
+        existing.setNotificationType(
+                notification.getNotificationType());
+        existing.setPriority(notification.getPriority());
+        existing.setIsRead(notification.getIsRead());
+        existing.setStatus(notification.getStatus());
+
+        notificationRepository.save(existing);
 
         return "Notification Updated Successfully";
     }
@@ -77,33 +105,84 @@ public class NotificationService {
 
     public String deleteNotification(Long id) {
 
-        Notification notification = notificationRepository.findById(id).orElseThrow(() ->
-                        new RuntimeException("Notification Not Found"));
+        Notification existing =
+                notificationRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Notification Not Found"));
 
-        notificationRepository.delete(notification);
+        notificationRepository.delete(existing);
 
         return "Notification Deleted Successfully";
     }
 
 
+    public String markAsRead(Long id) {
 
-    //=================================
+        Notification notification =
+                notificationRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Notification Not Found"));
+
+        notification.setIsRead(true);
+
+        notificationRepository.save(notification);
+
+        return "Notification Marked As Read";
+    }
+
+
+    public String archiveNotification(Long id) {
+
+        Notification notification =
+                notificationRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Notification Not Found"));
+
+        notification.setStatus("ARCHIVED");
+
+        notificationRepository.save(notification);
+
+        return "Notification Archived Successfully";
+    }
+
+
+    //=========================================================
     // EMAIL NOTIFICATIONS
-    //=================================
+    //=========================================================
 
-    public String createEmailNotification(String employeeId) {
+    public String createEmailNotification(
+            Long notificationId,
+            String employeeId,
+            EmailNotification emailNotification) {
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Notification notification =
+                notificationRepository.findById(notificationId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Notification Not Found"));
 
-        EmailNotification email = new EmailNotification();
+        Employee employee =
+                employeeRepository.findById(employeeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Employee Not Found"));
 
-        email.setEmployee(employee);
-        email.setEmailSubject("Welcome Mail");
-        email.setEmailMessage("Welcome to QuickDines HRMS.");
-        email.setSentStatus("SENT");
-        email.setSentDate(LocalDateTime.from(LocalDate.now()));
+        emailNotification.setNotification(notification);
+        emailNotification.setEmployee(employee);
 
-        emailNotificationRepository.save(email);
+        if (emailNotification.getEmailStatus() == null) {
+            emailNotification.setEmailStatus("PENDING");
+        }
+
+        if (emailNotification.getEmailAddress() == null) {
+            emailNotification.setEmailAddress(
+                    employee.getEmail());
+        }
+
+        emailNotificationRepository.save(emailNotification);
 
         return "Email Notification Created Successfully";
     }
@@ -112,24 +191,41 @@ public class NotificationService {
     public List<EmailNotification> getEmailNotifications() {
 
         return emailNotificationRepository.findAll();
-
     }
 
 
-    public List<EmailNotification> getEmailNotification(Long id) {
+    public EmailNotification getEmailNotification(Long id) {
 
-        return Collections.singletonList(emailNotificationRepository.findById(id).orElseThrow(() -> new RuntimeException("Email Notification Not Found")));
-
+        return emailNotificationRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Email Notification Not Found"));
     }
 
 
-    public String updateEmailNotification(Long id) {
+    public String updateEmailNotification(
+            Long id,
+            EmailNotification emailNotification) {
 
-        EmailNotification email = emailNotificationRepository.findById(id).orElseThrow(() -> new RuntimeException("Email Notification Not Found"));
+        EmailNotification existing =
+                emailNotificationRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Email Notification Not Found"));
 
-        email.setSentStatus("SENT");
+        existing.setEmailAddress(
+                emailNotification.getEmailAddress());
 
-        emailNotificationRepository.save(email);
+        existing.setSubject(
+                emailNotification.getSubject());
+
+        existing.setEmailStatus(
+                emailNotification.getEmailStatus());
+
+        existing.setSentAt(
+                emailNotification.getSentAt());
+
+        emailNotificationRepository.save(existing);
 
         return "Email Notification Updated Successfully";
     }
@@ -137,29 +233,45 @@ public class NotificationService {
 
     public String deleteEmailNotification(Long id) {
 
-        EmailNotification email = emailNotificationRepository.findById(id).orElseThrow(() -> new RuntimeException("Email Notification Not Found"));
+        EmailNotification existing =
+                emailNotificationRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Email Notification Not Found"));
 
-        emailNotificationRepository.delete(email);
+        emailNotificationRepository.delete(existing);
 
         return "Email Notification Deleted Successfully";
     }
 
 
-//=================================
-// PUSH NOTIFICATIONS
-//=================================
+    //=========================================================
+    // PUSH NOTIFICATIONS
+    //=========================================================
 
-    public String createPushNotification(String employeeId) {
+    public String createPushNotification(
+            Long notificationId,
+            String employeeId,
+            PushNotification pushNotification) {
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Notification notification =
+                notificationRepository.findById(notificationId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Notification Not Found"));
 
-        PushNotification pushNotification = new PushNotification();
+        Employee employee =
+                employeeRepository.findById(employeeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Employee Not Found"));
 
+        pushNotification.setNotification(notification);
         pushNotification.setEmployee(employee);
-        pushNotification.setNotificationTitle("Welcome Notification");
-        pushNotification.setNotificationMessage("Welcome to QuickDines HRMS.");
-        pushNotification.setSentStatus("SENT");
-        pushNotification.setSentDate(LocalDateTime.from(LocalDate.now()));
+
+        if (pushNotification.getPushStatus() == null) {
+            pushNotification.setPushStatus("PENDING");
+        }
 
         pushNotificationRepository.save(pushNotification);
 
@@ -167,27 +279,44 @@ public class NotificationService {
     }
 
 
-    public Object getPushNotifications() {
+    public List<PushNotification> getPushNotifications() {
 
         return pushNotificationRepository.findAll();
-
     }
 
 
-    public Object getPushNotification(Long id) {
+    public PushNotification getPushNotification(Long id) {
 
-        return pushNotificationRepository.findById(id).orElseThrow(() -> new RuntimeException("Push Notification Not Found"));
-
+        return pushNotificationRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Push Notification Not Found"));
     }
 
 
-    public String updatePushNotification(Long id) {
+    public String updatePushNotification(
+            Long id,
+            PushNotification pushNotification) {
 
-        PushNotification pushNotification = pushNotificationRepository.findById(id).orElseThrow(() -> new RuntimeException("Push Notification Not Found"));
+        PushNotification existing =
+                pushNotificationRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Push Notification Not Found"));
 
-        pushNotification.setSentStatus("SENT");
+        existing.setDeviceToken(
+                pushNotification.getDeviceToken());
 
-        pushNotificationRepository.save(pushNotification);
+        existing.setPlatform(
+                pushNotification.getPlatform());
+
+        existing.setPushStatus(
+                pushNotification.getPushStatus());
+
+        existing.setSentAt(
+                pushNotification.getSentAt());
+
+        pushNotificationRepository.save(existing);
 
         return "Push Notification Updated Successfully";
     }
@@ -195,79 +324,410 @@ public class NotificationService {
 
     public String deletePushNotification(Long id) {
 
-        PushNotification pushNotification = pushNotificationRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Push Notification Not Found"));
+        PushNotification existing =
+                pushNotificationRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Push Notification Not Found"));
 
-        pushNotificationRepository.delete(pushNotification);
+        pushNotificationRepository.delete(existing);
 
         return "Push Notification Deleted Successfully";
     }
 
 
-//=================================
-// REPORTS
-//=================================
+    //=========================================================
+    // SMS NOTIFICATIONS
+    //=========================================================
 
-    public Object readNotifications() {
+    public String createSmsNotification(
+            Long notificationId,
+            String employeeId,
+            SmsNotification smsNotification) {
 
-        return notificationRepository.findByNotificationStatus("READ");
+        Notification notification =
+                notificationRepository.findById(notificationId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Notification Not Found"));
+
+        Employee employee =
+                employeeRepository.findById(employeeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Employee Not Found"));
+
+        smsNotification.setNotification(notification);
+        smsNotification.setEmployee(employee);
+
+        if (smsNotification.getDeliveryStatus() == null) {
+            smsNotification.setDeliveryStatus("PENDING");
+        }
+
+        if (smsNotification.getMobileNumber() == null) {
+            smsNotification.setMobileNumber(
+                    employee.getMobileNumber());
+        }
+
+        smsNotificationRepository.save(smsNotification);
+
+        return "SMS Notification Created Successfully";
     }
 
 
-    public Object unreadNotifications() {
+    public List<SmsNotification> getSmsNotifications() {
 
-        return notificationRepository.findByNotificationStatus("UNREAD");
-    }
-
-    public Object sentEmails() {
-
-        return emailNotificationRepository
-                .findBySentStatus("SENT");
-
+        return smsNotificationRepository.findAll();
     }
 
 
-    public Object pendingEmails() {
+    public SmsNotification getSmsNotification(Long id) {
 
-        return emailNotificationRepository
-                .findBySentStatus("PENDING");
-
-    }
-
-    public Object sentPushNotifications() {
-
-        return pushNotificationRepository
-                .findBySentStatus("SENT");
-
+        return smsNotificationRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "SMS Notification Not Found"));
     }
 
 
-    public Object pendingPushNotifications() {
+    public String updateSmsNotification(
+            Long id,
+            SmsNotification smsNotification) {
 
-        return pushNotificationRepository
-                .findBySentStatus("PENDING");
+        SmsNotification existing =
+                smsNotificationRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "SMS Notification Not Found"));
 
+        existing.setMobileNumber(
+                smsNotification.getMobileNumber());
+
+        existing.setSmsMessage(
+                smsNotification.getSmsMessage());
+
+        existing.setProviderName(
+                smsNotification.getProviderName());
+
+        existing.setDeliveryStatus(
+                smsNotification.getDeliveryStatus());
+
+        existing.setSentAt(
+                smsNotification.getSentAt());
+
+        smsNotificationRepository.save(existing);
+
+        return "SMS Notification Updated Successfully";
     }
 
 
-//=================================
-// DASHBOARD COUNTS
-//=================================
+    public String deleteSmsNotification(Long id) {
 
-    public Object getCounts() {
+        SmsNotification existing =
+                smsNotificationRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "SMS Notification Not Found"));
 
-        Map<String, Long> counts = new HashMap<>();
+        smsNotificationRepository.delete(existing);
 
-        counts.put("Total Notifications",
-                notificationRepository.count());
-
-        counts.put("Read Notifications",
-                notificationRepository.countByNotificationStatus("READ"));
-
-        counts.put("Unread Notifications",
-                notificationRepository.countByNotificationStatus("UNREAD"));
-
-        return counts;
+        return "SMS Notification Deleted Successfully";
     }
+
+
+    //=========================================================
+    // WHATSAPP NOTIFICATIONS
+    //=========================================================
+
+    public String createWhatsappNotification(
+            Long notificationId,
+            String employeeId,
+            WhatsappNotification whatsappNotification) {
+
+        Notification notification =
+                notificationRepository.findById(notificationId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Notification Not Found"));
+
+        Employee employee =
+                employeeRepository.findById(employeeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Employee Not Found"));
+
+        whatsappNotification.setNotification(notification);
+        whatsappNotification.setEmployee(employee);
+
+        if (whatsappNotification.getDeliveryStatus() == null) {
+            whatsappNotification.setDeliveryStatus("PENDING");
+        }
+
+        if (whatsappNotification.getMobileNumber() == null) {
+            whatsappNotification.setMobileNumber(
+                    employee.getMobileNumber());
+        }
+
+        whatsappNotificationRepository.save(
+                whatsappNotification);
+
+        return "WhatsApp Notification Created Successfully";
+    }
+
+
+    public List<WhatsappNotification> getWhatsappNotifications() {
+
+        return whatsappNotificationRepository.findAll();
+    }
+
+
+    public WhatsappNotification getWhatsappNotification(Long id) {
+
+        return whatsappNotificationRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "WhatsApp Notification Not Found"));
+    }
+
+
+    public String updateWhatsappNotification(
+            Long id,
+            WhatsappNotification whatsappNotification) {
+
+        WhatsappNotification existing =
+                whatsappNotificationRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "WhatsApp Notification Not Found"));
+
+        existing.setMobileNumber(
+                whatsappNotification.getMobileNumber());
+
+        existing.setTemplateName(
+                whatsappNotification.getTemplateName());
+
+        existing.setMessage(
+                whatsappNotification.getMessage());
+
+        existing.setMediaUrl(
+                whatsappNotification.getMediaUrl());
+
+        existing.setDeliveryStatus(
+                whatsappNotification.getDeliveryStatus());
+
+        existing.setSentAt(
+                whatsappNotification.getSentAt());
+
+        whatsappNotificationRepository.save(existing);
+
+        return "WhatsApp Notification Updated Successfully";
+    }
+
+
+    public String deleteWhatsappNotification(Long id) {
+
+        WhatsappNotification existing =
+                whatsappNotificationRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "WhatsApp Notification Not Found"));
+
+        whatsappNotificationRepository.delete(existing);
+
+        return "WhatsApp Notification Deleted Successfully";
+    }
+
+
+    //=========================================================
+    // NOTIFICATION TEMPLATES
+    //=========================================================
+
+    public String createTemplate(
+            NotificationTemplate template) {
+
+        if (template.getStatus() == null) {
+            template.setStatus("ACTIVE");
+        }
+
+        notificationTemplateRepository.save(template);
+
+        return "Notification Template Created Successfully";
+    }
+
+
+    public List<NotificationTemplate> getTemplates() {
+
+        return notificationTemplateRepository.findAll();
+    }
+
+
+    public NotificationTemplate getTemplate(Long id) {
+
+        return notificationTemplateRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Notification Template Not Found"));
+    }
+
+
+    public String updateTemplate(
+            Long id,
+            NotificationTemplate template) {
+
+        NotificationTemplate existing =
+                notificationTemplateRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Notification Template Not Found"));
+
+        existing.setTemplateName(
+                template.getTemplateName());
+
+        existing.setTemplateCode(
+                template.getTemplateCode());
+
+        existing.setNotificationChannel(
+                template.getNotificationChannel());
+
+        existing.setSubject(
+                template.getSubject());
+
+        existing.setMessageTemplate(
+                template.getMessageTemplate());
+
+        existing.setVariables(
+                template.getVariables());
+
+        existing.setStatus(
+                template.getStatus());
+
+        notificationTemplateRepository.save(existing);
+
+        return "Notification Template Updated Successfully";
+    }
+
+
+    public String deleteTemplate(Long id) {
+
+        NotificationTemplate existing =
+                notificationTemplateRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Notification Template Not Found"));
+
+        notificationTemplateRepository.delete(existing);
+
+        return "Notification Template Deleted Successfully";
+    }
+
+
+    //=========================================================
+    // NOTIFICATION LOGS
+    //=========================================================
+
+    public String createNotificationLog(
+            Long notificationId,
+            String employeeId,
+            NotificationLog notificationLog) {
+
+        Notification notification =
+                notificationRepository.findById(notificationId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Notification Not Found"));
+
+        Employee employee =
+                employeeRepository.findById(employeeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Employee Not Found"));
+
+        notificationLog.setNotification(notification);
+        notificationLog.setEmployee(employee);
+
+        if (notificationLog.getDeliveryStatus() == null) {
+            notificationLog.setDeliveryStatus("PENDING");
+        }
+
+        notificationLogRepository.save(notificationLog);
+
+        return "Notification Log Created Successfully";
+    }
+
+
+    public List<NotificationLog> getNotificationLogs() {
+
+        return notificationLogRepository.findAll();
+    }
+
+
+    public NotificationLog getNotificationLog(Long id) {
+
+        return notificationLogRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Notification Log Not Found"));
+    }
+
+
+    public List<NotificationLog> getEmployeeNotificationLogs(
+            String employeeId) {
+
+        employeeRepository.findById(employeeId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Employee Not Found"));
+
+        return notificationLogRepository
+                .findByEmployeeEmployeeId(employeeId);
+    }
+
+
+    public String updateNotificationLog(
+            Long id,
+            NotificationLog notificationLog) {
+
+        NotificationLog existing =
+                notificationLogRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Notification Log Not Found"));
+
+        existing.setTemplate(
+                notificationLog.getTemplate());
+
+        existing.setChannel(
+                notificationLog.getChannel());
+
+        existing.setDeliveryStatus(
+                notificationLog.getDeliveryStatus());
+
+        existing.setErrorMessage(
+                notificationLog.getErrorMessage());
+
+        existing.setSentAt(
+                notificationLog.getSentAt());
+
+        existing.setDeliveredAt(
+                notificationLog.getDeliveredAt());
+
+        notificationLogRepository.save(existing);
+
+        return "Notification Log Updated Successfully";
+    }
+
+
+    public String deleteNotificationLog(Long id) {
+
+        NotificationLog existing =
+                notificationLogRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Notification Log Not Found"));
+
+        notificationLogRepository.delete(existing);
+
+        return "Notification Log Deleted Successfully";
+    }
+
 }

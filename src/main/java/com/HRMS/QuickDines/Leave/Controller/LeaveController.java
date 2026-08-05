@@ -1,9 +1,7 @@
 package com.HRMS.QuickDines.Leave.Controller;
 
 import com.HRMS.QuickDines.Leave.Service.LeaveService;
-import com.HRMS.QuickDines.Leave.model.LeaveBalance;
-import com.HRMS.QuickDines.Leave.model.LeaveRequest;
-import com.HRMS.QuickDines.Leave.model.LeaveType;
+import com.HRMS.QuickDines.Leave.model.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -211,5 +209,211 @@ public ResponseEntity<?> getEmployeeLeaves(
 
         return ResponseEntity.ok(service.getRejectedLeaves());
     }
+
+//=========================================================
+// LEAVE POLICIES
+//=========================================================
+
+    @PostMapping("/policy/{companyId}")
+    public ResponseEntity<?> createLeavePolicy(
+            @PathVariable Long companyId,
+            @RequestBody LeavePolicy leavePolicy) {
+
+        return ResponseEntity.ok(
+                service.createLeavePolicy(companyId, leavePolicy));
+    }
+
+
+    @GetMapping("/policies")
+    public ResponseEntity<?> getLeavePolicies() {
+
+        return ResponseEntity.ok(
+                service.getLeavePolicies());
+    }
+
+
+    @GetMapping("/policy/{id}")
+    public ResponseEntity<?> getLeavePolicy(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getLeavePolicy(id));
+    }
+
+
+    @PutMapping("/policy/{id}")
+    public ResponseEntity<?> updateLeavePolicy(
+            @PathVariable Long id,
+            @RequestBody LeavePolicy leavePolicy) {
+
+        return ResponseEntity.ok(
+                service.updateLeavePolicy(id, leavePolicy));
+    }
+
+
+    @DeleteMapping("/policy/{id}")
+    public ResponseEntity<?> deleteLeavePolicy(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteLeavePolicy(id));
+    }
+
+
+//=========================================================
+// LEAVE ENCASHMENT
+//=========================================================
+
+    @PostMapping("/encashment/{employeeId}")
+    public ResponseEntity<?> createLeaveEncashment(
+            @PathVariable String employeeId,
+            @RequestBody LeaveEncashment leaveEncashment) {
+
+        return ResponseEntity.ok(
+                service.createLeaveEncashment(employeeId, leaveEncashment));
+    }
+
+
+    @GetMapping("/encashments")
+    public ResponseEntity<?> getLeaveEncashments() {
+
+        return ResponseEntity.ok(
+                service.getLeaveEncashments());
+    }
+
+
+    @GetMapping("/encashment/{id}")
+    public ResponseEntity<?> getLeaveEncashment(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getLeaveEncashment(id));
+    }
+
+
+    @PutMapping("/encashment/{id}")
+    public ResponseEntity<?> updateLeaveEncashment(
+            @PathVariable Long id,
+            @RequestBody LeaveEncashment leaveEncashment) {
+
+        return ResponseEntity.ok(
+                service.updateLeaveEncashment(id, leaveEncashment));
+    }
+
+
+    @DeleteMapping("/encashment/{id}")
+    public ResponseEntity<?> deleteLeaveEncashment(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteLeaveEncashment(id));
+    }
+
+
+//=========================================================
+// LEAVE CANCELLATIONS
+//=========================================================
+
+    @PostMapping("/cancellation/{leaveRequestId}/{employeeId}")
+    public ResponseEntity<?> createLeaveCancellation(
+            @PathVariable Long leaveRequestId,
+            @PathVariable String employeeId,
+            @RequestBody LeaveCancellation leaveCancellation) {
+
+        return ResponseEntity.ok(
+                service.createLeaveCancellation(
+                        leaveRequestId,
+                        employeeId,
+                        leaveCancellation));
+    }
+
+
+    @GetMapping("/cancellations")
+    public ResponseEntity<?> getLeaveCancellations() {
+
+        return ResponseEntity.ok(
+                service.getLeaveCancellations());
+    }
+
+
+    @GetMapping("/cancellation/{id}")
+    public ResponseEntity<?> getLeaveCancellation(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getLeaveCancellation(id));
+    }
+
+
+    @PutMapping("/cancellation/{id}")
+    public ResponseEntity<?> updateLeaveCancellation(
+            @PathVariable Long id,
+            @RequestBody LeaveCancellation leaveCancellation) {
+
+        return ResponseEntity.ok(
+                service.updateLeaveCancellation(id, leaveCancellation));
+    }
+
+
+    @DeleteMapping("/cancellation/{id}")
+    public ResponseEntity<?> deleteLeaveCancellation(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteLeaveCancellation(id));
+    }
+
+
+//=========================================================
+// LEAVE ENCASHMENT REPORTS
+//=========================================================
+
+    @GetMapping("/encashment/pending")
+    public ResponseEntity<?> getPendingEncashments() {
+
+        return ResponseEntity.ok(
+                service.getPendingEncashments());
+    }
+
+
+    @GetMapping("/encashment/approved")
+    public ResponseEntity<?> getApprovedEncashments() {
+
+        return ResponseEntity.ok(
+                service.getApprovedEncashments());
+    }
+
+
+//=========================================================
+// LEAVE CANCELLATION REPORTS
+//=========================================================
+
+    @GetMapping("/cancellation/pending")
+    public ResponseEntity<?> getPendingCancellations() {
+
+        return ResponseEntity.ok(
+                service.getPendingCancellations());
+    }
+
+
+    @GetMapping("/cancellation/approved")
+    public ResponseEntity<?> getApprovedCancellations() {
+
+        return ResponseEntity.ok(
+                service.getApprovedCancellations());
+    }
+
+
+//=========================================================
+// LEAVE POLICY REPORT
+//=========================================================
+
+    @GetMapping("/policies/active")
+    public ResponseEntity<?> getActiveLeavePolicies() {
+
+        return ResponseEntity.ok(
+                service.getActiveLeavePolicies());
+    }
+
 
 }

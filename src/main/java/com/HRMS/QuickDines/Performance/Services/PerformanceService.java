@@ -2,12 +2,8 @@ package com.HRMS.QuickDines.Performance.Services;
 
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
-import com.HRMS.QuickDines.Performance.model.AuditReports;
-import com.HRMS.QuickDines.Performance.model.EmployeeRankings;
-import com.HRMS.QuickDines.Performance.model.PerformanceReports;
-import com.HRMS.QuickDines.Performance.repo.AuditReportsRepository;
-import com.HRMS.QuickDines.Performance.repo.EmployeeRankingsRepository;
-import com.HRMS.QuickDines.Performance.repo.PerformanceReportsRepository;
+import com.HRMS.QuickDines.Performance.model.*;
+import com.HRMS.QuickDines.Performance.repo.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +20,13 @@ public class PerformanceService {
     private final PerformanceReportsRepository performanceReportsRepository;
     private final AuditReportsRepository auditReportsRepository;
     private final EmployeeRankingsRepository employeeRankingsRepository;
+    private final GoalRepository goalRepository;
+    private final KpiRepository kpiRepository;
+    private final AppraisalRepository appraisalRepository;
+    private final SelfReviewRepository selfReviewRepository;
+    private final ManagerReviewRepository managerReviewRepository;
+    private final PromotionRecommendationRepository promotionRecommendationRepository;
+
 
 
 //=================================
@@ -316,6 +319,401 @@ public class PerformanceService {
         counts.put("pendingAudits", auditReportsRepository.findByAuditStatus("PENDING").size());
 
         return counts;
+    }
+    //=========================================================
+    // GOALS
+    //=========================================================
+
+    public String createGoal(
+            String employeeId,
+            Goal goal) {
+
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() ->
+                        new RuntimeException("Employee Not Found"));
+
+        goal.setEmployee(employee);
+
+        goalRepository.save(goal);
+
+        return "Goal Created Successfully";
+    }
+
+
+    public List<Goal> getGoals() {
+
+        return goalRepository.findAll();
+    }
+
+
+    public Goal getGoal(Long id) {
+
+        return goalRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Goal Not Found"));
+    }
+
+
+    public String updateGoal(
+            Long id,
+            Goal goal) {
+
+        Goal existing = goalRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Goal Not Found"));
+
+        existing.setGoalTitle(goal.getGoalTitle());
+        existing.setGoalDescription(goal.getGoalDescription());
+        existing.setGoalCategory(goal.getGoalCategory());
+        existing.setStartDate(goal.getStartDate());
+        existing.setEndDate(goal.getEndDate());
+        existing.setTargetValue(goal.getTargetValue());
+        existing.setAchievedValue(goal.getAchievedValue());
+        existing.setStatus(goal.getStatus());
+
+        goalRepository.save(existing);
+
+        return "Goal Updated Successfully";
+    }
+
+
+    public String deleteGoal(Long id) {
+
+        Goal existing = goalRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Goal Not Found"));
+
+        goalRepository.delete(existing);
+
+        return "Goal Deleted Successfully";
+    }
+
+
+    //=========================================================
+    // KPIs
+    //=========================================================
+
+    public String createKpi(
+            Long goalId,
+            String employeeId,
+            Kpi kpi) {
+
+        Goal goal = goalRepository.findById(goalId)
+                .orElseThrow(() ->
+                        new RuntimeException("Goal Not Found"));
+
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() ->
+                        new RuntimeException("Employee Not Found"));
+
+        kpi.setGoal(goal);
+        kpi.setEmployee(employee);
+
+        kpiRepository.save(kpi);
+
+        return "KPI Created Successfully";
+    }
+
+
+    public List<Kpi> getKpis() {
+
+        return kpiRepository.findAll();
+    }
+
+
+    public Kpi getKpi(Long id) {
+
+        return kpiRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("KPI Not Found"));
+    }
+
+
+    public String updateKpi(
+            Long id,
+            Kpi kpi) {
+
+        Kpi existing = kpiRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("KPI Not Found"));
+
+        existing.setKpiName(kpi.getKpiName());
+        existing.setTargetScore(kpi.getTargetScore());
+        existing.setAchievedScore(kpi.getAchievedScore());
+        existing.setWeightage(kpi.getWeightage());
+        existing.setEvaluationPeriod(kpi.getEvaluationPeriod());
+        existing.setStatus(kpi.getStatus());
+
+        kpiRepository.save(existing);
+
+        return "KPI Updated Successfully";
+    }
+
+
+    public String deleteKpi(Long id) {
+
+        Kpi existing = kpiRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("KPI Not Found"));
+
+        kpiRepository.delete(existing);
+
+        return "KPI Deleted Successfully";
+    }
+
+
+    //=========================================================
+    // APPRAISALS
+    //=========================================================
+
+    public String createAppraisal(
+            String employeeId,
+            Appraisal appraisal) {
+
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() ->
+                        new RuntimeException("Employee Not Found"));
+
+        appraisal.setEmployee(employee);
+
+        appraisalRepository.save(appraisal);
+
+        return "Appraisal Created Successfully";
+    }
+
+
+    public List<Appraisal> getAppraisals() {
+
+        return appraisalRepository.findAll();
+    }
+
+
+    public Appraisal getAppraisal(Long id) {
+
+        return appraisalRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Appraisal Not Found"));
+    }
+
+
+    public String updateAppraisal(Long id, Appraisal appraisal) {
+
+        Appraisal existing = appraisalRepository.findById(id).orElseThrow(() -> new RuntimeException("Appraisal Not Found"));
+
+        existing.setAppraisalPeriod(appraisal.getAppraisalPeriod());
+
+        existing.setAppraisalYear(appraisal.getAppraisalYear());
+
+        existing.setOverallScore(appraisal.getOverallScore());
+
+        existing.setRating(appraisal.getRating());
+
+        existing.setAppraisalStatus(appraisal.getAppraisalStatus());
+
+        existing.setAppraisedBy(appraisal.getAppraisedBy());
+
+        existing.setRemarks(appraisal.getRemarks());
+
+        appraisalRepository.save(existing);
+
+        return "Appraisal Updated Successfully";
+    }
+
+
+    public String deleteAppraisal(Long id) {
+
+        Appraisal existing = appraisalRepository.findById(id).orElseThrow(() -> new RuntimeException("Appraisal Not Found"));
+
+        appraisalRepository.delete(existing);
+
+        return "Appraisal Deleted Successfully";
+    }
+
+
+    //=========================================================
+    // SELF REVIEWS
+    //=========================================================
+
+    public String createSelfReview(Long appraisalId, String employeeId, SelfReview selfReview) {
+
+        Appraisal appraisal = appraisalRepository.findById(appraisalId).orElseThrow(() -> new RuntimeException("Appraisal Not Found"));
+
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+
+        selfReview.setAppraisal(appraisal);
+        selfReview.setEmployee(employee);
+
+        selfReviewRepository.save(selfReview);
+
+        return "Self Review Created Successfully";
+    }
+
+
+    public List<SelfReview> getSelfReviews() {
+
+        return selfReviewRepository.findAll();
+    }
+
+
+    public SelfReview getSelfReview(Long id) {
+
+        return selfReviewRepository.findById(id).orElseThrow(() -> new RuntimeException("Self Review Not Found"));
+    }
+
+
+    public String updateSelfReview(Long id, SelfReview selfReview) {
+
+        SelfReview existing = selfReviewRepository.findById(id).orElseThrow(() -> new RuntimeException("Self Review Not Found"));
+
+        existing.setStrengths(selfReview.getStrengths());
+
+        existing.setImprovements(selfReview.getImprovements());
+
+        existing.setAchievements(selfReview.getAchievements());
+
+        existing.setOverallRating(selfReview.getOverallRating());
+
+        existing.setSubmittedAt(selfReview.getSubmittedAt());
+
+        selfReviewRepository.save(existing);
+
+        return "Self Review Updated Successfully";
+    }
+
+
+    public String deleteSelfReview(Long id) {
+
+        SelfReview existing = selfReviewRepository.findById(id).orElseThrow(() -> new RuntimeException("Self Review Not Found"));
+
+        selfReviewRepository.delete(existing);
+
+        return "Self Review Deleted Successfully";
+    }
+
+
+    //=========================================================
+    // MANAGER REVIEWS
+    //=========================================================
+
+    public String createManagerReview(Long appraisalId, String managerId, String employeeId, ManagerReview managerReview) {
+
+        Appraisal appraisal = appraisalRepository.findById(appraisalId).orElseThrow(() -> new RuntimeException("Appraisal Not Found"));
+        Employee manager = employeeRepository.findById(managerId).orElseThrow(() -> new RuntimeException("Manager Not Found"));
+
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+
+        managerReview.setAppraisal(appraisal);
+        managerReview.setManager(manager);
+        managerReview.setEmployee(employee);
+
+        managerReviewRepository.save(managerReview);
+
+        return "Manager Review Created Successfully";
+    }
+
+
+    public List<ManagerReview> getManagerReviews() {
+
+        return managerReviewRepository.findAll();
+    }
+
+
+    public ManagerReview getManagerReview(Long id) {
+
+        return managerReviewRepository.findById(id).orElseThrow(() -> new RuntimeException("Manager Review Not Found"));
+    }
+
+
+    public String updateManagerReview(Long id, ManagerReview managerReview) {
+
+        ManagerReview existing = managerReviewRepository.findById(id).orElseThrow(() -> new RuntimeException("Manager Review Not Found"));
+
+        existing.setPerformanceRating(managerReview.getPerformanceRating());
+
+        existing.setStrengths(managerReview.getStrengths());
+
+        existing.setImprovementPlan(managerReview.getImprovementPlan());
+
+        existing.setRecommendations(managerReview.getRecommendations());
+
+        existing.setReviewDate(managerReview.getReviewDate());
+
+        managerReviewRepository.save(existing);
+
+        return "Manager Review Updated Successfully";
+    }
+
+
+    public String deleteManagerReview(Long id) {
+
+        ManagerReview existing = managerReviewRepository.findById(id).orElseThrow(() -> new RuntimeException("Manager Review Not Found"));
+
+        managerReviewRepository.delete(existing);
+
+        return "Manager Review Deleted Successfully";
+    }
+
+
+    //=========================================================
+    // PROMOTION RECOMMENDATIONS
+    //=========================================================
+
+    public String createPromotionRecommendation(String employeeId, Long appraisalId, PromotionRecommendation recommendation) {
+
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+
+        Appraisal appraisal = appraisalRepository.findById(appraisalId).orElseThrow(() -> new RuntimeException("Appraisal Not Found"));
+
+        recommendation.setEmployee(employee);
+        recommendation.setAppraisal(appraisal);
+
+        promotionRecommendationRepository.save(recommendation);
+
+        return "Promotion Recommendation Created Successfully";
+    }
+
+
+    public List<PromotionRecommendation> getPromotionRecommendations() {
+
+        return promotionRecommendationRepository.findAll();
+    }
+
+
+    public PromotionRecommendation getPromotionRecommendation(Long id) {
+
+        return promotionRecommendationRepository.findById(id).orElseThrow(() -> new RuntimeException("Promotion Recommendation Not Found"));
+    }
+
+
+    public String updatePromotionRecommendation(Long id, PromotionRecommendation recommendation) {
+
+        PromotionRecommendation existing = promotionRecommendationRepository.findById(id).orElseThrow(() -> new RuntimeException("Promotion Recommendation Not Found"));
+
+        existing.setCurrentDesignation(recommendation.getCurrentDesignation());
+
+        existing.setRecommendedDesignation(recommendation.getRecommendedDesignation());
+
+        existing.setRecommendedSalary(recommendation.getRecommendedSalary());
+
+        existing.setRecommendationReason(recommendation.getRecommendationReason());
+
+        existing.setApprovedBy(recommendation.getApprovedBy());
+
+        existing.setStatus(recommendation.getStatus());
+
+        promotionRecommendationRepository.save(existing);
+
+        return "Promotion Recommendation Updated Successfully";
+    }
+
+
+    public String deletePromotionRecommendation(Long id) {
+
+        PromotionRecommendation existing = promotionRecommendationRepository.findById(id).orElseThrow(() -> new RuntimeException("Promotion Recommendation Not Found"));
+
+        promotionRecommendationRepository.delete(existing);
+
+        return "Promotion Recommendation Deleted Successfully";
     }
 
 

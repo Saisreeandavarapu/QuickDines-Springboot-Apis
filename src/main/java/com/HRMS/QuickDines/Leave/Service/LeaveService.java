@@ -4,18 +4,13 @@ import com.HRMS.QuickDines.AdvanceServices.EmailService;
 import com.HRMS.QuickDines.Employee.Service.EmployeeService;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
-import com.HRMS.QuickDines.Leave.model.LeaveApproval;
-import com.HRMS.QuickDines.Leave.model.LeaveBalance;
-import com.HRMS.QuickDines.Leave.model.LeaveRequest;
-import com.HRMS.QuickDines.Leave.model.LeaveType;
-import com.HRMS.QuickDines.Leave.repo.LeaveApprovalRepository;
-import com.HRMS.QuickDines.Leave.repo.LeaveBalanceRepository;
-import com.HRMS.QuickDines.Leave.repo.LeaveRequestRepository;
-import com.HRMS.QuickDines.Leave.repo.LeaveTypeRepository;
+import com.HRMS.QuickDines.Leave.model.*;
+import com.HRMS.QuickDines.Leave.repo.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +22,9 @@ public class LeaveService {
     private final LeaveRequestRepository leaveRequestRepository;
     private final EmployeeRepository employeeRepository;
     private final EmailService emailService;
+    private final LeavePolicyRepository leavePolicyRepository;
+    private final LeaveEncashmentRepository leaveEncashmentRepository;
+    private final LeaveCancellationRepository leaveCancellationRepository;
 
     public String createLeaveType(LeaveType leaveType){
 
@@ -357,5 +355,338 @@ public class LeaveService {
 
         return leaveRequestRepository.findByStatus("REJECTED");
     }
+
+//=========================================================
+// LEAVE POLICIES
+//=========================================================
+
+    public String createLeavePolicy(
+            Long companyId,
+            LeavePolicy leavePolicy) {
+
+        // If Company entity is available:
+        // Company company = companyRepository.findById(companyId)
+        //         .orElseThrow(() ->
+        //                 new RuntimeException("Company Not Found"));
+        //
+        // leavePolicy.setCompany(company);
+
+        leavePolicyRepository.save(leavePolicy);
+
+        return "Leave Policy Created Successfully";
+    }
+
+
+    public List<LeavePolicy> getLeavePolicies() {
+
+        return leavePolicyRepository.findAll();
+    }
+
+
+    public LeavePolicy getLeavePolicy(Long id) {
+
+        return leavePolicyRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Leave Policy Not Found"));
+    }
+
+
+    public String updateLeavePolicy(
+            Long id,
+            LeavePolicy leavePolicy) {
+
+        LeavePolicy existingPolicy =
+                leavePolicyRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Leave Policy Not Found"));
+
+        existingPolicy.setPolicyName(
+                leavePolicy.getPolicyName());
+
+        existingPolicy.setAnnualLimit(
+                leavePolicy.getAnnualLimit());
+
+        existingPolicy.setCarryForwardLimit(
+                leavePolicy.getCarryForwardLimit());
+
+        existingPolicy.setEncashmentAllowed(
+                leavePolicy.getEncashmentAllowed());
+
+        existingPolicy.setApprovalRequired(
+                leavePolicy.getApprovalRequired());
+
+        existingPolicy.setStatus(
+                leavePolicy.getStatus());
+
+        leavePolicyRepository.save(existingPolicy);
+
+        return "Leave Policy Updated Successfully";
+    }
+
+
+    public String deleteLeavePolicy(Long id) {
+
+        LeavePolicy existingPolicy =
+                leavePolicyRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Leave Policy Not Found"));
+
+        leavePolicyRepository.delete(existingPolicy);
+
+        return "Leave Policy Deleted Successfully";
+    }
+
+
+//=========================================================
+// LEAVE ENCASHMENT
+//=========================================================
+
+    public String createLeaveEncashment(
+            String employeeId,
+            LeaveEncashment leaveEncashment) {
+
+        Employee employee =
+                employeeRepository.findById(employeeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Employee Not Found"));
+
+        leaveEncashment.setEmployee(employee);
+
+        if (leaveEncashment.getStatus() == null) {
+            leaveEncashment.setStatus("PENDING");
+        }
+
+        leaveEncashmentRepository.save(leaveEncashment);
+
+        return "Leave Encashment Request Created Successfully";
+    }
+
+
+    public List<LeaveEncashment> getLeaveEncashments() {
+
+        return leaveEncashmentRepository.findAll();
+    }
+
+
+    public LeaveEncashment getLeaveEncashment(Long id) {
+
+        return leaveEncashmentRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Leave Encashment Not Found"));
+    }
+
+
+    public String updateLeaveEncashment(
+            Long id,
+            LeaveEncashment leaveEncashment) {
+
+        LeaveEncashment existingEncashment =
+                leaveEncashmentRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Leave Encashment Not Found"));
+
+        existingEncashment.setEncashedDays(
+                leaveEncashment.getEncashedDays());
+
+        existingEncashment.setAmount(
+                leaveEncashment.getAmount());
+
+        existingEncashment.setStatus(
+                leaveEncashment.getStatus());
+
+        existingEncashment.setApprovedBy(
+                leaveEncashment.getApprovedBy());
+
+        leaveEncashmentRepository.save(existingEncashment);
+
+        return "Leave Encashment Updated Successfully";
+    }
+
+
+    public String deleteLeaveEncashment(Long id) {
+
+        LeaveEncashment existingEncashment =
+                leaveEncashmentRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Leave Encashment Not Found"));
+
+        leaveEncashmentRepository.delete(existingEncashment);
+
+        return "Leave Encashment Deleted Successfully";
+    }
+
+
+//=========================================================
+// LEAVE CANCELLATIONS
+//=========================================================
+
+    public String createLeaveCancellation(
+            Long leaveRequestId,
+            String employeeId,
+            LeaveCancellation leaveCancellation) {
+
+        LeaveRequest leaveRequest =
+                leaveRequestRepository.findById(leaveRequestId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Leave Request Not Found"));
+
+        Employee employee =
+                employeeRepository.findById(employeeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Employee Not Found"));
+
+        leaveCancellation.setLeaveRequest(leaveRequest);
+        leaveCancellation.setEmployee(employee);
+
+        if (leaveCancellation.getCancellationDate() == null) {
+            leaveCancellation.setCancellationDate(
+                    LocalDate.now());
+        }
+
+        if (leaveCancellation.getStatus() == null) {
+            leaveCancellation.setStatus("PENDING");
+        }
+
+        leaveCancellationRepository.save(leaveCancellation);
+
+        return "Leave Cancellation Request Created Successfully";
+    }
+
+
+    public List<LeaveCancellation> getLeaveCancellations() {
+
+        return leaveCancellationRepository.findAll();
+    }
+
+
+    public LeaveCancellation getLeaveCancellation(Long id) {
+
+        return leaveCancellationRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Leave Cancellation Not Found"));
+    }
+
+
+    public String updateLeaveCancellation(
+            Long id,
+            LeaveCancellation leaveCancellation) {
+
+        LeaveCancellation existingCancellation =
+                leaveCancellationRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Leave Cancellation Not Found"));
+
+        existingCancellation.setCancellationReason(
+                leaveCancellation.getCancellationReason());
+
+        existingCancellation.setCancellationDate(
+                leaveCancellation.getCancellationDate());
+
+        existingCancellation.setRefundLeaveDays(
+                leaveCancellation.getRefundLeaveDays());
+
+        existingCancellation.setStatus(
+                leaveCancellation.getStatus());
+
+        existingCancellation.setCancelledBy(
+                leaveCancellation.getCancelledBy());
+
+        leaveCancellationRepository.save(existingCancellation);
+
+        return "Leave Cancellation Updated Successfully";
+    }
+
+
+    public String deleteLeaveCancellation(Long id) {
+
+        LeaveCancellation existingCancellation =
+                leaveCancellationRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Leave Cancellation Not Found"));
+
+        leaveCancellationRepository.delete(existingCancellation);
+
+        return "Leave Cancellation Deleted Successfully";
+    }
+
+
+//=========================================================
+// LEAVE ENCASHMENT REPORTS
+//=========================================================
+
+    public List<LeaveEncashment> getPendingEncashments() {
+
+        return leaveEncashmentRepository.findAll()
+                .stream()
+                .filter(encashment ->
+                        "PENDING".equalsIgnoreCase(
+                                encashment.getStatus()))
+                .toList();
+    }
+
+
+    public List<LeaveEncashment> getApprovedEncashments() {
+
+        return leaveEncashmentRepository.findAll()
+                .stream()
+                .filter(encashment ->
+                        "APPROVED".equalsIgnoreCase(
+                                encashment.getStatus()))
+                .toList();
+    }
+
+
+//=========================================================
+// LEAVE CANCELLATION REPORTS
+//=========================================================
+
+    public List<LeaveCancellation> getPendingCancellations() {
+
+        return leaveCancellationRepository.findAll()
+                .stream()
+                .filter(cancellation ->
+                        "PENDING".equalsIgnoreCase(
+                                cancellation.getStatus()))
+                .toList();
+    }
+
+
+    public List<LeaveCancellation> getApprovedCancellations() {
+
+        return leaveCancellationRepository.findAll()
+                .stream()
+                .filter(cancellation ->
+                        "APPROVED".equalsIgnoreCase(
+                                cancellation.getStatus()))
+                .toList();
+    }
+
+
+//=========================================================
+// ACTIVE LEAVE POLICIES
+//=========================================================
+
+    public List<LeavePolicy> getActiveLeavePolicies() {
+
+        return leavePolicyRepository.findAll()
+                .stream()
+                .filter(policy ->
+                        "ACTIVE".equalsIgnoreCase(
+                                policy.getStatus()))
+                .toList();
+    }
+
+
 
 }

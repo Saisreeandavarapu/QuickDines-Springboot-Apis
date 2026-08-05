@@ -13,4 +13,5 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     Long countByNotificationStatus(String status);
 
+    List<Notification> findByEmployeeEmployeeId(String employeeId);
 }

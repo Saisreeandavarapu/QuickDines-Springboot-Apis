@@ -1,10 +1,7 @@
 package com.HRMS.QuickDines.Finance.Controller;
 
 import com.HRMS.QuickDines.Finance.Service.FinanceService;
-import com.HRMS.QuickDines.Finance.model.Expenses;
-import com.HRMS.QuickDines.Finance.model.Settlements;
-import com.HRMS.QuickDines.Finance.model.TaxReports;
-import com.HRMS.QuickDines.Finance.model.Transactions;
+import com.HRMS.QuickDines.Finance.model.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -249,4 +246,434 @@ public class FinanceController {
 
         return ResponseEntity.ok(service.getCounts());
     }
+    //=========================================================
+    // INVOICE MANAGEMENT
+    //=========================================================
+
+    @PostMapping("/invoice")
+    public ResponseEntity<?> createInvoice(
+            @RequestBody InvoiceManagement invoice) {
+
+        return ResponseEntity.ok(
+                service.createInvoice(invoice));
+    }
+
+    @GetMapping("/invoices")
+    public ResponseEntity<?> getInvoices() {
+
+        return ResponseEntity.ok(
+                service.getInvoices());
+    }
+
+    @GetMapping("/invoice/{id}")
+    public ResponseEntity<?> getInvoice(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getInvoice(id));
+    }
+
+    @PutMapping("/invoice/{id}")
+    public ResponseEntity<?> updateInvoice(
+            @PathVariable Long id,
+            @RequestBody InvoiceManagement invoice) {
+
+        return ResponseEntity.ok(
+                service.updateInvoice(id, invoice));
+    }
+
+    @DeleteMapping("/invoice/{id}")
+    public ResponseEntity<?> deleteInvoice(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteInvoice(id));
+    }
+
+
+    //=========================================================
+    // ACCOUNTS PAYABLE
+    //=========================================================
+
+    @PostMapping("/payable")
+    public ResponseEntity<?> createPayable(
+            @RequestBody AccountsPayable payable) {
+
+        return ResponseEntity.ok(
+                service.createPayable(payable));
+    }
+
+    @GetMapping("/payables")
+    public ResponseEntity<?> getPayables() {
+
+        return ResponseEntity.ok(
+                service.getPayables());
+    }
+
+    @GetMapping("/payable/{id}")
+    public ResponseEntity<?> getPayable(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getPayable(id));
+    }
+
+    @PutMapping("/payable/{id}")
+    public ResponseEntity<?> updatePayable(
+            @PathVariable Long id,
+            @RequestBody AccountsPayable payable) {
+
+        return ResponseEntity.ok(
+                service.updatePayable(id, payable));
+    }
+
+    @DeleteMapping("/payable/{id}")
+    public ResponseEntity<?> deletePayable(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deletePayable(id));
+    }
+
+
+    //=========================================================
+    // ACCOUNTS RECEIVABLE
+    //=========================================================
+
+    @PostMapping("/receivable")
+    public ResponseEntity<?> createReceivable(
+            @RequestBody AccountsReceivable receivable) {
+
+        return ResponseEntity.ok(
+                service.createReceivable(receivable));
+    }
+
+    @GetMapping("/receivables")
+    public ResponseEntity<?> getReceivables() {
+
+        return ResponseEntity.ok(
+                service.getReceivables());
+    }
+
+    @GetMapping("/receivable/{id}")
+    public ResponseEntity<?> getReceivable(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getReceivable(id));
+    }
+
+    @PutMapping("/receivable/{id}")
+    public ResponseEntity<?> updateReceivable(
+            @PathVariable Long id,
+            @RequestBody AccountsReceivable receivable) {
+
+        return ResponseEntity.ok(
+                service.updateReceivable(id, receivable));
+    }
+
+    @DeleteMapping("/receivable/{id}")
+    public ResponseEntity<?> deleteReceivable(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteReceivable(id));
+    }
+
+
+    //=========================================================
+    // GENERAL LEDGER
+    //=========================================================
+
+    @PostMapping("/ledger")
+    public ResponseEntity<?> createLedger(
+            @RequestBody GeneralLedger ledger) {
+
+        return ResponseEntity.ok(
+                service.createLedger(ledger));
+    }
+
+    @GetMapping("/ledgers")
+    public ResponseEntity<?> getLedgers() {
+
+        return ResponseEntity.ok(
+                service.getLedgers());
+    }
+
+    @GetMapping("/ledger/{id}")
+    public ResponseEntity<?> getLedger(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getLedger(id));
+    }
+
+    @PutMapping("/ledger/{id}")
+    public ResponseEntity<?> updateLedger(
+            @PathVariable Long id,
+            @RequestBody GeneralLedger ledger) {
+
+        return ResponseEntity.ok(
+                service.updateLedger(id, ledger));
+    }
+
+    @DeleteMapping("/ledger/{id}")
+    public ResponseEntity<?> deleteLedger(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteLedger(id));
+    }
+
+
+    //=========================================================
+    // BUDGET MANAGEMENT
+    //=========================================================
+
+    @PostMapping("/budget")
+    public ResponseEntity<?> createBudget(
+            @RequestBody Budget budget) {
+
+        return ResponseEntity.ok(
+                service.createBudget(budget));
+    }
+
+    @GetMapping("/budgets")
+    public ResponseEntity<?> getBudgets() {
+
+        return ResponseEntity.ok(
+                service.getBudgets());
+    }
+
+    @GetMapping("/budget/{id}")
+    public ResponseEntity<?> getBudget(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getBudget(id));
+    }
+
+    @PutMapping("/budget/{id}")
+    public ResponseEntity<?> updateBudget(
+            @PathVariable Long id,
+            @RequestBody Budget budget) {
+
+        return ResponseEntity.ok(
+                service.updateBudget(id, budget));
+    }
+
+    @DeleteMapping("/budget/{id}")
+    public ResponseEntity<?> deleteBudget(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteBudget(id));
+    }
+
+
+    //=========================================================
+    // PROFIT & LOSS
+    //=========================================================
+
+    @PostMapping("/profit-loss")
+    public ResponseEntity<?> createProfitLoss(
+            @RequestBody ProfitLoss profitLoss) {
+
+        return ResponseEntity.ok(
+                service.createProfitLoss(profitLoss));
+    }
+
+    @GetMapping("/profit-losses")
+    public ResponseEntity<?> getProfitLosses() {
+
+        return ResponseEntity.ok(
+                service.getProfitLosses());
+    }
+
+    @GetMapping("/profit-loss/{id}")
+    public ResponseEntity<?> getProfitLoss(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getProfitLoss(id));
+    }
+
+    @PutMapping("/profit-loss/{id}")
+    public ResponseEntity<?> updateProfitLoss(
+            @PathVariable Long id,
+            @RequestBody ProfitLoss profitLoss) {
+
+        return ResponseEntity.ok(
+                service.updateProfitLoss(id, profitLoss));
+    }
+
+    @DeleteMapping("/profit-loss/{id}")
+    public ResponseEntity<?> deleteProfitLoss(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteProfitLoss(id));
+    }
+
+
+    //=========================================================
+    // BALANCE SHEET
+    //=========================================================
+
+    @PostMapping("/balance-sheet")
+    public ResponseEntity<?> createBalanceSheet(
+            @RequestBody BalanceSheet balanceSheet) {
+
+        return ResponseEntity.ok(
+                service.createBalanceSheet(balanceSheet));
+    }
+
+    @GetMapping("/balance-sheets")
+    public ResponseEntity<?> getBalanceSheets() {
+
+        return ResponseEntity.ok(
+                service.getBalanceSheets());
+    }
+
+    @GetMapping("/balance-sheet/{id}")
+    public ResponseEntity<?> getBalanceSheet(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getBalanceSheet(id));
+    }
+
+    @PutMapping("/balance-sheet/{id}")
+    public ResponseEntity<?> updateBalanceSheet(
+            @PathVariable Long id,
+            @RequestBody BalanceSheet balanceSheet) {
+
+        return ResponseEntity.ok(
+                service.updateBalanceSheet(id, balanceSheet));
+    }
+
+    @DeleteMapping("/balance-sheet/{id}")
+    public ResponseEntity<?> deleteBalanceSheet(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteBalanceSheet(id));
+    }
+
+    //=========================================================
+    // ACCOUNTS PAYABLE
+    //=========================================================
+
+    @GetMapping("/accounts-payable/invoice/{invoiceNumber}")
+    public ResponseEntity<?> getAccountsPayableByInvoiceNumber(
+            @PathVariable String invoiceNumber) {
+
+        return ResponseEntity.ok(
+                service.getAccountsPayableByInvoiceNumber(invoiceNumber));
+    }
+
+
+    //=========================================================
+    // ACCOUNTS RECEIVABLE
+    //=========================================================
+
+    @GetMapping("/accounts-receivable/invoice/{invoiceNumber}")
+    public ResponseEntity<?> getAccountsReceivableByInvoiceNumber(
+            @PathVariable String invoiceNumber) {
+
+        return ResponseEntity.ok(
+                service.getAccountsReceivableByInvoiceNumber(invoiceNumber));
+    }
+
+
+    //=========================================================
+    // GENERAL LEDGER
+    //=========================================================
+
+    @GetMapping("/general-ledger/account/{accountCode}")
+    public ResponseEntity<?> getGeneralLedgerByAccountCode(
+            @PathVariable String accountCode) {
+
+        return ResponseEntity.ok(
+                service.getGeneralLedgerByAccountCode(accountCode));
+    }
+
+
+    //=========================================================
+    // BUDGETS
+    //=========================================================
+
+    @GetMapping("/budgets/department/{departmentId}")
+    public ResponseEntity<?> getBudgetsByDepartment(
+            @PathVariable Long departmentId) {
+
+        return ResponseEntity.ok(
+                service.getBudgetsByDepartment(departmentId));
+    }
+
+
+    //=========================================================
+    // PROFIT & LOSS
+    //=========================================================
+
+    @GetMapping("/profit-loss/year/{financialYear}")
+    public ResponseEntity<?> getProfitLossByFinancialYear(
+            @PathVariable String financialYear) {
+
+        return ResponseEntity.ok(
+                service.getProfitLossByFinancialYear(financialYear));
+    }
+
+
+    //=========================================================
+    // BALANCE SHEET
+    //=========================================================
+
+    @GetMapping("/balance-sheet/year/{financialYear}")
+    public ResponseEntity<?> getBalanceSheetByFinancialYear(
+            @PathVariable String financialYear) {
+
+        return ResponseEntity.ok(
+                service.getBalanceSheetByFinancialYear(financialYear));
+    }
+
+
+    //=========================================================
+    // INVOICE MANAGEMENT - INVOICE NUMBER
+    //=========================================================
+
+    @GetMapping("/invoice/invoice-number/{invoiceNumber}")
+    public ResponseEntity<?> getInvoiceByInvoiceNumber(
+            @PathVariable String invoiceNumber) {
+
+        return ResponseEntity.ok(
+                service.getInvoiceByInvoiceNumber(invoiceNumber));
+    }
+
+
+    //=========================================================
+    // INVOICE MANAGEMENT - CUSTOMER
+    //=========================================================
+
+    @GetMapping("/invoice/customer/{customerId}")
+    public ResponseEntity<?> getInvoicesByCustomer(
+            @PathVariable Long customerId) {
+
+        return ResponseEntity.ok(
+                service.getInvoicesByCustomer(customerId));
+    }
+
+
+    //=========================================================
+    // INVOICE MANAGEMENT - VENDOR
+    //=========================================================
+
+    @GetMapping("/invoice/vendor/{vendorId}")
+    public ResponseEntity<?> getInvoicesByVendor(
+            @PathVariable Long vendorId) {
+
+        return ResponseEntity.ok(
+                service.getInvoicesByVendor(vendorId));
+    }
+
 }

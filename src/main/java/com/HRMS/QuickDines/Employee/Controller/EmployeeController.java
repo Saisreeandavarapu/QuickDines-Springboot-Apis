@@ -334,7 +334,389 @@ public class EmployeeController {
                 service.deleteExitManagement(employeeId));
     }
 
+//=================================
+// EMPLOYEE SKILLS
+//=================================
 
+    @PostMapping("/skill/{employeeId}")
+    public ResponseEntity<?> createSkill(
+            @PathVariable String employeeId,
+            @RequestBody EmployeeSkill employeeSkill) {
+
+        return ResponseEntity.ok(
+                service.createSkill(employeeId, employeeSkill));
+    }
+
+    @GetMapping("/skills")
+    public ResponseEntity<?> getSkills() {
+
+        return ResponseEntity.ok(service.getSkills());
+    }
+
+    @GetMapping("/skill/{id}")
+    public ResponseEntity<?> getSkill(@PathVariable Long id) {
+
+        return ResponseEntity.ok(service.getSkill(id));
+    }
+
+    @PutMapping("/skill/{id}")
+    public ResponseEntity<?> updateSkill(
+            @PathVariable Long id,
+            @RequestBody EmployeeSkill employeeSkill) {
+
+        return ResponseEntity.ok(service.updateSkill(id, employeeSkill));
+    }
+
+    @DeleteMapping("/skill/{id}")
+    public ResponseEntity<?> deleteSkill(@PathVariable Long id) {
+
+        return ResponseEntity.ok(service.deleteSkill(id));
+    }
+
+    //=================================
+// EMPLOYEE CERTIFICATIONS
+//=================================
+
+    @PostMapping("/certification/{employeeId}")
+    public ResponseEntity<?> createCertification(
+            @PathVariable String employeeId,
+            @RequestBody EmployeeCertification employeeCertification) {
+
+        return ResponseEntity.ok(service.createCertification(employeeId, employeeCertification));
+    }
+
+    @GetMapping("/certifications")
+    public ResponseEntity<?> getCertifications() {
+
+        return ResponseEntity.ok(service.getCertifications());
+    }
+
+    @GetMapping("/certification/{id}")
+    public ResponseEntity<?> getCertification(@PathVariable Long id) {
+
+        return ResponseEntity.ok(service.getCertification(id));
+    }
+
+    @PutMapping("/certification/{id}")
+    public ResponseEntity<?> updateCertification(
+            @PathVariable Long id,
+            @RequestBody EmployeeCertification employeeCertification) {
+
+        return ResponseEntity.ok(service.updateCertification(id, employeeCertification));
+    }
+
+    @DeleteMapping("/certification/{id}")
+    public ResponseEntity<?> deleteCertification(@PathVariable Long id) {
+
+        return ResponseEntity.ok(service.deleteCertification(id));
+    }
+
+    //=================================
+// EMPLOYEE EXPERIENCE
+//=================================
+
+    @PostMapping("/experience/{employeeId}")
+    public ResponseEntity<?> createExperience(
+            @PathVariable String employeeId,
+            @RequestBody EmployeeExperience employeeExperience) {
+
+        return ResponseEntity.ok(
+                service.createExperience(employeeId, employeeExperience));
+    }
+
+    @GetMapping("/experiences")
+    public ResponseEntity<?> getExperiences() {
+
+        return ResponseEntity.ok(
+                service.getExperiences());
+    }
+
+    @GetMapping("/experience/{id}")
+    public ResponseEntity<?> getExperience(@PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getExperience(id));
+    }
+
+    @PutMapping("/experience/{id}")
+    public ResponseEntity<?> updateExperience(
+            @PathVariable Long id,
+            @RequestBody EmployeeExperience employeeExperience) {
+
+        return ResponseEntity.ok(
+                service.updateExperience(id, employeeExperience));
+    }
+
+    @DeleteMapping("/experience/{id}")
+    public ResponseEntity<?> deleteExperience(@PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteExperience(id));
+    }
+
+    //=================================
+// EMPLOYEE LANGUAGES
+//=================================
+
+    @PostMapping("/language/{employeeId}")
+    public ResponseEntity<?> createLanguage(
+            @PathVariable String employeeId,
+            @RequestBody EmployeeLanguage employeeLanguage) {
+
+        return ResponseEntity.ok(
+                service.createLanguage(employeeId, employeeLanguage));
+    }
+
+    @GetMapping("/languages")
+    public ResponseEntity<?> getLanguages() {
+
+        return ResponseEntity.ok(
+                service.getLanguages());
+    }
+
+    @GetMapping("/language/{id}")
+    public ResponseEntity<?> getLanguage(@PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getLanguage(id));
+    }
+
+    @PutMapping("/language/{id}")
+    public ResponseEntity<?> updateLanguage(
+            @PathVariable Long id,
+            @RequestBody EmployeeLanguage employeeLanguage) {
+
+        return ResponseEntity.ok(
+                service.updateLanguage(id, employeeLanguage));
+    }
+
+    @DeleteMapping("/language/{id}")
+    public ResponseEntity<?> deleteLanguage(@PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteLanguage(id));
+    }
+
+    //=================================
+// EMPLOYEE FAMILY MEMBERS
+//=================================
+
+    @PostMapping("/family/{employeeId}")
+    public ResponseEntity<?> createFamilyMember(
+            @PathVariable String employeeId,
+            @RequestBody EmployeeFamilyMember employeeFamilyMember) {
+
+        return ResponseEntity.ok(
+                service.createFamilyMember(employeeId, employeeFamilyMember));
+    }
+
+    @GetMapping("/families")
+    public ResponseEntity<?> getFamilyMembers() {
+
+        return ResponseEntity.ok(
+                service.getFamilyMembers());
+    }
+
+    @GetMapping("/family/{id}")
+    public ResponseEntity<?> getFamilyMember(@PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getFamilyMember(id));
+    }
+
+    @PutMapping("/family/{id}")
+    public ResponseEntity<?> updateFamilyMember(
+            @PathVariable Long id,
+            @RequestBody EmployeeFamilyMember employeeFamilyMember) {
+
+        return ResponseEntity.ok(
+                service.updateFamilyMember(id, employeeFamilyMember));
+    }
+
+    @DeleteMapping("/family/{id}")
+    public ResponseEntity<?> deleteFamilyMember(@PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteFamilyMember(id));
+    }
+
+    //=================================
+// EMPLOYEE ADDRESSES
+//=================================
+
+    @PostMapping("/address/{employeeId}")
+    public ResponseEntity<?> createAddress(
+            @PathVariable String employeeId,
+            @RequestBody EmployeeAddress employeeAddress) {
+
+        return ResponseEntity.ok(
+                service.createAddress(employeeId, employeeAddress));
+    }
+
+    @GetMapping("/addresses")
+    public ResponseEntity<?> getAddresses() {
+
+        return ResponseEntity.ok(
+                service.getAddresses());
+    }
+
+    @GetMapping("/address/{id}")
+    public ResponseEntity<?> getAddress(@PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getAddress(id));
+    }
+
+    @PutMapping("/address/{id}")
+    public ResponseEntity<?> updateAddress(
+            @PathVariable Long id,
+            @RequestBody EmployeeAddress employeeAddress) {
+
+        return ResponseEntity.ok(
+                service.updateAddress(id, employeeAddress));
+    }
+
+    @DeleteMapping("/address/{id}")
+    public ResponseEntity<?> deleteAddress(@PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteAddress(id));
+    }
+
+    //=================================
+// EMPLOYEE PROMOTIONS
+//=================================
+
+    @PostMapping("/promotion/{employeeId}")
+    public ResponseEntity<?> createPromotion(
+            @PathVariable String employeeId,
+            @RequestBody EmployeePromotion employeePromotion) {
+
+        return ResponseEntity.ok(
+                service.createPromotion(employeeId, employeePromotion));
+    }
+
+    @GetMapping("/promotions")
+    public ResponseEntity<?> getPromotions() {
+
+        return ResponseEntity.ok(
+                service.getPromotions());
+    }
+
+    @GetMapping("/promotion/{id}")
+    public ResponseEntity<?> getPromotion(@PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getPromotion(id));
+    }
+
+    @PutMapping("/promotion/{id}")
+    public ResponseEntity<?> updatePromotion(
+            @PathVariable Long id,
+            @RequestBody EmployeePromotion employeePromotion) {
+
+        return ResponseEntity.ok(
+                service.updatePromotion(id, employeePromotion));
+    }
+
+    @DeleteMapping("/promotion/{id}")
+    public ResponseEntity<?> deletePromotion(@PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deletePromotion(id));
+    }
+
+    //=================================
+// EMPLOYEE TRANSFERS
+//=================================
+
+    @PostMapping("/transfer/{employeeId}")
+    public ResponseEntity<?> createTransfer(
+            @PathVariable String employeeId,
+            @RequestBody EmployeeTransfer employeeTransfer) {
+
+        return ResponseEntity.ok(
+                service.createTransfer(employeeId, employeeTransfer));
+    }
+
+    @GetMapping("/transfers")
+    public ResponseEntity<?> getTransfers() {
+
+        return ResponseEntity.ok(
+                service.getTransfers());
+    }
+
+    @GetMapping("/transfer/{id}")
+    public ResponseEntity<?> getTransfer(@PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getTransfer(id));
+    }
+
+    @PutMapping("/transfer/{id}")
+    public ResponseEntity<?> updateTransfer(
+            @PathVariable Long id,
+            @RequestBody EmployeeTransfer employeeTransfer) {
+
+        return ResponseEntity.ok(
+                service.updateTransfer(id, employeeTransfer));
+    }
+
+    @DeleteMapping("/transfer/{id}")
+    public ResponseEntity<?> deleteTransfer(@PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteTransfer(id));
+    }
+
+    //=================================
+// REPORTS
+//=================================
+
+    @GetMapping("/skills/certified")
+    public ResponseEntity<?> certifiedSkills() {
+        return ResponseEntity.ok(service.certifiedSkills());
+    }
+
+    @GetMapping("/certifications/active")
+    public ResponseEntity<?> activeCertifications() {
+        return ResponseEntity.ok(service.activeCertifications());
+    }
+
+    @GetMapping("/certifications/expired")
+    public ResponseEntity<?> expiredCertifications() {
+        return ResponseEntity.ok(service.expiredCertifications());
+    }
+
+    @GetMapping("/experience/current")
+    public ResponseEntity<?> currentExperiences() {
+        return ResponseEntity.ok(service.currentExperiences());
+    }
+
+    @GetMapping("/experience/previous")
+    public ResponseEntity<?> previousExperiences() {
+        return ResponseEntity.ok(service.previousExperiences());
+    }
+
+    @GetMapping("/promotions/latest")
+    public ResponseEntity<?> latestPromotions() {
+        return ResponseEntity.ok(service.latestPromotions());
+    }
+
+    @GetMapping("/transfers/latest")
+    public ResponseEntity<?> latestTransfers() {
+        return ResponseEntity.ok(service.latestTransfers());
+    }
+
+    //=================================
+// DASHBOARD
+//=================================
+
+    @GetMapping("/counts")
+    public ResponseEntity<?> getCounts() {
+
+        return ResponseEntity.ok(service.getCounts());
+    }
 
 
 //    //-------------------------
