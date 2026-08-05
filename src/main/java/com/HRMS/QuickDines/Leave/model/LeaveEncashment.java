@@ -2,7 +2,7 @@ package com.HRMS.QuickDines.Leave.model;
 
 
 import com.HRMS.QuickDines.Employee.model.Employee;
-//import com.HRMS.QuickDines.Payroll.model.Payroll;
+import com.HRMS.QuickDines.Payroll.model.PayrollHistory;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -36,7 +36,7 @@ public class LeaveEncashment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payroll_id")
-  //  private Payroll payroll;
+    private PayrollHistory payroll;
 
     private String status;
 

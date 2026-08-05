@@ -1,6 +1,7 @@
 package com.HRMS.QuickDines.Leave.model;
 
 //import com.HRMS.QuickDines.Company.model.Company;
+import com.HRMS.QuickDines.Company.model.Company;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -20,9 +21,9 @@ public class LeavePolicy {
 
     private String policyName;
 
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "company_id", nullable = false)
-//    private Company company;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", nullable = false)
+    private Company company;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "leave_type_id", nullable = false)

@@ -1,6 +1,9 @@
 package com.HRMS.QuickDines.Leave.Service;
 
 import com.HRMS.QuickDines.AdvanceServices.EmailService;
+import com.HRMS.QuickDines.CRM.repo.CustomerRepository;
+import com.HRMS.QuickDines.Company.model.Company;
+import com.HRMS.QuickDines.Company.repo.CompanyRepository;
 import com.HRMS.QuickDines.Employee.Service.EmployeeService;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
@@ -25,6 +28,7 @@ public class LeaveService {
     private final LeavePolicyRepository leavePolicyRepository;
     private final LeaveEncashmentRepository leaveEncashmentRepository;
     private final LeaveCancellationRepository leaveCancellationRepository;
+    private final CompanyRepository companyRepository;
 
     public String createLeaveType(LeaveType leaveType){
 
@@ -365,11 +369,11 @@ public class LeaveService {
             LeavePolicy leavePolicy) {
 
         // If Company entity is available:
-        // Company company = companyRepository.findById(companyId)
-        //         .orElseThrow(() ->
-        //                 new RuntimeException("Company Not Found"));
-        //
-        // leavePolicy.setCompany(company);
+         Company company = companyRepository.findById(companyId)
+                 .orElseThrow(() ->
+                         new RuntimeException("Company Not Found"));
+
+         leavePolicy.setCompany(company);
 
         leavePolicyRepository.save(leavePolicy);
 
