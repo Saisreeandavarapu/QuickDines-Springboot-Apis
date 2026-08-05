@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 @Entity
 @Data
@@ -14,8 +15,10 @@ public class TdsDetails {
     private Long id;
 
     private String financialYear;
-    private Double totalTax;
-    private Double monthlyTax;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal totalTax;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal monthlyTax;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

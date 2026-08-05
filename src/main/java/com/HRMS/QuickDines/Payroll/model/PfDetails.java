@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -16,9 +17,12 @@ public class PfDetails {
 
     private String uanNumber;
     private String pfNumber;
-    private Double employeePf;
-    private Double employerPf;
-    private Double totalPf;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal employeePf;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal employerPf;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal totalPf;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

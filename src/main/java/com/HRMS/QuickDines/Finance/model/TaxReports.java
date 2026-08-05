@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 @Entity
 @Data
@@ -22,16 +23,16 @@ public class TaxReports {
     private Employee employee;
 
     private String financialYear;
-
-    private Double totalSalary;
-
-    private Double totalTds;
-
-    private Double totalPf;
-
-    private Double totalEsi;
-
-    private Double netIncome;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal totalSalary;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal totalTds;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal totalPf;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal totalEsi;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal netIncome;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

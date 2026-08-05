@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -27,8 +28,8 @@ public class Expenses {
     private String expenseTitle;
 
     private String expenseCategory;
-
-    private Double amount;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal amount;
 
     private String description;
 

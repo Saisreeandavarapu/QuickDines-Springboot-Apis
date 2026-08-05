@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -14,10 +15,12 @@ public class Increments {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    private Double previousSalary;
-    private Double currentSalary;
-    private Double incrementPercentage;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal previousSalary;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal currentSalary;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal incrementPercentage;
     private LocalDate effectiveDate;
 
     @CreationTimestamp

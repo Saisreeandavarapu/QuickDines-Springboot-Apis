@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -24,7 +25,8 @@ public class Settlements {
     @JoinColumn(name = "employee_id")
     private Employee employee;
 
-    private Double settlementAmount;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal settlementAmount;
 
     private String settlementType;
 

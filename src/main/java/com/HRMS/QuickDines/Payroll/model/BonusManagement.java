@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -13,10 +14,12 @@ public class BonusManagement {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    private Double bonusAmount;
-    private Double incentiveAmount;
-    private Double festivalBonus;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal bonusAmount;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal incentiveAmount;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal festivalBonus;
 
     private String remarks;
 

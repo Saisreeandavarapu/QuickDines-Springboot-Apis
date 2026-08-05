@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 @Entity
 @Data
@@ -14,8 +15,10 @@ public class EsiDetails {
     private Long id;
 
     private String esiNumber;
-    private Double employeeContribution;
-    private Double employerContribution;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal employeeContribution;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal employerContribution;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

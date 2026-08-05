@@ -42,18 +42,19 @@ public class PayrollService {
     // SALARIES
     //=================================
 
-    public String createSalary(String employeeId, Salaries salary){
+    public String createSalary(String employeeId, Salaries salary) {
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
         salary.setEmployee(employee);
 
-        Double netSalary = salary.getBasicSalary()
-                        + salary.getHra()
-                        + salary.getAllowances()
-                        + salary.getBonus()
-                        + salary.getIncentives()
-                        - salary.getDeductions();
+        BigDecimal netSalary = salary.getBasicSalary()
+                .add(salary.getHra())
+                .add(salary.getAllowances())
+                .add(salary.getBonus())
+                .add(salary.getIncentives())
+                .subtract(salary.getDeductions());
 
         salary.setNetSalary(netSalary);
 
@@ -69,28 +70,25 @@ public class PayrollService {
         return salariesRepository.findByEmployeeEmployeeId(employeeId);
     }
 
-    public String updateSalary(Long id, Salaries salary){
+    public String updateSalary(Long id, Salaries salary) {
 
-        Salaries existingSalary = salariesRepository.findById(id).orElseThrow(() -> new RuntimeException("Salary Not Found"));
+        Salaries existingSalary = salariesRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Salary Not Found"));
 
         existingSalary.setBasicSalary(salary.getBasicSalary());
-
         existingSalary.setHra(salary.getHra());
-
         existingSalary.setAllowances(salary.getAllowances());
-
         existingSalary.setBonus(salary.getBonus());
-
         existingSalary.setIncentives(salary.getIncentives());
-
         existingSalary.setDeductions(salary.getDeductions());
 
-        Double netSalary = salary.getBasicSalary()
-                        + salary.getHra()
-                        + salary.getAllowances()
-                        + salary.getBonus()
-                        + salary.getIncentives()
-                        - salary.getDeductions();
+        BigDecimal netSalary = salary.getBasicSalary()
+                .add(salary.getHra())
+                .add(salary.getAllowances())
+                .add(salary.getBonus())
+                .add(salary.getIncentives())
+                .subtract(salary.getDeductions());
+
         existingSalary.setNetSalary(netSalary);
 
         salariesRepository.save(existingSalary);
@@ -160,13 +158,11 @@ public class PayrollService {
         );
 
         // Gross salary
-        history.setGrossSalary(BigDecimal.valueOf(salary.getNetSalary()));
+        history.setGrossSalary(salary.getNetSalary());
+
 
         // Net salary
-        history.setNetSalary(
-                BigDecimal.valueOf(salary.getNetSalary())
-        );
-
+        history.setNetSalary(salary.getNetSalary());
         history.setProcessedAt(LocalDateTime.now());
 
         // 6. Save payroll history
@@ -203,7 +199,8 @@ public class PayrollService {
                     "PF Details Already Exists");
         }
         pfDetails.setEmployee(employee);
-        Double totalPf = pfDetails.getEmployeePf() + pfDetails.getEmployerPf();
+        BigDecimal totalPf = pfDetails.getEmployeePf()
+                .add(pfDetails.getEmployerPf());
         pfDetails.setTotalPf(totalPf);
         pfDetailsRepository.save(pfDetails);
         return "PF Details Created Successfully";
@@ -215,23 +212,25 @@ public class PayrollService {
         return pfDetailsRepository.findByEmployee(employee).orElseThrow(() -> new RuntimeException("PF Details Not Found"));
     }
 
-    public String updatePfDetails(String employeeId, PfDetails pfDetails){
+    public String updatePfDetails(String employeeId, PfDetails pfDetails) {
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
-        PfDetails existingPf = pfDetailsRepository.findByEmployee(employee).orElseThrow(() -> new RuntimeException("PF Details Not Found"));
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+
+        PfDetails existingPf = pfDetailsRepository.findByEmployee(employee)
+                .orElseThrow(() -> new RuntimeException("PF Details Not Found"));
 
         existingPf.setUanNumber(pfDetails.getUanNumber());
-
         existingPf.setPfNumber(pfDetails.getPfNumber());
 
         existingPf.setEmployeePf(pfDetails.getEmployeePf());
-
         existingPf.setEmployerPf(pfDetails.getEmployerPf());
 
-        Double totalPf = pfDetails.getEmployeePf()
-                        + pfDetails.getEmployerPf();
+        BigDecimal totalPf = pfDetails.getEmployeePf()
+                .add(pfDetails.getEmployerPf());
 
         existingPf.setTotalPf(totalPf);
+
         pfDetailsRepository.save(existingPf);
 
         return "PF Details Updated Successfully";
@@ -319,31 +318,47 @@ public class PayrollService {
 // INCREMENTS
 //=================================
 
-    public String createIncrement(String employeeId, Increments increment){
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
-        Salaries salary = (Salaries) salariesRepository.findByEmployee(employee).orElseThrow(() -> new RuntimeException("Salary Not Found"));
-        Double previousSalary = salary.getNetSalary();
+    //=================================
+// INCREMENTS
+//=================================
 
-        Double incrementPercentage = increment.getIncrementPercentage();
+    public String createIncrement(String employeeId, Increments increment) {
 
-        Double incrementAmount = previousSalary * incrementPercentage / 100;
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
-        Double currentSalary = previousSalary + incrementAmount;
+        Salaries salary = salariesRepository.findByEmployee(employee)
+                .orElseThrow(() -> new RuntimeException("Salary Not Found"));
+
+        BigDecimal previousSalary = salary.getNetSalary();
+
+        BigDecimal incrementPercentage =
+                increment.getIncrementPercentage() != null
+                        ? increment.getIncrementPercentage()
+                        : BigDecimal.ZERO;
+
+        BigDecimal incrementAmount = previousSalary
+                .multiply(incrementPercentage)
+                .divide(BigDecimal.valueOf(100));
+
+        BigDecimal currentSalary = previousSalary.add(incrementAmount);
+
         // Save Increment History
-
         increment.setEmployee(employee);
-
         increment.setPreviousSalary(previousSalary);
-
         increment.setCurrentSalary(currentSalary);
 
         incrementRepository.save(increment);
-        // Update Salary Table
 
+        // Update Salary Table
         salary.setNetSalary(currentSalary);
+
         salariesRepository.save(salary);
+
         return "Increment Added Successfully";
     }
+
+
     public Object getIncrement(String employeeId){
 
         return incrementRepository.findByEmployeeEmployeeId(employeeId);
@@ -354,32 +369,63 @@ public class PayrollService {
     //=================================
 
 
-    public String createBonus(String employeeId, BonusManagement bonusManagement){
+    //=================================
+// BONUS MANAGEMENT
+//=================================
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+    public String createBonus(
+            String employeeId,
+            BonusManagement bonusManagement) {
+
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() ->
+                        new RuntimeException("Employee Not Found"));
+
         bonusManagement.setEmployee(employee);
+
         bonusManagementRepository.save(bonusManagement);
 
+        // Find Salary
+        Salaries salary = salariesRepository.findByEmployee(employee)
+                .orElseThrow(() ->
+                        new RuntimeException("Salary Not Found"));
 
-        // Optional:
-        // Update employee salary bonus amount.
+        BigDecimal bonusAmount =
+                bonusManagement.getBonusAmount() != null
+                        ? bonusManagement.getBonusAmount()
+                        : BigDecimal.ZERO;
 
-        Salaries salary = (Salaries) salariesRepository.findByEmployee(employee).orElseThrow(() -> new RuntimeException("Salary Not Found"));
-        Double totalBonus = bonusManagement.getBonusAmount() + bonusManagement.getFestivalBonus();
-        Double totalIncentive = bonusManagement.getIncentiveAmount();
+        BigDecimal festivalBonus =
+                bonusManagement.getFestivalBonus() != null
+                        ? bonusManagement.getFestivalBonus()
+                        : BigDecimal.ZERO;
+
+        BigDecimal incentiveAmount =
+                bonusManagement.getIncentiveAmount() != null
+                        ? bonusManagement.getIncentiveAmount()
+                        : BigDecimal.ZERO;
+
+        // Calculate total bonus
+        BigDecimal totalBonus =
+                bonusAmount.add(festivalBonus);
+
+        // Set salary bonus and incentive
         salary.setBonus(totalBonus);
-        salary.setIncentives(totalIncentive);
-        Double netSalary =
+        salary.setIncentives(incentiveAmount);
+
+        // Calculate Net Salary
+        BigDecimal netSalary =
                 salary.getBasicSalary()
-                        + salary.getHra()
-                        + salary.getAllowances()
-                        + salary.getBonus()
-                        + salary.getIncentives()
-                        - salary.getDeductions();
+                        .add(salary.getHra())
+                        .add(salary.getAllowances())
+                        .add(salary.getBonus())
+                        .add(salary.getIncentives())
+                        .subtract(salary.getDeductions());
 
         salary.setNetSalary(netSalary);
 
         salariesRepository.save(salary);
+
         return "Bonus Added Successfully";
     }
 
@@ -412,60 +458,168 @@ public class PayrollService {
 // MONTHLY PAYROLL REPORT
 //=================================
 
+    //=================================
+// MONTHLY PAYROLL REPORT
+//=================================
+
     public Object getMonthlyPayrollReport() {
 
         List<Salaries> salaries = salariesRepository.findAll();
         List<PfDetails> pfDetails = pfDetailsRepository.findAll();
         List<TdsDetails> tdsDetails = tdsDetailsRepository.findAll();
 
-        Double totalBasicSalary = 0.0;
-        Double totalHra = 0.0;
-        Double totalAllowances = 0.0;
-        Double totalBonus = 0.0;
-        Double totalIncentives = 0.0;
-        Double totalDeductions = 0.0;
-        Double totalNetSalary = 0.0;
-        Double totalPfAmount = 0.0;
-        Double totalTdsAmount = 0.0;
+        BigDecimal totalBasicSalary = BigDecimal.ZERO;
+        BigDecimal totalHra = BigDecimal.ZERO;
+        BigDecimal totalAllowances = BigDecimal.ZERO;
+        BigDecimal totalBonus = BigDecimal.ZERO;
+        BigDecimal totalIncentives = BigDecimal.ZERO;
+        BigDecimal totalDeductions = BigDecimal.ZERO;
+        BigDecimal totalNetSalary = BigDecimal.ZERO;
+        BigDecimal totalPfAmount = BigDecimal.ZERO;
+        BigDecimal totalTdsAmount = BigDecimal.ZERO;
 
-
-        // Salary Calculations
+        //=================================
+        // SALARY CALCULATIONS
+        //=================================
 
         for (Salaries salary : salaries) {
-            totalBasicSalary += salary.getBasicSalary();
-            totalHra += salary.getHra();
-            totalAllowances += salary.getAllowances();
-            totalBonus += salary.getBonus();
-            totalIncentives += salary.getIncentives();
-            totalDeductions += salary.getDeductions();
-            totalNetSalary += salary.getNetSalary();
 
+            totalBasicSalary = totalBasicSalary.add(
+                    salary.getBasicSalary() != null
+                            ? salary.getBasicSalary()
+                            : BigDecimal.ZERO
+            );
+
+            totalHra = totalHra.add(
+                    salary.getHra() != null
+                            ? salary.getHra()
+                            : BigDecimal.ZERO
+            );
+
+            totalAllowances = totalAllowances.add(
+                    salary.getAllowances() != null
+                            ? salary.getAllowances()
+                            : BigDecimal.ZERO
+            );
+
+            totalBonus = totalBonus.add(
+                    salary.getBonus() != null
+                            ? salary.getBonus()
+                            : BigDecimal.ZERO
+            );
+
+            totalIncentives = totalIncentives.add(
+                    salary.getIncentives() != null
+                            ? salary.getIncentives()
+                            : BigDecimal.ZERO
+            );
+
+            totalDeductions = totalDeductions.add(
+                    salary.getDeductions() != null
+                            ? salary.getDeductions()
+                            : BigDecimal.ZERO
+            );
+
+            totalNetSalary = totalNetSalary.add(
+                    salary.getNetSalary() != null
+                            ? salary.getNetSalary()
+                            : BigDecimal.ZERO
+            );
         }
 
+        //=================================
+        // PF CALCULATIONS
+        //=================================
 
-        // PF Calculations
+        for (PfDetails pf : pfDetails) {
 
-        for (PfDetails pf : pfDetails) {totalPfAmount += pf.getTotalPf();}
+            totalPfAmount = totalPfAmount.add(
+                    pf.getTotalPf() != null
+                            ? pf.getTotalPf()
+                            : BigDecimal.ZERO
+            );
+        }
 
-        // TDS Calculations
+        //=================================
+        // TDS CALCULATIONS
+        //=================================
 
-        for (TdsDetails tds : tdsDetails) {totalTdsAmount += tds.getTotalTax();}
+        for (TdsDetails tds : tdsDetails) {
+
+            totalTdsAmount = totalTdsAmount.add(
+                    tds.getTotalTax() != null
+                            ? tds.getTotalTax()
+                            : BigDecimal.ZERO
+            );
+        }
+
+        //=================================
+        // REPORT
+        //=================================
+
         Map<String, Object> report = new HashMap<>();
 
-        report.put("Payroll Month", Month.values().toString());
-        report.put("Payroll Year", Year.now().getValue());
+        report.put(
+                "Payroll Month",
+                Month.values()[java.time.LocalDate.now()
+                        .getMonthValue() - 1]
+                        .toString()
+        );
 
-        report.put("Total Employees Paid", salaries.size());
+        report.put(
+                "Payroll Year",
+                Year.now().getValue()
+        );
 
-        report.put("Total Basic Salary", totalBasicSalary);
-        report.put("Total HRA", totalHra);
-        report.put("Total Allowances", totalAllowances);
-        report.put("Total Bonus Amount", totalBonus);
-        report.put("Total Incentives", totalIncentives);
-        report.put("Total Deductions", totalDeductions);
-        report.put("Total PF Amount", totalPfAmount);
-        report.put("Total TDS Amount", totalTdsAmount);
-        report.put("Total Net Salary Paid", totalNetSalary);
+        report.put(
+                "Total Employees Paid",
+                salaries.size()
+        );
+
+        report.put(
+                "Total Basic Salary",
+                totalBasicSalary
+        );
+
+        report.put(
+                "Total HRA",
+                totalHra
+        );
+
+        report.put(
+                "Total Allowances",
+                totalAllowances
+        );
+
+        report.put(
+                "Total Bonus Amount",
+                totalBonus
+        );
+
+        report.put(
+                "Total Incentives",
+                totalIncentives
+        );
+
+        report.put(
+                "Total Deductions",
+                totalDeductions
+        );
+
+        report.put(
+                "Total PF Amount",
+                totalPfAmount
+        );
+
+        report.put(
+                "Total TDS Amount",
+                totalTdsAmount
+        );
+
+        report.put(
+                "Total Net Salary Paid",
+                totalNetSalary
+        );
 
         return report;
     }
