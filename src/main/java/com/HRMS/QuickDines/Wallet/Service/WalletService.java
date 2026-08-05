@@ -11,9 +11,8 @@ import com.HRMS.QuickDines.Wallet.repo.WalletTransactionsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.Month;
-import java.time.Year;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,25 +23,30 @@ public class WalletService {
 
     private final EmployeeWalletRepository employeeWalletRepository;
     private final EmployeeRepository employeeRepository;
-    private final WalletTransactionsRepository  walletTransactionsRepository ;
+    private final WalletTransactionsRepository walletTransactionsRepository;
     private final WalletReportsRepository walletReportsRepository;
-    //=================================
+
+
+    // =========================================================
     // EMPLOYEE WALLET
-    //=================================
+    // =========================================================
 
+    public String createWallet(String employeeId, EmployeeWallet employeeWallet) {
 
-    public String createWallet(String employeeId, EmployeeWallet employeeWallet){
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
         if (employeeWalletRepository.existsByEmployee(employee)) {
-
             throw new RuntimeException("Wallet Already Exists");
         }
+
         employeeWallet.setEmployee(employee);
 
-        employeeWallet.setWalletBalance(0.0);
-        employeeWallet.setSalaryAmount(0.0);
-        employeeWallet.setBonusAmount(0.0);
+        // Money fields should use BigDecimal
+        employeeWallet.setWalletBalance(BigDecimal.ZERO);
+        employeeWallet.setSalaryAmount(BigDecimal.ZERO);
+        employeeWallet.setBonusAmount(BigDecimal.ZERO);
+
         employeeWallet.setLeaveCredits(0);
         employeeWallet.setStatus("ACTIVE");
 
@@ -51,127 +55,238 @@ public class WalletService {
         return "Wallet Created Successfully";
     }
 
-    public EmployeeWallet getWallet(String employeeId){
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
-        return employeeWalletRepository.findByEmployee(employee).orElseThrow(() -> new RuntimeException("Wallet Not Found"));
+    public EmployeeWallet getWallet(String employeeId) {
+
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+
+        return employeeWalletRepository.findByEmployee(employee)
+                .orElseThrow(() -> new RuntimeException("Wallet Not Found"));
     }
 
-    public String updateWallet(String employeeId,EmployeeWallet employeeWallet){
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+    public String updateWallet(
+            String employeeId,
+            EmployeeWallet employeeWallet) {
 
-        EmployeeWallet existingWallet = employeeWalletRepository.findByEmployee(employee).orElseThrow(() -> new RuntimeException("Wallet Not Found"));
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
-        existingWallet.setWalletBalance(employeeWallet.getWalletBalance());
+        EmployeeWallet existingWallet =
+                employeeWalletRepository.findByEmployee(employee)
+                        .orElseThrow(() -> new RuntimeException("Wallet Not Found"));
 
-        existingWallet.setSalaryAmount(employeeWallet.getSalaryAmount());
+        existingWallet.setWalletBalance(
+                employeeWallet.getWalletBalance()
+        );
 
-        existingWallet.setBonusAmount(employeeWallet.getBonusAmount());
+        existingWallet.setSalaryAmount(
+                employeeWallet.getSalaryAmount()
+        );
 
-        existingWallet.setLeaveCredits(employeeWallet.getLeaveCredits());
+        existingWallet.setBonusAmount(
+                employeeWallet.getBonusAmount()
+        );
 
-        existingWallet.setStatus(employeeWallet.getStatus());
+        existingWallet.setLeaveCredits(
+                employeeWallet.getLeaveCredits()
+        );
+
+        existingWallet.setStatus(
+                employeeWallet.getStatus()
+        );
 
         employeeWalletRepository.save(existingWallet);
 
         return "Wallet Updated Successfully";
     }
 
-    public String deleteWallet(String employeeId){
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
-        EmployeeWallet wallet = employeeWalletRepository.findByEmployee(employee).orElseThrow(() -> new RuntimeException("Wallet Not Found"));
+    public String deleteWallet(String employeeId) {
+
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+
+        EmployeeWallet wallet =
+                employeeWalletRepository.findByEmployee(employee)
+                        .orElseThrow(() -> new RuntimeException("Wallet Not Found"));
+
         employeeWalletRepository.delete(wallet);
+
         return "Wallet Deleted Successfully";
     }
 
 
+    // =========================================================
+    // TRANSACTIONS
+    // =========================================================
 
-    //=================================
-// TRANSACTIONS
-//=================================
+    public String createTransaction(
+            String employeeId,
+            WalletTransactions walletTransactions) {
 
-    public String createTransaction(String employeeId, WalletTransactions walletTransactions){
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
-        EmployeeWallet wallet = employeeWalletRepository.findByEmployee(employee).orElseThrow(() -> new RuntimeException("Wallet Not Found"));
-        Double walletBalance = wallet.getWalletBalance();
+        EmployeeWallet wallet =
+                employeeWalletRepository.findByEmployee(employee)
+                        .orElseThrow(() -> new RuntimeException("Wallet Not Found"));
 
+
+        // Prevent NullPointerException
+        BigDecimal walletBalance =
+                wallet.getWalletBalance() != null
+                        ? wallet.getWalletBalance()
+                        : BigDecimal.ZERO;
+
+        BigDecimal transactionAmount =
+                walletTransactions.getAmount() != null
+                        ? walletTransactions.getAmount()
+                        : BigDecimal.ZERO;
+
+
+        // =====================================================
         // CREDIT
+        // =====================================================
 
-        if (walletTransactions.getTransactionType().equalsIgnoreCase("CREDIT")) {
+        if ("CREDIT".equalsIgnoreCase(
+                walletTransactions.getTransactionType())) {
 
-            walletBalance += walletTransactions.getAmount();
+            walletBalance = walletBalance.add(transactionAmount);
         }
 
+
+        // =====================================================
         // DEBIT
+        // =====================================================
 
-        else if (walletTransactions.getTransactionType().equalsIgnoreCase("DEBIT")) {
+        else if ("DEBIT".equalsIgnoreCase(
+                walletTransactions.getTransactionType())) {
 
-            if (walletBalance < walletTransactions.getAmount()) {
-                throw new RuntimeException("Insufficient Wallet Balance");
+            if (walletBalance.compareTo(transactionAmount) < 0) {
+                throw new RuntimeException(
+                        "Insufficient Wallet Balance"
+                );
             }
-            walletBalance -= walletTransactions.getAmount();
+
+            walletBalance = walletBalance.subtract(transactionAmount);
         }
+
+
+        // Invalid transaction type
+        else {
+            throw new RuntimeException(
+                    "Invalid Transaction Type. Use CREDIT or DEBIT"
+            );
+        }
+
+
         wallet.setWalletBalance(walletBalance);
 
         employeeWalletRepository.save(wallet);
+
+
         walletTransactions.setEmployee(employee);
+
         walletTransactions.setTransactionStatus("SUCCESS");
+
         walletTransactions.setTransactionDate(
-                LocalDate.now());
+                LocalDate.now()
+        );
 
         walletTransactionsRepository.save(walletTransactions);
+
         return "Transaction Successful";
     }
 
-    public List<WalletTransactions> getTransactions(String employeeId){
 
-        return walletTransactionsRepository.findByEmployeeEmployeeId(employeeId);
+    public List<WalletTransactions> getTransactions(
+            String employeeId) {
+
+        return walletTransactionsRepository
+                .findByEmployeeEmployeeId(employeeId);
     }
 
-    public Object getTransaction(Long id){
-        return walletTransactionsRepository.findById(id).orElseThrow(() -> new RuntimeException("Transaction Not Found"));
+
+    public WalletTransactions getTransaction(Long id) {
+
+        return walletTransactionsRepository.findById(id)
+                .orElseThrow(
+                        () -> new RuntimeException(
+                                "Transaction Not Found"
+                        )
+                );
     }
 
-    public String deleteTransaction(Long id){
 
-        WalletTransactions transaction = walletTransactionsRepository.findById(id).orElseThrow(() -> new RuntimeException("Transaction Not Found"));
+    public String deleteTransaction(Long id) {
+
+        WalletTransactions transaction =
+                walletTransactionsRepository.findById(id)
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Transaction Not Found"
+                                )
+                        );
+
         walletTransactionsRepository.delete(transaction);
+
         return "Transaction Deleted Successfully";
     }
 
 
+    // =========================================================
+    // REPORTS
+    // =========================================================
 
-    //=================================
-// REPORTS
-//=================================
+    public String generateReport(String employeeId) {
 
-    public String generateReport(String employeeId){
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(
+                        () -> new RuntimeException(
+                                "Employee Not Found"
+                        )
+                );
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
-        EmployeeWallet wallet = employeeWalletRepository.findByEmployee(employee).orElseThrow(() -> new RuntimeException("Wallet Not Found"));
+        EmployeeWallet wallet =
+                employeeWalletRepository.findByEmployee(employee)
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Wallet Not Found"
+                                )
+                        );
 
 
-        List<WalletTransactions> transactions = walletTransactionsRepository.findByEmployeeEmployeeId(employeeId);
+        List<WalletTransactions> transactions =
+                walletTransactionsRepository
+                        .findByEmployeeEmployeeId(employeeId);
 
-        Double creditedAmount = 0.0;
-        Double debitedAmount = 0.0;
+
+        BigDecimal creditedAmount = BigDecimal.ZERO;
+        BigDecimal debitedAmount = BigDecimal.ZERO;
 
 
         for (WalletTransactions transaction : transactions) {
 
+            BigDecimal amount =
+                    transaction.getAmount() != null
+                            ? transaction.getAmount()
+                            : BigDecimal.ZERO;
+
+
             if ("CREDIT".equalsIgnoreCase(
                     transaction.getTransactionType())) {
 
-                creditedAmount += transaction.getAmount();
+                creditedAmount =
+                        creditedAmount.add(amount);
             }
 
             else if ("DEBIT".equalsIgnoreCase(
                     transaction.getTransactionType())) {
 
-                debitedAmount += transaction.getAmount();
+                debitedAmount =
+                        debitedAmount.add(amount);
             }
         }
 
@@ -179,77 +294,169 @@ public class WalletService {
         WalletReports report = new WalletReports();
 
         report.setEmployee(employee);
-        report.setMonthlySalary(wallet.getSalaryAmount());
-        report.setCreditedAmount(creditedAmount);
-        report.setDebitedAmount(debitedAmount);
+
+        report.setMonthlySalary(
+                wallet.getSalaryAmount()
+        );
+
+        report.setCreditedAmount(
+                creditedAmount
+        );
+
+        report.setDebitedAmount(
+                debitedAmount
+        );
+
         report.setAvailableBalance(
-                wallet.getWalletBalance());
+                wallet.getWalletBalance()
+        );
+
 
         walletReportsRepository.save(report);
-
 
         return "Wallet Report Generated Successfully";
     }
 
-    public List<WalletReports> getReport(String employeeId){
 
-        return walletReportsRepository.findByEmployeeEmployeeId(employeeId);
+    public List<WalletReports> getReport(
+            String employeeId) {
+
+        return walletReportsRepository
+                .findByEmployeeEmployeeId(employeeId);
     }
 
-    public Object getMonthlyWalletReport(){
 
-        List<EmployeeWallet> wallets = employeeWalletRepository.findAll();
-        Double totalSalary = 0.0;
-        Double totalWalletBalance = 0.0;
-        Double totalBonus = 0.0;
+    // =========================================================
+    // MONTHLY WALLET REPORT
+    // =========================================================
+
+    public Object getMonthlyWalletReport() {
+
+        List<EmployeeWallet> wallets =
+                employeeWalletRepository.findAll();
+
+
+        BigDecimal totalSalary = BigDecimal.ZERO;
+        BigDecimal totalWalletBalance = BigDecimal.ZERO;
+        BigDecimal totalBonus = BigDecimal.ZERO;
+
 
         for (EmployeeWallet wallet : wallets) {
 
-            totalSalary += wallet.getSalaryAmount();
+            BigDecimal salary =
+                    wallet.getSalaryAmount() != null
+                            ? wallet.getSalaryAmount()
+                            : BigDecimal.ZERO;
 
-            totalWalletBalance += wallet.getWalletBalance();
+            BigDecimal balance =
+                    wallet.getWalletBalance() != null
+                            ? wallet.getWalletBalance()
+                            : BigDecimal.ZERO;
 
-            totalBonus += wallet.getBonusAmount();
+            BigDecimal bonus =
+                    wallet.getBonusAmount() != null
+                            ? wallet.getBonusAmount()
+                            : BigDecimal.ZERO;
+
+
+            totalSalary =
+                    totalSalary.add(salary);
+
+            totalWalletBalance =
+                    totalWalletBalance.add(balance);
+
+            totalBonus =
+                    totalBonus.add(bonus);
         }
-        Map<String, Object> report = new HashMap<>();
 
-        report.put("Total Employees", wallets.size());
 
-        report.put("Total Salary Credited", totalSalary);
+        Map<String, Object> report =
+                new HashMap<>();
 
-        report.put("Total Bonus Credited", totalBonus);
+        report.put(
+                "Total Employees",
+                wallets.size()
+        );
 
-        report.put("Total Wallet Balance", totalWalletBalance);
+        report.put(
+                "Total Salary Credited",
+                totalSalary
+        );
 
-        report.put("Month", Month.values().toString());
+        report.put(
+                "Total Bonus Credited",
+                totalBonus
+        );
 
-        report.put("Year", Year.now().getValue());
+        report.put(
+                "Total Wallet Balance",
+                totalWalletBalance
+        );
+
+        report.put(
+                "Month",
+                LocalDate.now()
+                        .getMonth()
+                        .toString()
+        );
+
+        report.put(
+                "Year",
+                LocalDate.now()
+                        .getYear()
+        );
+
+
         return report;
     }
 
 
-
-    //=================================
+    // =========================================================
     // DASHBOARD
-    //=================================
+    // =========================================================
+
+    public BigDecimal getBalance(String employeeId) {
+
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(
+                        () -> new RuntimeException(
+                                "Employee Not Found"
+                        )
+                );
+
+        EmployeeWallet wallet =
+                employeeWalletRepository.findByEmployee(employee)
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Wallet Not Found"
+                                )
+                        );
 
 
-    public Object getBalance(String employeeId){
-
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
-        EmployeeWallet wallet = employeeWalletRepository.findByEmployee(employee).orElseThrow(() -> new RuntimeException("Wallet Not Found"));
-
-        return wallet.getWalletBalance();
+        return wallet.getWalletBalance() != null
+                ? wallet.getWalletBalance()
+                : BigDecimal.ZERO;
     }
 
-    public List<WalletTransactions> getWalletHistory(String employeeId){
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
-        return walletTransactionsRepository.findByEmployee(employee);
+    public List<WalletTransactions> getWalletHistory(
+            String employeeId) {
+
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(
+                        () -> new RuntimeException(
+                                "Employee Not Found"
+                        )
+                );
+
+        return walletTransactionsRepository
+                .findByEmployee(employee);
     }
 
-    public Object getAllWallets(){
+
+    public List<EmployeeWallet> getAllWallets() {
+
         return employeeWalletRepository.findAll();
     }
-
 }
+

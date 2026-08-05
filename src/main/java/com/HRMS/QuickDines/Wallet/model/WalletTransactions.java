@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -17,8 +18,8 @@ public class WalletTransactions {
     private Long id;
 
     private String transactionType;
-
-    private Double amount;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal amount;
 
     private String transactionStatus;
 

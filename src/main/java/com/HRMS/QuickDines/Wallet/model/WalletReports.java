@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -14,14 +15,14 @@ public class WalletReports {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    private Double monthlySalary;
-
-    private Double creditedAmount;
-
-    private Double debitedAmount;
-
-    private Double availableBalance;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal monthlySalary;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal creditedAmount;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal debitedAmount;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal availableBalance;
 
 
     @CreationTimestamp
