@@ -8,6 +8,6 @@ import java.util.List;
 
 @Repository
 public interface EmailNotificationRepository extends JpaRepository<EmailNotification, Long> {
-    List<EmailNotification> findBySentStatus(String sentStatus);
+    List<EmailNotification> findByEmailStatus(String sentStatus);
 
 }

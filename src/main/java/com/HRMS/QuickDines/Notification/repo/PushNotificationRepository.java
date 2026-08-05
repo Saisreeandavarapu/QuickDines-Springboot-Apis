@@ -8,6 +8,6 @@ import java.util.List;
 
 @Repository
 public interface PushNotificationRepository extends JpaRepository<PushNotification, Long> {
-    List<PushNotification> findBySentStatus(String sentStatus);
+    List<PushNotification> findByPushStatus(String sentStatus);
 
 }
