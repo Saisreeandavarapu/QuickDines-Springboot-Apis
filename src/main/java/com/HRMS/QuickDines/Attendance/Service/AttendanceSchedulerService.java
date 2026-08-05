@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -54,7 +55,7 @@ public class AttendanceSchedulerService {
             attendance.setAttendanceStatus("ABSENT");
             attendance.setRemarks(
                     "Employee did not mark attendance.");
-            attendance.setTotalHours(0.0);
+            attendance.setTotalHours(BigDecimal.valueOf(0.0));
 
             // Save attendance
             attendanceRepository.save(attendance);
@@ -134,7 +135,7 @@ public class AttendanceSchedulerService {
                     attendance.setEmployee(employee);
                     attendance.setAttendanceStatus("WEEKEND");
                     attendance.setRemarks("Weekend");
-                    attendance.setTotalHours(0.0);
+                    attendance.setTotalHours(BigDecimal.valueOf(0.0));
 
                     attendanceRepository.save(attendance);
                 }
@@ -157,6 +158,7 @@ public class AttendanceSchedulerService {
 
 // Every day at 11:00 PM
 
+
     @Scheduled(cron = "0 0 23 * * ?")
     public String generateDailyAttendanceReports() {
 
@@ -171,23 +173,34 @@ public class AttendanceSchedulerService {
             int absentDays = 0;
             int paidLeaves = 0;
             int unpaidLeaves = 0;
-            double totalWorkingHours = 0.0;
+
+            BigDecimal totalWorkingHours = BigDecimal.ZERO;
 
             for (Attendance attendance : attendances) {
 
                 if ("PRESENT".equalsIgnoreCase(attendance.getAttendanceStatus())) {
+
                     presentDays++;
+
                     if (attendance.getTotalHours() != null) {
-                        totalWorkingHours += attendance.getTotalHours();
+                        totalWorkingHours =
+                                totalWorkingHours.add(attendance.getTotalHours());
                     }
+
                 } else if ("ABSENT".equalsIgnoreCase(attendance.getAttendanceStatus())) {
+
                     absentDays++;
+
                 } else if ("PAID_LEAVE".equalsIgnoreCase(attendance.getAttendanceStatus())) {
+
                     paidLeaves++;
+
                 } else if ("UNPAID_LEAVE".equalsIgnoreCase(attendance.getAttendanceStatus())) {
+
                     unpaidLeaves++;
                 }
             }
+
             AttendanceReports report = new AttendanceReports();
 
             report.setEmployee(employee);
@@ -197,11 +210,11 @@ public class AttendanceSchedulerService {
             report.setPaidLeaves(paidLeaves);
             report.setUnpaidLeaves(unpaidLeaves);
             report.setTotalWorkingHours(totalWorkingHours);
+
             attendanceReportsRepository.save(report);
-
         }
-        return "Attendance Report Saved Successfully";
 
+        return "Attendance Report Saved Successfully";
     }
 }
 
