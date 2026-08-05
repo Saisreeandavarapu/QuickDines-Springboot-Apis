@@ -1,6 +1,7 @@
 package com.HRMS.QuickDines.Payroll.model;
 
 //import com.HRMS.QuickDines.Organization.model.Company;
+import com.HRMS.QuickDines.Company.model.Company;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -20,7 +21,7 @@ public class SalaryComponent {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", nullable = false)
-   // private Company company;
+    private Company company;
 
     @Column(nullable = false, length = 100)
     private String componentName;

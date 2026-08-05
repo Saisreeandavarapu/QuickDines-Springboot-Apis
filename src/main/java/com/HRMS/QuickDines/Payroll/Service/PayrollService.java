@@ -1,5 +1,7 @@
 package com.HRMS.QuickDines.Payroll.Service;
 
+import com.HRMS.QuickDines.Company.model.Company;
+import com.HRMS.QuickDines.Company.repo.CompanyRepository;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
 import com.HRMS.QuickDines.Payroll.model.*;
@@ -35,6 +37,7 @@ public class PayrollService {
     private final EmployeeLoanRepository employeeLoanRepository;
     private final LoanInstallmentRepository loanInstallmentRepository;
     private final PayrollHistoryRepository payrollHistoryRepository;
+    private final CompanyRepository companyRepository;
     //=================================
     // SALARIES
     //=================================
@@ -110,39 +113,63 @@ public class PayrollService {
 
     public String generateSalarySlip(String employeeId) {
 
-        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        // 1. Find employee
+        Employee employee = employeeRepository
+                .findByEmployeeId(employeeId)
+                .orElseThrow(() ->
+                        new RuntimeException("Employee Not Found"));
 
-        Salaries salary = salariesRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Salary Not Found"));
+        // 2. Find employee salary
+        Salaries salary = salariesRepository
+                .findByEmployeeId(employeeId)
+                .orElseThrow(() ->
+                        new RuntimeException("Salary Not Found"));
 
+        // 3. Create salary slip
         SalarySlips salarySlip = new SalarySlips();
 
         salarySlip.setEmployee(employee);
         salarySlip.setSalaries(salary);
 
-        // Set month/year
-        salarySlip.setSalaryMonth(String.valueOf(YearMonth.now().getMonthValue()));
+        YearMonth currentMonth = YearMonth.now();
 
-        salarySlip.setSalaryYear(YearMonth.now().getYear());
+        salarySlip.setSalaryMonth(
+                String.valueOf(currentMonth.getMonthValue())
+        );
 
-        salarySlipsRepository.save(salarySlip);
+        salarySlip.setSalaryYear(
+                currentMonth.getYear()
+        );
 
-        // Create payroll history
+        // 4. Save salary slip first
+        salarySlip = salarySlipsRepository.save(salarySlip);
+
+        // 5. Create payroll history
         PayrollHistory history = new PayrollHistory();
 
         history.setEmployee(employee);
         history.setSalary(salary);
         history.setSalarySlip(salarySlip);
 
-        history.setPayrollMonth(String.valueOf(YearMonth.now().getMonthValue()));
+        history.setPayrollMonth(
+                String.valueOf(currentMonth.getMonthValue())
+        );
 
-        history.setPayrollYear(YearMonth.now().getYear());
+        history.setPayrollYear(
+                currentMonth.getYear()
+        );
 
-       // history.setGrossSalary(calculateGrossSalary(salary));
+        // Gross salary
+        history.setGrossSalary(BigDecimal.valueOf(salary.getNetSalary()));
 
-        history.setNetSalary(BigDecimal.valueOf(salary.getNetSalary()));
+        // Net salary
+        history.setNetSalary(
+                BigDecimal.valueOf(salary.getNetSalary())
+        );
 
         history.setProcessedAt(LocalDateTime.now());
 
+        // 6. Save payroll history
         payrollHistoryRepository.save(history);
 
         return "Salary Slip Generated and Payroll History Saved Successfully";
@@ -471,11 +498,11 @@ public class PayrollService {
             Long companyId,
             SalaryComponent salaryComponent) {
 
-        // Find company here using your CompanyRepository
-        // Company company = companyRepository.findById(companyId)
-        //         .orElseThrow(() ->
-        //                 new RuntimeException("Company Not Found"));
-        // salaryComponent.setCompany(company);
+//         Find company here using your CompanyRepository
+         Company company = companyRepository.findById(companyId)
+                 .orElseThrow(() ->
+                         new RuntimeException("Company Not Found"));
+         salaryComponent.setCompany(company);
 
 
         salaryComponentRepository.save(salaryComponent);
