@@ -161,11 +161,7 @@ public class CRMService {
 
 
     public Lead getLead(Long id) {
-
-        return leadRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Lead Not Found"));
+        return leadRepository.findById(id).orElseThrow(() -> new RuntimeException("Lead Not Found"));
     }
 
 

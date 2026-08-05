@@ -14,12 +14,7 @@ import java.time.LocalDateTime;
 @Entity
 @Data
 @Table(name = "invoice_management", uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_invoice_number",
-                        columnNames = "invoice_number"
-                )
-        }
-)
+                @UniqueConstraint(name = "uk_invoice_number", columnNames = "invoice_number")})
 public class InvoiceManagement {
 
     @Id
