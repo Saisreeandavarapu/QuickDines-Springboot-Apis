@@ -209,20 +209,15 @@ public class WorkflowService {
                     "Level name is required");
         }
 
-        if (level.getApproverType() == null) {
-
-            throw new RuntimeException(
-                    "Approver type is required");
-        }
-
-        if (levelRepository
-                .existsByWorkflowIdAndLevelNumber(
-                        workflowId,
-                        level.getLevelNumber())) {
+        if (levelRepository.existsByWorkflowIdAndLevelNumber(
+                workflowId,
+                level.getLevelNumber())) {
 
             throw new RuntimeException(
                     "This approval level already exists");
         }
+
+        validateApprover(level);
 
         level.setWorkflow(workflow);
 
@@ -234,9 +229,21 @@ public class WorkflowService {
             level.setStatus(WorkflowStatus.ACTIVE);
         }
 
-        validateApprover(level);
+        ApprovalWorkflowLevel saved =
+                levelRepository.save(level);
 
-        return levelRepository.save(level);
+        /*
+         * Keep total_levels synchronized
+         * with actual number of levels.
+         */
+        long levelCount =
+                levelRepository.countByWorkflowId(workflowId);
+
+        workflow.setTotalLevels((int) levelCount);
+
+        workflowRepository.save(workflow);
+
+        return saved;
     }
     public Optional<ApprovalWorkflowLevel> getWorkflowLevelById(Long id)
     {
@@ -298,21 +305,21 @@ public class WorkflowService {
             level.setLevelName(
                     updatedLevel.getLevelName());
         }
-
-        if (updatedLevel.getApproverType() != null) {
-            level.setApproverType(
-                    updatedLevel.getApproverType());
-
-            validateApprover(level);
+        if (updatedLevel.getApproverRole().getId() != null) {
+            level.setApproverRole(updatedLevel.getApproverRole());
         }
 
         if (updatedLevel.getApproverRole().getId() != null) {
             level.setApproverRole(updatedLevel.getApproverRole());
         }
 
-        if (updatedLevel.getApproverEmployee().getEmployeeId() != null) {
-            level.setApproverEmployee(
-                    updatedLevel.getApproverEmployee());
+        if (updatedLevel.getApproverRole() != null) {
+
+            validateApprover(updatedLevel);
+
+            level.setApproverRole(
+                    updatedLevel.getApproverRole()
+            );
         }
 
         if (updatedLevel.getRequired() != null) {

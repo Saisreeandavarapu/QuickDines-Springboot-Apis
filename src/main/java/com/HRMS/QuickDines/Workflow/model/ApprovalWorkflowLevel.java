@@ -1,6 +1,5 @@
 package com.HRMS.QuickDines.Workflow.model;
 
-import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Auth.model.Role;
 import com.HRMS.QuickDines.Workflow.Entity.WorkflowStatus;
 import jakarta.persistence.*;
@@ -11,7 +10,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "approval_workflow_levels")
+@Table(
+        name = "approval_workflow_levels",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_workflow_level",
+                        columnNames = {"workflow_id", "level_number"}
+                )
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -33,44 +40,63 @@ public class ApprovalWorkflowLevel {
     )
     private ApprovalWorkflow workflow;
 
-    @Column(name = "level_number", nullable = false)
+    /*
+     * 1, 2, 3...
+     */
+    @Column(
+            name = "level_number",
+            nullable = false
+    )
     private Integer levelNumber;
 
-    @Column(name = "level_name", nullable = false, length = 100)
+    /*
+     * Example:
+     *
+     * Manager Approval
+     * HR Approval
+     * Admin Approval
+     */
+    @Column(
+            name = "level_name",
+            nullable = false,
+            length = 100
+    )
     private String levelName;
-
-    @Enumerated(EnumType.STRING)
-    @JoinColumn(name = "approver_role_name")
-    private Role approverType;
 
     /*
      * FK -> roles.id
      *
-     * Used when:
+     * Example:
      *
-     * approverType = ROLE
+     * role.id = 2
+     * role.roleName = MANAGER
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "approver_role_id")
+    @JoinColumn(
+            name = "approver_role_id",
+            nullable = false
+    )
     private Role approverRole;
 
     /*
-     * FK -> employees.id
-     *
-     * Used when:
-     *
-     * approverType = EMPLOYEE
+     * Whether this approval level is mandatory.
      */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "approver_employee_id")
-    private Employee approverEmployee;
-
-    @Column(name = "is_required", nullable = false)
+    @Column(
+            name = "is_required",
+            nullable = false
+    )
     @Builder.Default
     private Boolean required = true;
 
+    /*
+     * ACTIVE / INACTIVE
+     */
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(
+            name = "status",
+            nullable = false,
+            length = 20
+    )
     @Builder.Default
     private WorkflowStatus status = WorkflowStatus.ACTIVE;
 
@@ -82,9 +108,13 @@ public class ApprovalWorkflowLevel {
             cascade = CascadeType.ALL
     )
     @Builder.Default
-    private List<ApprovalHistory> approvalHistory = new ArrayList<>();
+    private List<ApprovalHistory> approvalHistory =
+            new ArrayList<>();
 
-    @Column(name = "created_at", nullable = false)
+    @Column(
+            name = "created_at",
+            nullable = false
+    )
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
