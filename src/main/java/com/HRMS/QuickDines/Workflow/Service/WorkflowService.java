@@ -460,8 +460,8 @@ public class WorkflowService {
                     "Workflow is inactive");
         }
 
-        if (request.getApproverEmployee() == null ||
-                request.getApproverEmployee()
+        if (request.getEmployee() == null ||
+                request.getEmployee()
                         .getEmployeeId() == null) {
 
             throw new RuntimeException(
@@ -470,7 +470,7 @@ public class WorkflowService {
 
         Employee employee =
                 employeeRepository.findById(
-                                request.getApproverEmployee()
+                                request.getEmployee()
                                         .getEmployeeId())
                         .orElseThrow(() ->
                                 new RuntimeException(
@@ -489,7 +489,7 @@ public class WorkflowService {
         }
 
         request.setWorkflow(workflow);
-        request.setApproverEmployee(employee);
+        request.setEmployee(employee);
         request.setCurrentLevel(1);
 
         if (request.getStatus() == null) {
@@ -548,7 +548,7 @@ public class WorkflowService {
                                 "Employee not found"));
 
         return requestRepository
-                .findByApproverEmployee_EmployeeId(
+                .findByEmployee_EmployeeId(
                         employeeId);
     }
 
@@ -655,8 +655,8 @@ public class WorkflowService {
         ApprovalRequest request =
                 getApprovalRequestById(requestId);
 
-        if (request.getApproverEmployee() == null ||
-                !request.getApproverEmployee()
+        if (request.getEmployee() == null ||
+                !request.getEmployee()
                         .getEmployeeId()
                         .equals(employeeId)) {
 

@@ -38,8 +38,11 @@ public class ApprovalRequest {
      * Employee who submitted the request.
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "approver_employee_id")
-    private Employee approverEmployee;
+    @JoinColumn(
+            name = "employee_id",
+            nullable = false
+    )
+    private Employee employee;
 
     /*
      * LEAVE

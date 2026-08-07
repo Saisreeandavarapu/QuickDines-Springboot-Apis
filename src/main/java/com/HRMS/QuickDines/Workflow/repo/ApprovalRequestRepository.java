@@ -10,7 +10,7 @@ public interface ApprovalRequestRepository
         extends JpaRepository<ApprovalRequest, Long> {
 
     // Employee requests
-    List<ApprovalRequest> findByApproverEmployee_EmployeeId(
+    List<ApprovalRequest> findByEmployee_EmployeeId(
             String employeeId
     );
 
@@ -30,7 +30,7 @@ public interface ApprovalRequestRepository
     );
 
     // Employee + status
-    List<ApprovalRequest> findByApproverEmployee_EmployeeIdAndStatus(
+    List<ApprovalRequest> findByEmployee_EmployeeIdAndStatus(
             String employeeId,
             ApprovalRequestStatus status
     );
