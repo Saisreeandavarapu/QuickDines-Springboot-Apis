@@ -266,9 +266,12 @@ public class WorkflowService {
                     "Approver role ID is required");
         }
 
-        roleRepository.findById(level.getApproverRole().getId()).orElseThrow(() ->
-                        new RuntimeException(
-                                "Approver role not found"));
+        roleRepository.findById(
+                level.getApproverRole().getId()
+        ).orElseThrow(() ->
+                new RuntimeException(
+                        "Approver role not found"
+                ));
     }
 
 

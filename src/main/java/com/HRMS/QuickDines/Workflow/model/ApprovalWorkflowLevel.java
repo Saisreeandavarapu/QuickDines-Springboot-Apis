@@ -2,6 +2,7 @@ package com.HRMS.QuickDines.Workflow.model;
 
 import com.HRMS.QuickDines.Auth.model.Role;
 import com.HRMS.QuickDines.Workflow.Entity.WorkflowStatus;
+import com.HRMS.QuickDines.Workflow.model.ApprovalHistory;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -10,15 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(
-        name = "approval_workflow_levels",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_workflow_level",
-                        columnNames = {"workflow_id", "level_number"}
-                )
-        }
-)
+@Table(name = "approval_workflow_levels")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -32,6 +25,14 @@ public class ApprovalWorkflowLevel {
 
     /*
      * FK -> approval_workflows.id
+     *
+     * Example:
+     *
+     * Leave Approval Workflow
+     *        |
+     *        ├── Level 1
+     *        ├── Level 2
+     *        └── Level 3
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
@@ -40,8 +41,15 @@ public class ApprovalWorkflowLevel {
     )
     private ApprovalWorkflow workflow;
 
+
     /*
-     * 1, 2, 3...
+     * Approval level number.
+     *
+     * Example:
+     *
+     * 1 = Manager
+     * 2 = HR
+     * 3 = Admin
      */
     @Column(
             name = "level_number",
@@ -49,7 +57,10 @@ public class ApprovalWorkflowLevel {
     )
     private Integer levelNumber;
 
+
     /*
+     * Name displayed for this approval level.
+     *
      * Example:
      *
      * Manager Approval
@@ -63,17 +74,28 @@ public class ApprovalWorkflowLevel {
     )
     private String levelName;
 
+
     /*
      * FK -> roles.id
      *
+     * The Role determines who can approve this level.
+     *
      * Example:
      *
-     * role.id = 2
-     * role.roleName = MANAGER
+     * role_id = 2
+     * role_name = HR
+     *
+     * Therefore:
+     *
+     * Level 2 -> HR role
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "approver_role_id")
+    @JoinColumn(
+            name = "approver_role_id",
+            nullable = false
+    )
     private Role approverRole;
+
 
     /*
      * Whether this approval level is mandatory.
@@ -84,6 +106,7 @@ public class ApprovalWorkflowLevel {
     )
     @Builder.Default
     private Boolean required = true;
+
 
     /*
      * ACTIVE / INACTIVE
@@ -97,8 +120,10 @@ public class ApprovalWorkflowLevel {
     @Builder.Default
     private WorkflowStatus status = WorkflowStatus.ACTIVE;
 
+
     /*
-     * One level can have multiple approval history records.
+     * One workflow level can have
+     * multiple approval history records.
      */
     @OneToMany(
             mappedBy = "workflowLevel",
@@ -108,15 +133,30 @@ public class ApprovalWorkflowLevel {
     private List<ApprovalHistory> approvalHistory =
             new ArrayList<>();
 
+
+    /*
+     * Created date.
+     */
     @Column(
             name = "created_at",
-            nullable = false
+            nullable = false,
+            updatable = false
     )
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+
+    /*
+     * Updated date.
+     */
+    @Column(
+            name = "updated_at"
+    )
     private LocalDateTime updatedAt;
 
+
+    /*
+     * Automatically executed before INSERT.
+     */
     @PrePersist
     protected void onCreate() {
 
@@ -134,9 +174,37 @@ public class ApprovalWorkflowLevel {
         }
     }
 
+
+    /*
+     * Automatically executed before UPDATE.
+     */
     @PreUpdate
     protected void onUpdate() {
 
         updatedAt = LocalDateTime.now();
+    }
+
+
+    /*
+     * Helper method.
+     */
+    public void addApprovalHistory(
+            ApprovalHistory history) {
+
+        approvalHistory.add(history);
+
+        history.setWorkflowLevel(this);
+    }
+
+
+    /*
+     * Helper method.
+     */
+    public void removeApprovalHistory(
+            ApprovalHistory history) {
+
+        approvalHistory.remove(history);
+
+        history.setWorkflowLevel(null);
     }
 }
