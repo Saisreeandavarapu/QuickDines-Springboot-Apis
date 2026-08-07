@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Workflow.repo;
 
+import com.HRMS.QuickDines.Workflow.Entity.WorkflowStatus;
 import com.HRMS.QuickDines.Workflow.model.ApprovalWorkflowLevel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -14,4 +15,6 @@ public interface ApprovalWorkflowLevelRepository extends JpaRepository<ApprovalW
     Optional<ApprovalWorkflowLevel> findByWorkflowIdAndLevelNumber(Long workflowId, Integer levelNumber);
 
     long countByWorkflowId(Long workflowId);
+
+    List<ApprovalWorkflowLevel> findByWorkflowIdAndStatus(Long id, WorkflowStatus workflowStatus);
 }

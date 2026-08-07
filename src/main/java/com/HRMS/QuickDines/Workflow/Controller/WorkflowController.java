@@ -2,10 +2,7 @@ package com.HRMS.QuickDines.Workflow.Controller;
 
 import com.HRMS.QuickDines.Workflow.Entity.*;
 import com.HRMS.QuickDines.Workflow.Service.WorkflowService;
-import com.HRMS.QuickDines.Workflow.model.ApprovalHistory;
-import com.HRMS.QuickDines.Workflow.model.ApprovalRequest;
-import com.HRMS.QuickDines.Workflow.model.ApprovalWorkflow;
-import com.HRMS.QuickDines.Workflow.model.ApprovalWorkflowLevel;
+import com.HRMS.QuickDines.Workflow.model.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +18,7 @@ public class WorkflowController {
 
 
     // =========================================================
-    // APPROVAL WORKFLOW APIs
+    // 1. WORKFLOW MANAGEMENT
     // =========================================================
 
     @PostMapping("/create")
@@ -35,7 +32,8 @@ public class WorkflowController {
 
 
     @GetMapping("/all")
-    public ResponseEntity<List<ApprovalWorkflow>> getAllWorkflows() {
+    public ResponseEntity<List<ApprovalWorkflow>>
+    getAllWorkflows() {
 
         return ResponseEntity.ok(
                 workflowService.getAllWorkflows()
@@ -59,7 +57,10 @@ public class WorkflowController {
             @RequestBody ApprovalWorkflow workflow) {
 
         return ResponseEntity.ok(
-                workflowService.updateWorkflow(id, workflow)
+                workflowService.updateWorkflow(
+                        id,
+                        workflow
+                )
         );
     }
 
@@ -74,8 +75,49 @@ public class WorkflowController {
     }
 
 
+    @PutMapping("/activate/{id}")
+    public ResponseEntity<?> activateWorkflow(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                workflowService.activateWorkflow(id)
+        );
+    }
+
+
+    @PutMapping("/deactivate/{id}")
+    public ResponseEntity<?> deactivateWorkflow(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                workflowService.deactivateWorkflow(id)
+        );
+    }
+
+
+    @GetMapping("/active")
+    public ResponseEntity<List<ApprovalWorkflow>>
+    getActiveWorkflows() {
+
+        return ResponseEntity.ok(
+                workflowService.getActiveWorkflows()
+        );
+    }
+
+
+    @GetMapping("/type/{type}")
+    public ResponseEntity<List<ApprovalWorkflow>>
+    getWorkflowsByType(
+            @PathVariable String type) {
+
+        return ResponseEntity.ok(
+                workflowService.getWorkflowsByType(type)
+        );
+    }
+
+
     // =========================================================
-    // APPROVAL WORKFLOW LEVEL APIs
+    // 2. WORKFLOW LEVEL MANAGEMENT
     // =========================================================
 
     @PostMapping("/level/create/{workflowId}")
@@ -93,11 +135,14 @@ public class WorkflowController {
 
 
     @GetMapping("/level/all/{workflowId}")
-    public ResponseEntity<List<ApprovalWorkflowLevel>> getWorkflowLevels(
+    public ResponseEntity<List<ApprovalWorkflowLevel>>
+    getWorkflowLevels(
             @PathVariable Long workflowId) {
 
         return ResponseEntity.ok(
-                workflowService.getWorkflowLevels(workflowId)
+                workflowService.getWorkflowLevels(
+                        workflowId
+                )
         );
     }
 
@@ -118,7 +163,10 @@ public class WorkflowController {
             @RequestBody ApprovalWorkflowLevel level) {
 
         return ResponseEntity.ok(
-                workflowService.updateWorkflowLevel(id, level)
+                workflowService.updateWorkflowLevel(
+                        id,
+                        level
+                )
         );
     }
 
@@ -133,8 +181,32 @@ public class WorkflowController {
     }
 
 
+    @PutMapping("/level/{levelId}/activate")
+    public ResponseEntity<?> activateLevel(
+            @PathVariable Long levelId) {
+
+        return ResponseEntity.ok(
+                workflowService.activateLevel(
+                        levelId
+                )
+        );
+    }
+
+
+    @PutMapping("/level/{levelId}/deactivate")
+    public ResponseEntity<?> deactivateLevel(
+            @PathVariable Long levelId) {
+
+        return ResponseEntity.ok(
+                workflowService.deactivateLevel(
+                        levelId
+                )
+        );
+    }
+
+
     // =========================================================
-    // APPROVAL REQUEST APIs
+    // 3. APPROVAL REQUEST MANAGEMENT
     // =========================================================
 
     @PostMapping("/request/create")
@@ -142,13 +214,16 @@ public class WorkflowController {
             @RequestBody ApprovalRequest request) {
 
         return ResponseEntity.ok(
-                workflowService.createApprovalRequest(request)
+                workflowService.createApprovalRequest(
+                        request
+                )
         );
     }
 
 
     @GetMapping("/request/all")
-    public ResponseEntity<List<ApprovalRequest>> getAllApprovalRequests() {
+    public ResponseEntity<List<ApprovalRequest>>
+    getAllApprovalRequests() {
 
         return ResponseEntity.ok(
                 workflowService.getAllApprovalRequests()
@@ -167,64 +242,135 @@ public class WorkflowController {
 
 
     @GetMapping("/request/employee/{employeeId}")
-    public ResponseEntity<List<ApprovalRequest>> getRequestsByEmployee(
+    public ResponseEntity<List<ApprovalRequest>>
+    getRequestsByEmployee(
             @PathVariable String employeeId) {
 
         return ResponseEntity.ok(
-                workflowService.getRequestsByEmployee(employeeId)
+                workflowService.getRequestsByEmployee(
+                        employeeId
+                )
+        );
+    }
+
+
+    @GetMapping("/request/pending")
+    public ResponseEntity<List<ApprovalRequest>>
+    getPendingRequests() {
+
+        return ResponseEntity.ok(
+                workflowService.getPendingRequests()
+        );
+    }
+
+
+    @GetMapping("/request/status/{status}")
+    public ResponseEntity<List<ApprovalRequest>>
+    getRequestsByStatus(
+            @PathVariable ApprovalRequestStatus status) {
+
+        return ResponseEntity.ok(
+                workflowService.getRequestsByStatus(
+                        status
+                )
+        );
+    }
+
+
+    @GetMapping("/request/type/{type}")
+    public ResponseEntity<List<ApprovalRequest>>
+    getRequestsByType(
+            @PathVariable String type) {
+
+        return ResponseEntity.ok(
+                workflowService.getRequestsByType(type)
         );
     }
 
 
     // =========================================================
-    // APPROVAL ACTION APIs
+    // 4. APPROVAL ACTIONS
     // =========================================================
 
-    @PutMapping("/request/{requestId}/{EmployeeId}/approve")
+    @PutMapping(
+            "/request/{requestId}/{employeeId}/approve"
+    )
     public ResponseEntity<?> approveRequest(
             @PathVariable Long requestId,
-            @RequestParam(required = false) String remarks,
-            @PathVariable String EmployeeId) {
+            @PathVariable String employeeId,
+            @RequestParam(required = false) String remarks) {
 
         return ResponseEntity.ok(
-                workflowService.approveRequest(requestId, remarks,EmployeeId)
+                workflowService.approveRequest(
+                        requestId,
+                        employeeId,
+                        remarks
+                )
         );
     }
 
 
-    @PutMapping("/request/{requestId}/{EmployeeId}/reject")
+    @PutMapping(
+            "/request/{requestId}/{employeeId}/reject"
+    )
     public ResponseEntity<?> rejectRequest(
             @PathVariable Long requestId,
-            @RequestParam(required = false) String remarks,
-    @PathVariable String EmployeeId){
+            @PathVariable String employeeId,
+            @RequestParam(required = false) String remarks) {
 
         return ResponseEntity.ok(
-                workflowService.rejectRequest(requestId, remarks,EmployeeId)
+                workflowService.rejectRequest(
+                        requestId,
+                        employeeId,
+                        remarks
+                )
         );
     }
 
 
-    @PutMapping("/request/{requestId}/{EmployeeId}/cancel")
+    @PutMapping(
+            "/request/{requestId}/{employeeId}/return"
+    )
+    public ResponseEntity<?> returnRequest(
+            @PathVariable Long requestId,
+            @PathVariable String employeeId,
+            @RequestParam(required = false) String remarks) {
+
+        return ResponseEntity.ok(
+                workflowService.returnRequest(
+                        requestId,
+                        employeeId,
+                        remarks
+                )
+        );
+    }
+
+
+    @PutMapping(
+            "/request/{requestId}/{employeeId}/cancel"
+    )
     public ResponseEntity<?> cancelRequest(
             @PathVariable Long requestId,
-            @RequestParam(required = false) String remarks,
-            @PathVariable String EmployeeId) {
+            @PathVariable String employeeId,
+            @RequestParam(required = false) String remarks) {
 
         return ResponseEntity.ok(
                 workflowService.cancelRequest(
                         requestId,
-                        remarks,EmployeeId
+                        employeeId,
+                        remarks
                 )
         );
     }
 
 
     // =========================================================
-    // APPROVAL HISTORY APIs
+    // 5. APPROVAL HISTORY
     // =========================================================
 
     @GetMapping("/history/all")
-    public ResponseEntity<List<ApprovalHistory>> getAllApprovalHistory() {
+    public ResponseEntity<List<ApprovalHistory>>
+    getAllApprovalHistory() {
 
         return ResponseEntity.ok(
                 workflowService.getAllApprovalHistory()
@@ -232,21 +378,28 @@ public class WorkflowController {
     }
 
 
-    @GetMapping("/history/request/{requestId}")
-    public ResponseEntity<List<ApprovalHistory>> getHistoryByRequest(
-            @PathVariable Long requestId) {
+    @GetMapping("/request/{id}/history")
+    public ResponseEntity<List<ApprovalHistory>>
+    getHistoryByRequest(
+            @PathVariable Long id) {
 
         return ResponseEntity.ok(
-                workflowService.getApprovalHistory(requestId)
+                workflowService.getApprovalHistory(id)
         );
     }
 
 
-    @GetMapping("/history/approver/{employeeId}")
-    public ResponseEntity<List<ApprovalHistory>> getHistoryByApprover(
+    @GetMapping(
+            "/history/approver/{employeeId}"
+    )
+    public ResponseEntity<List<ApprovalHistory>>
+    getHistoryByApprover(
             @PathVariable String employeeId) {
 
-        return ResponseEntity.ok(workflowService.getHistoryByApprover(employeeId)
+        return ResponseEntity.ok(
+                workflowService.getHistoryByApprover(
+                        employeeId
+                )
         );
     }
 }

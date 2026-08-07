@@ -1,22 +1,16 @@
 package com.HRMS.QuickDines.Workflow.Service;
 
-import com.HRMS.QuickDines.Auth.repo.RoleRepository;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
 import com.HRMS.QuickDines.Workflow.Entity.*;
-import com.HRMS.QuickDines.Workflow.model.ApprovalHistory;
-import com.HRMS.QuickDines.Workflow.model.ApprovalRequest;
-import com.HRMS.QuickDines.Workflow.model.ApprovalWorkflow;
-import com.HRMS.QuickDines.Workflow.model.ApprovalWorkflowLevel;
+import com.HRMS.QuickDines.Workflow.model.*;
 import com.HRMS.QuickDines.Workflow.repo.*;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -24,35 +18,42 @@ import java.util.Optional;
 public class WorkflowService {
 
     private final ApprovalWorkflowRepository workflowRepository;
+
     private final ApprovalWorkflowLevelRepository levelRepository;
+
     private final ApprovalRequestRepository requestRepository;
+
     private final ApprovalHistoryRepository historyRepository;
+
     private final EmployeeRepository employeeRepository;
-    private final RoleRepository roleRepository;
 
 
     // =========================================================
     // 1. CREATE WORKFLOW
     // =========================================================
 
-    public ApprovalWorkflow createWorkflow(ApprovalWorkflow workflow) {
+    public ApprovalWorkflow createWorkflow(
+            ApprovalWorkflow workflow) {
 
         if (workflow.getWorkflowName() == null ||
                 workflow.getWorkflowName().isBlank()) {
 
-            throw new RuntimeException("Workflow name is required");
+            throw new RuntimeException(
+                    "Workflow name is required");
         }
 
         if (workflow.getWorkflowType() == null ||
                 workflow.getWorkflowType().isBlank()) {
 
-            throw new RuntimeException("Workflow type is required");
+            throw new RuntimeException(
+                    "Workflow type is required");
         }
 
         if (workflow.getTotalLevels() == null ||
                 workflow.getTotalLevels() <= 0) {
 
-            throw new RuntimeException("Total levels must be greater than zero");
+            throw new RuntimeException(
+                    "Total levels must be greater than zero");
         }
 
         if (workflow.getAutoApprove() == null) {
@@ -60,7 +61,8 @@ public class WorkflowService {
         }
 
         if (workflow.getStatus() == null) {
-            workflow.setStatus(WorkflowStatus.ACTIVE);
+            workflow.setStatus(
+                    WorkflowStatus.ACTIVE);
         }
 
         return workflowRepository.save(workflow);
@@ -81,10 +83,13 @@ public class WorkflowService {
     // 3. GET WORKFLOW BY ID
     // =========================================================
 
-    public ApprovalWorkflow getWorkflowById(Long workflowId) {
+    public ApprovalWorkflow getWorkflowById(
+            Long id) {
 
-        return workflowRepository.findById(workflowId).orElseThrow(() ->
-                        new RuntimeException("Workflow not found"));
+        return workflowRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Workflow not found with ID: " + id));
     }
 
 
@@ -93,25 +98,40 @@ public class WorkflowService {
     // =========================================================
 
     public ApprovalWorkflow updateWorkflow(
-            Long workflowId,
+            Long id,
             ApprovalWorkflow updatedWorkflow) {
 
         ApprovalWorkflow workflow =
-                workflowRepository.findById(workflowId).orElseThrow(() ->
-                                new RuntimeException("Workflow not found"));
+                getWorkflowById(id);
 
         if (updatedWorkflow.getWorkflowName() != null) {
+
             workflow.setWorkflowName(
                     updatedWorkflow.getWorkflowName());
         }
 
         if (updatedWorkflow.getWorkflowType() != null) {
+
             workflow.setWorkflowType(
                     updatedWorkflow.getWorkflowType());
         }
 
+        if (updatedWorkflow.getCompanyId() != null) {
+
+            workflow.setCompanyId(
+                    updatedWorkflow.getCompanyId());
+        }
+
+        if (updatedWorkflow.getDepartmentId() != null) {
+
+            workflow.setDepartmentId(
+                    updatedWorkflow.getDepartmentId());
+        }
+
         if (updatedWorkflow.getTotalLevels() != null) {
+
             if (updatedWorkflow.getTotalLevels() <= 0) {
+
                 throw new RuntimeException(
                         "Total levels must be greater than zero");
             }
@@ -121,11 +141,13 @@ public class WorkflowService {
         }
 
         if (updatedWorkflow.getAutoApprove() != null) {
+
             workflow.setAutoApprove(
                     updatedWorkflow.getAutoApprove());
         }
 
         if (updatedWorkflow.getStatus() != null) {
+
             workflow.setStatus(
                     updatedWorkflow.getStatus());
         }
@@ -135,43 +157,13 @@ public class WorkflowService {
 
 
     // =========================================================
-    // 5. ACTIVATE WORKFLOW
+    // 5. DELETE WORKFLOW
     // =========================================================
 
-    public ApprovalWorkflow activateWorkflow(Long workflowId) {
+    public String deleteWorkflow(Long id) {
 
         ApprovalWorkflow workflow =
-                getWorkflowById(workflowId);
-
-        workflow.setStatus(WorkflowStatus.ACTIVE);
-
-        return workflowRepository.save(workflow);
-    }
-
-
-    // =========================================================
-    // 6. DEACTIVATE WORKFLOW
-    // =========================================================
-
-    public ApprovalWorkflow deactivateWorkflow(Long workflowId) {
-
-        ApprovalWorkflow workflow =
-                getWorkflowById(workflowId);
-
-        workflow.setStatus(WorkflowStatus.INACTIVE);
-
-        return workflowRepository.save(workflow);
-    }
-
-
-    // =========================================================
-    // 7. DELETE WORKFLOW
-    // =========================================================
-
-    public String deleteWorkflow(Long workflowId) {
-
-        ApprovalWorkflow workflow =
-                getWorkflowById(workflowId);
+                getWorkflowById(id);
 
         workflowRepository.delete(workflow);
 
@@ -180,17 +172,74 @@ public class WorkflowService {
 
 
     // =========================================================
-    // 8. ADD WORKFLOW LEVEL
+    // 6. ACTIVATE WORKFLOW
     // =========================================================
 
-    public ApprovalWorkflowLevel addWorkflowLevel(
+    public ApprovalWorkflow activateWorkflow(
+            Long id) {
+
+        ApprovalWorkflow workflow =
+                getWorkflowById(id);
+
+        workflow.setStatus(
+                WorkflowStatus.ACTIVE);
+
+        return workflowRepository.save(workflow);
+    }
+
+
+    // =========================================================
+    // 7. DEACTIVATE WORKFLOW
+    // =========================================================
+
+    public ApprovalWorkflow deactivateWorkflow(
+            Long id) {
+
+        ApprovalWorkflow workflow =
+                getWorkflowById(id);
+
+        workflow.setStatus(
+                WorkflowStatus.INACTIVE);
+
+        return workflowRepository.save(workflow);
+    }
+
+
+    // =========================================================
+    // 8. GET ACTIVE WORKFLOWS
+    // =========================================================
+
+    public List<ApprovalWorkflow> getActiveWorkflows() {
+
+        return workflowRepository.findByStatus(WorkflowStatus.ACTIVE);
+    }
+
+
+    // =========================================================
+    // 9. GET WORKFLOWS BY TYPE
+    // =========================================================
+
+    public List<ApprovalWorkflow> getWorkflowsByType(
+            String type) {
+
+        return workflowRepository.findByWorkflowType(type);
+    }
+
+
+    // =========================================================
+    // 10. CREATE WORKFLOW LEVEL
+    // =========================================================
+
+    public ApprovalWorkflowLevel createWorkflowLevel(
             Long workflowId,
             ApprovalWorkflowLevel level) {
 
         ApprovalWorkflow workflow =
                 getWorkflowById(workflowId);
 
-        if (workflow.getStatus() == WorkflowStatus.INACTIVE) {
+        if (workflow.getStatus()
+                == WorkflowStatus.INACTIVE) {
+
             throw new RuntimeException(
                     "Cannot add level to inactive workflow");
         }
@@ -209,15 +258,21 @@ public class WorkflowService {
                     "Level name is required");
         }
 
-        if (levelRepository.existsByWorkflowIdAndLevelNumber(
-                workflowId,
-                level.getLevelNumber())) {
+        if (level.getApproverRole() == null ||
+                level.getApproverRole().getId() == null) {
 
             throw new RuntimeException(
-                    "This approval level already exists");
+                    "Approver role is required");
         }
 
-        validateApprover(level);
+        if (levelRepository
+                .existsByWorkflowIdAndLevelNumber(
+                        workflowId,
+                        level.getLevelNumber())) {
+
+            throw new RuntimeException(
+                    "This workflow level already exists");
+        }
 
         level.setWorkflow(workflow);
 
@@ -226,61 +281,25 @@ public class WorkflowService {
         }
 
         if (level.getStatus() == null) {
-            level.setStatus(WorkflowStatus.ACTIVE);
+            level.setStatus(
+                    WorkflowStatus.ACTIVE);
         }
 
         ApprovalWorkflowLevel saved =
                 levelRepository.save(level);
 
-        /*
-         * Keep total_levels synchronized
-         * with actual number of levels.
-         */
-        long levelCount =
-                levelRepository.countByWorkflowId(workflowId);
-
-        workflow.setTotalLevels((int) levelCount);
-
-        workflowRepository.save(workflow);
+        updateWorkflowTotalLevels(workflow);
 
         return saved;
     }
-    public Optional<ApprovalWorkflowLevel> getWorkflowLevelById(Long id)
-    {
-        return levelRepository.findById(id);
-    }
-
-    // =========================================================
-    // 9. VALIDATE APPROVER
-    // =========================================================
-
-    private void validateApprover(ApprovalWorkflowLevel level) {
-
-        if (level.getApproverRole() == null) {
-            throw new RuntimeException(
-                    "Approver role is required");
-        }
-
-        if (level.getApproverRole().getId() == null) {
-            throw new RuntimeException(
-                    "Approver role ID is required");
-        }
-
-        roleRepository.findById(
-                level.getApproverRole().getId()
-        ).orElseThrow(() ->
-                new RuntimeException(
-                        "Approver role not found"
-                ));
-    }
 
 
     // =========================================================
-    // 10. GET WORKFLOW LEVELS
+    // 11. GET ALL LEVELS
     // =========================================================
 
-    public List<ApprovalWorkflowLevel> getWorkflowLevels(
-            Long workflowId) {
+    public List<ApprovalWorkflowLevel>
+    getWorkflowLevels(Long workflowId) {
 
         getWorkflowById(workflowId);
 
@@ -291,46 +310,65 @@ public class WorkflowService {
 
 
     // =========================================================
-    // 11. UPDATE WORKFLOW LEVEL
+    // 12. GET LEVEL BY ID
     // =========================================================
 
-    public ApprovalWorkflowLevel updateWorkflowLevel(
-            Long levelId,
+    public ApprovalWorkflowLevel
+    getWorkflowLevelById(Long id) {
+
+        return levelRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Workflow level not found with ID: "
+                                        + id));
+    }
+
+
+    // =========================================================
+    // 13. UPDATE LEVEL
+    // =========================================================
+
+    public ApprovalWorkflowLevel
+    updateWorkflowLevel(
+            Long id,
             ApprovalWorkflowLevel updatedLevel) {
 
         ApprovalWorkflowLevel level =
-                levelRepository.findById(levelId)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Workflow level not found"));
+                getWorkflowLevelById(id);
+
+        if (updatedLevel.getLevelNumber() != null) {
+
+            level.setLevelNumber(
+                    updatedLevel.getLevelNumber());
+        }
 
         if (updatedLevel.getLevelName() != null) {
+
             level.setLevelName(
                     updatedLevel.getLevelName());
-        }
-        if (updatedLevel.getApproverRole().getId() != null) {
-            level.setApproverRole(updatedLevel.getApproverRole());
-        }
-
-        if (updatedLevel.getApproverRole().getId() != null) {
-            level.setApproverRole(updatedLevel.getApproverRole());
         }
 
         if (updatedLevel.getApproverRole() != null) {
 
-            validateApprover(updatedLevel);
+            if (updatedLevel.getApproverRole().getId()
+                    == null) {
+
+                throw new RuntimeException(
+                        "Approver role ID is required");
+            }
 
             level.setApproverRole(
-                    updatedLevel.getApproverRole()
-            );
+                    updatedLevel.getApproverRole());
         }
 
         if (updatedLevel.getRequired() != null) {
+
             level.setRequired(
                     updatedLevel.getRequired());
         }
 
         if (updatedLevel.getStatus() != null) {
+
             level.setStatus(
                     updatedLevel.getStatus());
         }
@@ -340,106 +378,168 @@ public class WorkflowService {
 
 
     // =========================================================
-    // 12. DELETE WORKFLOW LEVEL
+    // 14. DELETE LEVEL
     // =========================================================
 
-    public String deleteWorkflowLevel(Long levelId) {
+    public String deleteWorkflowLevel(
+            Long id) {
 
         ApprovalWorkflowLevel level =
-                levelRepository.findById(levelId)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Workflow level not found"));
+                getWorkflowLevelById(id);
 
         levelRepository.delete(level);
+
+        ApprovalWorkflow workflow =
+                level.getWorkflow();
+
+        if (workflow != null) {
+
+            updateWorkflowTotalLevels(workflow);
+        }
 
         return "Workflow level deleted successfully";
     }
 
 
     // =========================================================
-    // 13. SUBMIT APPROVAL REQUEST
+    // 15. ACTIVATE LEVEL
     // =========================================================
 
-    public ApprovalRequest submitRequest(
-            Long workflowId,
-            String employeeId,
-            String requestType,
-            Long referenceId,
-            String remarks) {
+    public ApprovalWorkflowLevel activateLevel(
+            Long levelId) {
+
+        ApprovalWorkflowLevel level =
+                getWorkflowLevelById(levelId);
+
+        level.setStatus(
+                WorkflowStatus.ACTIVE);
+
+        return levelRepository.save(level);
+    }
+
+
+    // =========================================================
+    // 16. DEACTIVATE LEVEL
+    // =========================================================
+
+    public ApprovalWorkflowLevel deactivateLevel(
+            Long levelId) {
+
+        ApprovalWorkflowLevel level =
+                getWorkflowLevelById(levelId);
+
+        level.setStatus(
+                WorkflowStatus.INACTIVE);
+
+        return levelRepository.save(level);
+    }
+
+
+    // =========================================================
+    // 17. CREATE APPROVAL REQUEST
+    // =========================================================
+
+    public ApprovalRequest createApprovalRequest(
+            ApprovalRequest request) {
+
+        if (request.getWorkflow() == null ||
+                request.getWorkflow().getId() == null) {
+
+            throw new RuntimeException(
+                    "Workflow is required");
+        }
 
         ApprovalWorkflow workflow =
-                getWorkflowById(workflowId);
+                getWorkflowById(
+                        request.getWorkflow().getId());
 
-        if (workflow.getStatus() == WorkflowStatus.INACTIVE) {
+        if (workflow.getStatus()
+                == WorkflowStatus.INACTIVE) {
 
             throw new RuntimeException(
                     "Workflow is inactive");
         }
 
+        if (request.getApproverEmployee() == null ||
+                request.getApproverEmployee()
+                        .getEmployeeId() == null) {
+
+            throw new RuntimeException(
+                    "Employee is required");
+        }
+
         Employee employee =
-                employeeRepository.findById(employeeId)
+                employeeRepository.findById(
+                                request.getApproverEmployee()
+                                        .getEmployeeId())
                         .orElseThrow(() ->
                                 new RuntimeException(
                                         "Employee not found"));
 
         List<ApprovalWorkflowLevel> levels =
                 levelRepository
-                        .findByWorkflowIdOrderByLevelNumberAsc(
-                                workflowId);
+                        .findByWorkflowIdAndStatus(
+                                workflow.getId(),
+                                WorkflowStatus.ACTIVE);
 
         if (levels.isEmpty()) {
 
             throw new RuntimeException(
-                    "No approval levels configured");
+                    "No active approval levels configured");
         }
-
-        ApprovalRequest request =
-                new ApprovalRequest();
 
         request.setWorkflow(workflow);
         request.setApproverEmployee(employee);
-        request.setRequestType(requestType);
-        request.setReferenceId(referenceId);
         request.setCurrentLevel(1);
-        request.setStatus(
-                ApprovalRequestStatus.PENDING);
-        request.setRemarks(remarks);
-        request.setSubmittedDate(
-                LocalDateTime.now());
+
+        if (request.getStatus() == null) {
+
+            request.setStatus(
+                    ApprovalRequestStatus.PENDING);
+        }
+
+        if (request.getSubmittedDate() == null) {
+
+            request.setSubmittedDate(
+                    LocalDateTime.now());
+        }
 
         return requestRepository.save(request);
     }
 
 
     // =========================================================
-    // 14. GET ALL APPROVAL REQUESTS
+    // 18. GET ALL REQUESTS
     // =========================================================
 
-    public List<ApprovalRequest> getAllRequests() {
+    public List<ApprovalRequest>
+    getAllApprovalRequests() {
 
         return requestRepository.findAll();
     }
 
 
     // =========================================================
-    // 15. GET REQUEST BY ID
+    // 19. GET REQUEST BY ID
     // =========================================================
 
-    public ApprovalRequest getRequestById(Long requestId) {
+    public ApprovalRequest
+    getApprovalRequestById(Long id) {
 
-        return requestRepository.findById(requestId)
+        return requestRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(
-                                "Approval request not found"));
+                                "Approval request not found with ID: "
+                                        + id));
     }
 
 
     // =========================================================
-    // 16. GET EMPLOYEE REQUESTS
+    // 20. GET EMPLOYEE REQUESTS
     // =========================================================
 
-    public List<ApprovalRequest> getEmployeeRequests(
+    public List<ApprovalRequest>
+    getRequestsByEmployee(
             String employeeId) {
 
         employeeRepository.findById(employeeId)
@@ -448,186 +548,103 @@ public class WorkflowService {
                                 "Employee not found"));
 
         return requestRepository
-                .findByEmployeeEmployeeId(employeeId);
+                .findByApproverEmployee_EmployeeId(
+                        employeeId);
     }
 
 
     // =========================================================
-    // 17. APPROVE REQUEST
+    // 21. GET PENDING REQUESTS
+    // =========================================================
+
+    public List<ApprovalRequest>
+    getPendingRequests() {
+
+        return requestRepository
+                .findByStatus(
+                        ApprovalRequestStatus.PENDING);
+    }
+
+
+    // =========================================================
+    // 22. GET REQUESTS BY STATUS
+    // =========================================================
+
+    public List<ApprovalRequest>
+    getRequestsByStatus(
+            ApprovalRequestStatus status) {
+
+        return requestRepository
+                .findByStatus(status);
+    }
+
+
+    // =========================================================
+    // 23. GET REQUESTS BY TYPE
+    // =========================================================
+
+    public List<ApprovalRequest>
+    getRequestsByType(
+            String type) {
+
+        return requestRepository
+                .findByRequestType(type);
+    }
+
+
+    // =========================================================
+    // 24. APPROVE REQUEST
     // =========================================================
 
     public ApprovalRequest approveRequest(
             Long requestId,
-            String approverEmployeeId,
+            String employeeId,
             String remarks) {
 
         return processApproval(
                 requestId,
-                approverEmployeeId,
+                employeeId,
                 remarks,
                 ApprovalAction.APPROVED);
     }
 
 
     // =========================================================
-    // 18. REJECT REQUEST
+    // 25. REJECT REQUEST
     // =========================================================
 
     public ApprovalRequest rejectRequest(
             Long requestId,
-            String approverEmployeeId,
+            String employeeId,
             String remarks) {
 
         return processApproval(
                 requestId,
-                approverEmployeeId,
+                employeeId,
                 remarks,
                 ApprovalAction.REJECTED);
     }
 
 
     // =========================================================
-    // 19. RETURN REQUEST
+    // 26. RETURN REQUEST
     // =========================================================
 
     public ApprovalRequest returnRequest(
             Long requestId,
-            String approverEmployeeId,
+            String employeeId,
             String remarks) {
 
         return processApproval(
                 requestId,
-                approverEmployeeId,
+                employeeId,
                 remarks,
                 ApprovalAction.RETURNED);
     }
 
 
     // =========================================================
-    // 20. COMMON APPROVAL PROCESS
-    // =========================================================
-
-    private ApprovalRequest processApproval(
-            Long requestId,
-            String approverEmployeeId,
-            String remarks,
-            ApprovalAction action) {
-
-        ApprovalRequest request =
-                getRequestById(requestId);
-
-        if (request.getStatus()
-                != ApprovalRequestStatus.PENDING) {
-
-            throw new RuntimeException(
-                    "This request is no longer pending");
-        }
-
-        Employee approver =
-                employeeRepository.findById(
-                                approverEmployeeId)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Approver employee not found"));
-
-        ApprovalWorkflowLevel level =
-                levelRepository
-                        .findByWorkflowIdAndLevelNumber(
-                                request.getWorkflow().getId(),
-                                request.getCurrentLevel())
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Current approval level not found"));
-
-        // Create history record
-        ApprovalHistory history =
-                new ApprovalHistory();
-
-        history.setApprovalRequest(request);
-        history.setWorkflowLevel(level);
-        history.setApprover(approver);
-        history.setApprovalLevel(
-                request.getCurrentLevel());
-        history.setAction(action);
-        history.setRemarks(remarks);
-        history.setActionDate(
-                LocalDateTime.now());
-
-        historyRepository.save(history);
-
-
-        // =====================================================
-        // REJECT
-        // =====================================================
-
-        if (action == ApprovalAction.REJECTED) {
-
-            request.setStatus(
-                    ApprovalRequestStatus.REJECTED);
-
-            request.setUpdatedAt(
-                    LocalDateTime.now());
-
-            return requestRepository.save(request);
-        }
-
-
-        // =====================================================
-        // RETURN
-        // =====================================================
-
-        if (action == ApprovalAction.RETURNED) {
-
-            request.setStatus(
-                    ApprovalRequestStatus.PENDING);
-
-            request.setRemarks(remarks);
-
-            request.setUpdatedAt(
-                    LocalDateTime.now());
-
-            return requestRepository.save(request);
-        }
-
-
-        // =====================================================
-        // APPROVED
-        // =====================================================
-
-        List<ApprovalWorkflowLevel> levels =
-                levelRepository
-                        .findByWorkflowIdOrderByLevelNumberAsc(
-                                request.getWorkflow().getId());
-
-        int currentLevel =
-                request.getCurrentLevel();
-
-        boolean lastLevel =
-                currentLevel >= levels.size();
-
-        if (lastLevel) {
-
-            request.setStatus(
-                    ApprovalRequestStatus.APPROVED);
-
-        } else {
-
-            request.setCurrentLevel(
-                    currentLevel + 1);
-
-            request.setStatus(
-                    ApprovalRequestStatus.PENDING);
-        }
-
-        request.setUpdatedAt(
-                LocalDateTime.now());
-
-        return requestRepository.save(request);
-    }
-
-
-    // =========================================================
-    // 21. CANCEL REQUEST
+    // 27. CANCEL REQUEST
     // =========================================================
 
     public ApprovalRequest cancelRequest(
@@ -636,11 +653,12 @@ public class WorkflowService {
             String remarks) {
 
         ApprovalRequest request =
-                getRequestById(requestId);
+                getApprovalRequestById(requestId);
 
-        if (!request.getApproverEmployee()
-                .getEmployeeId()
-                .equals(employeeId)) {
+        if (request.getApproverEmployee() == null ||
+                !request.getApproverEmployee()
+                        .getEmployeeId()
+                        .equals(employeeId)) {
 
             throw new RuntimeException(
                     "You cannot cancel this request");
@@ -664,15 +682,206 @@ public class WorkflowService {
         return requestRepository.save(request);
     }
 
+// =========================================================
+// 28. COMMON APPROVAL PROCESS
+// =========================================================
+
+    private ApprovalRequest processApproval(
+            Long requestId,
+            String employeeId,
+            String remarks,
+            ApprovalAction action) {
+
+        // =====================================================
+        // 1. GET APPROVAL REQUEST
+        // =====================================================
+
+        ApprovalRequest request =
+                getApprovalRequestById(requestId);
+
+        // =====================================================
+        // 2. REQUEST MUST BE PENDING
+        // =====================================================
+
+        if (request.getStatus()
+                != ApprovalRequestStatus.PENDING) {
+
+            throw new RuntimeException(
+                    "This request is no longer pending");
+        }
+
+        // =====================================================
+        // 3. GET APPROVER EMPLOYEE
+        // =====================================================
+
+        Employee approver =
+                employeeRepository.findById(employeeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Approver employee not found"));
+
+        // =====================================================
+        // 4. GET CURRENT WORKFLOW LEVEL
+        // =====================================================
+
+        ApprovalWorkflowLevel level =
+                levelRepository
+                        .findByWorkflowIdAndLevelNumber(
+                                request.getWorkflow().getId(),
+                                request.getCurrentLevel())
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Current approval level not found"));
+
+        // =====================================================
+        // 5. CHECK CURRENT LEVEL STATUS
+        // =====================================================
+
+        if (level.getStatus()
+                == WorkflowStatus.INACTIVE) {
+
+            throw new RuntimeException(
+                    "Current approval level is inactive");
+        }
+
+        // =====================================================
+        // 6. CREATE APPROVAL HISTORY
+        // =====================================================
+
+        ApprovalHistory history =
+                new ApprovalHistory();
+
+        history.setApprovalRequest(request);
+
+        history.setWorkflowLevel(level);
+
+        history.setApprover(approver);
+
+        history.setApprovalLevel(
+                request.getCurrentLevel());
+
+        history.setAction(action);
+
+        history.setRemarks(remarks);
+
+        history.setActionDate(
+                LocalDateTime.now());
+
+        historyRepository.save(history);
+
+        // =====================================================
+        // 7. REJECT REQUEST
+        // =====================================================
+
+        if (action == ApprovalAction.REJECTED) {
+
+            request.setStatus(
+                    ApprovalRequestStatus.REJECTED);
+
+            request.setRemarks(remarks);
+
+            request.setUpdatedAt(
+                    LocalDateTime.now());
+
+            return requestRepository.save(request);
+        }
+
+        // =====================================================
+        // 8. APPROVE REQUEST
+        // =====================================================
+
+        if (action == ApprovalAction.APPROVED) {
+
+            /*
+             * Get all ACTIVE levels for this workflow.
+             */
+            List<ApprovalWorkflowLevel> levels =
+                    levelRepository
+                            .findByWorkflowIdAndStatus(
+                                    request.getWorkflow().getId(),
+                                    WorkflowStatus.ACTIVE);
+
+            if (levels.isEmpty()) {
+
+                throw new RuntimeException(
+                        "No active approval levels found");
+            }
+
+            /*
+             * Current approval level.
+             */
+            int currentLevel =
+                    request.getCurrentLevel();
+
+            /*
+             * Find the next active level.
+             */
+            ApprovalWorkflowLevel nextLevel = null;
+
+            for (ApprovalWorkflowLevel workflowLevel : levels) {
+
+                if (workflowLevel.getLevelNumber()
+                        > currentLevel) {
+
+                    nextLevel = workflowLevel;
+
+                    break;
+                }
+            }
+
+            // =================================================
+            // 9. FINAL LEVEL APPROVED
+            // =================================================
+
+            if (nextLevel == null) {
+
+                request.setStatus(
+                        ApprovalRequestStatus.APPROVED);
+            }
+
+            // =================================================
+            // 10. MOVE TO NEXT LEVEL
+            // =================================================
+
+            else {
+
+                request.setCurrentLevel(
+                        nextLevel.getLevelNumber());
+
+                /*
+                 * Request stays PENDING until
+                 * the next approver takes action.
+                 */
+                request.setStatus(
+                        ApprovalRequestStatus.PENDING);
+            }
+
+            request.setRemarks(remarks);
+
+            request.setUpdatedAt(
+                    LocalDateTime.now());
+
+            return requestRepository.save(request);
+        }
+
+        // =====================================================
+        // 11. INVALID ACTION
+        // =====================================================
+
+        throw new RuntimeException(
+                "Invalid approval action: " + action);
+    }
+
+
 
     // =========================================================
-    // 22. GET APPROVAL HISTORY
+    // 29. REQUEST HISTORY
     // =========================================================
 
-    public List<ApprovalHistory> getApprovalHistory(
-            Long requestId) {
+    public List<ApprovalHistory>
+    getApprovalHistory(Long requestId) {
 
-        getRequestById(requestId);
+        getApprovalRequestById(requestId);
 
         return historyRepository
                 .findByApprovalRequestIdOrderByActionDateAsc(
@@ -681,58 +890,49 @@ public class WorkflowService {
 
 
     // =========================================================
-    // 23. GET ALL HISTORY
+    // 30. ALL HISTORY
     // =========================================================
 
-    public List<ApprovalHistory> getAllApprovalHistory() {
+    public List<ApprovalHistory>
+    getAllApprovalHistory() {
 
         return historyRepository.findAll();
     }
 
 
     // =========================================================
-    // 24. GET PENDING REQUESTS
+    // 31. APPROVER HISTORY
     // =========================================================
 
-    public List<ApprovalRequest> getPendingRequests() {
+    public List<ApprovalHistory>
+    getHistoryByApprover(
+            String employeeId) {
 
-        return requestRepository
-                .findByStatus(
-                        ApprovalRequestStatus.PENDING);
+        employeeRepository.findById(employeeId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Employee not found"));
+
+        return historyRepository
+                .findByApprover_EmployeeId(
+                        employeeId);
     }
-    public ApprovalWorkflowLevel createWorkflowLevel
-            ( Long workflowId, ApprovalWorkflowLevel level)
-    {
-        ApprovalWorkflow workflow = workflowRepository.findById(workflowId) .orElseThrow(() -> new RuntimeException( "Workflow not found with ID: " + workflowId));
-        level.setWorkflow(workflow);
-        if (level.getStatus() == null)
-        { level.setStatus(WorkflowStatus.ACTIVE); }
-        if (level.getRequired() == null) { level.setRequired(true); }
-        ApprovalWorkflowLevel saved = levelRepository.save(level);
-        /* * Keep total_levels synchronized with actual levels. */
-        long levelCount = levelRepository .countByWorkflowId(workflowId);
-        workflow.setTotalLevels((int) levelCount); workflowRepository.save(workflow); return saved; }
 
 
-    public ApprovalRequest createApprovalRequest(ApprovalRequest request)
-    {
-        return  requestRepository.save(request);
-    }
-    public List<ApprovalRequest> getAllApprovalRequests()
-    {
-        return requestRepository.findAll();
-    }
-    public ApprovalRequest getApprovalRequestById(Long id)
-    {
-        return requestRepository.findById(id).orElseThrow(() -> new RuntimeException("Approval request not found with ID: " + id));
-    }
-    public List<ApprovalRequest> getRequestsByEmployee(String employeeId)
-    {
-        return requestRepository.findByEmployeeId(employeeId);
-    }
-    public List<ApprovalHistory> getHistoryByApprover(String EmployeeId)
-    {
-        return historyRepository.findByEmployeeId(EmployeeId);
+    // =========================================================
+    // HELPER
+    // =========================================================
+
+    private void updateWorkflowTotalLevels(
+            ApprovalWorkflow workflow) {
+
+        long count =
+                levelRepository.countByWorkflowId(
+                        workflow.getId());
+
+        workflow.setTotalLevels(
+                (int) count);
+
+        workflowRepository.save(workflow);
     }
 }
-
