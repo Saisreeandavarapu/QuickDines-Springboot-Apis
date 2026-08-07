@@ -395,7 +395,7 @@ public class WorkflowService {
                 new ApprovalRequest();
 
         request.setWorkflow(workflow);
-        request.setEmployee(employee);
+        request.setApproverEmployee(employee);
         request.setRequestType(requestType);
         request.setReferenceId(referenceId);
         request.setCurrentLevel(1);
@@ -635,7 +635,7 @@ public class WorkflowService {
         ApprovalRequest request =
                 getRequestById(requestId);
 
-        if (!request.getEmployee()
+        if (!request.getApproverEmployee()
                 .getEmployeeId()
                 .equals(employeeId)) {
 

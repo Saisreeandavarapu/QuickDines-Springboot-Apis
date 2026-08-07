@@ -72,10 +72,7 @@ public class ApprovalWorkflowLevel {
      * role.roleName = MANAGER
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "approver_role_id",
-            nullable = false
-    )
+    @JoinColumn(name = "approver_role_id")
     private Role approverRole;
 
     /*
