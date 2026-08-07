@@ -10,7 +10,7 @@ import java.util.List;
 public interface ApprovalHistoryRepository extends JpaRepository<ApprovalHistory,Long> {
     List<ApprovalHistory> findByApprovalRequestIdOrderByActionDateAsc(Long requestId);
 
-    List<ApprovalHistory> findByEmployeeId(String employeeId);
+
     // 
 
     // History of an approver
