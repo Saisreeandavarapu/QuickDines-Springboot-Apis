@@ -4,6 +4,7 @@ import com.HRMS.QuickDines.Attendance.DTO.AttendanceDashboardDTO;
 import com.HRMS.QuickDines.Attendance.Service.AttendanceSchedulerService;
 import com.HRMS.QuickDines.Attendance.Service.AttendanceService;
 import com.HRMS.QuickDines.Attendance.model.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -237,12 +238,12 @@ public ResponseEntity<?> getAllAttendance() {
     @PutMapping("/shift/{id}")
     public ResponseEntity<?> updateShift(
             @PathVariable Long id,
-            @RequestBody Shift shift) {
+            @RequestBody Shift shift) throws JsonProcessingException {
         return ResponseEntity.ok(service.updateShift(id, shift));
     }
 
     @DeleteMapping("/shift/{id}")
-    public ResponseEntity<?> deleteShift(@PathVariable Long id) {
+    public ResponseEntity<?> deleteShift(@PathVariable Long id) throws JsonProcessingException {
         return ResponseEntity.ok(service.deleteShift(id));
     }
 

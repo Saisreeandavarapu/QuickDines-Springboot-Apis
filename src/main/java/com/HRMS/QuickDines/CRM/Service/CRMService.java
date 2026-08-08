@@ -1,10 +1,17 @@
 package com.HRMS.QuickDines.CRM.Service;
 
+import com.HRMS.QuickDines.AuditLogs.Entity.ActivityStatus;
+import com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType;
+import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
+import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
 import com.HRMS.QuickDines.CRM.model.*;
 import com.HRMS.QuickDines.CRM.repo.*;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,11 +28,55 @@ public class CRMService {
     private final CustomerMeetingRepository customerMeetingRepository;
 
     private final EmployeeRepository employeeRepository;
+    private final AuditLogsService auditLogsService;
+    private final ClientInfoService clientInfoService;
+    private final ObjectMapper objectMapper;
+   
+
+    private String getLoggedInEmployeeId() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication == null ||
+                !authentication.isAuthenticated()) {
+
+            throw new RuntimeException(
+                    "User is not authenticated");
+        }
+
+        return authentication.getName();
+    }
+    String performedBy = getLoggedInEmployeeId();
+// =========================================================
+// CONVERT OBJECT TO JSON
+// =========================================================
+
+    private String convertToJson(Object object) {
+
+        try {
+
+            return objectMapper.writeValueAsString(object);
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(
+                    "Error converting object to JSON",
+                    e
+            );
+        }
+    }
+
+
 
 
     // =========================================================
     // CUSTOMERS
     // =========================================================
+
+  
 
     public String createCustomer(
             String employeeId,
@@ -41,22 +92,116 @@ public class CRMService {
 
         customerRepository.save(customer);
 
+        String performedBy = getLoggedInEmployeeId();
+        String newValue = convertToJson(customer);
+
+        // =====================================================
+        // ACTIVITY LOG
+        // =====================================================
+
+        auditLogsService.logActivity(
+                performedBy,
+                "CREATE_CUSTOMER",
+                "CRM",
+                "Customer created successfully. Customer ID: "
+                        + customer.getId(),
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        // =====================================================
+        // AUDIT LOG
+        // =====================================================
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                customer.getId().toString(),
+                AuditActionType.CREATE,
+                performedBy,
+                performedBy,
+                "Customer created successfully",
+                null,
+                newValue,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        // =====================================================
+        // SYSTEM LOG
+        // =====================================================
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Customer created successfully. Customer ID: "
+                        + customer.getId()
+        );
+
         return "Customer Created Successfully";
     }
 
 
     public List<Customer> getAllCustomers() {
 
-        return customerRepository.findAll();
+        List<Customer> customers =
+                customerRepository.findAll();
+
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logActivity(
+                performedBy,
+                "GET_ALL_CUSTOMERS",
+                "CRM",
+                "All customers retrieved successfully",
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "All customers retrieved successfully. Count: "
+                        + customers.size()
+        );
+
+        return customers;
     }
 
 
     public Customer getCustomer(Long id) {
 
-        return customerRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Customer Not Found"));
+        Customer customer =
+                customerRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Customer Not Found"));
+
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logActivity(
+                performedBy,
+                "GET_CUSTOMER",
+                "CRM",
+                "Customer retrieved successfully. Customer ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Customer retrieved successfully. Customer ID: "
+                        + id
+        );
+
+        return customer;
     }
 
 
@@ -65,6 +210,10 @@ public class CRMService {
             Customer customer) {
 
         Customer existing = getCustomer(id);
+
+        String oldValue = convertToJson(existing);
+
+        String performedBy = getLoggedInEmployeeId();
 
         existing.setCustomerCode(
                 customer.getCustomerCode());
@@ -110,6 +259,40 @@ public class CRMService {
 
         customerRepository.save(existing);
 
+        String newValue = convertToJson(existing);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "UPDATE_CUSTOMER",
+                "CRM",
+                "Customer updated successfully. Customer ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                existing.getId().toString(),
+                AuditActionType.UPDATE,
+                performedBy,
+                performedBy,
+                "Customer updated successfully",
+                oldValue,
+                newValue,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Customer updated successfully. Customer ID: "
+                        + id
+        );
+
         return "Customer Updated Successfully";
     }
 
@@ -118,15 +301,51 @@ public class CRMService {
 
         Customer customer = getCustomer(id);
 
+        String oldValue = convertToJson(customer);
+
+        String performedBy = getLoggedInEmployeeId();
+
         customerRepository.delete(customer);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "DELETE_CUSTOMER",
+                "CRM",
+                "Customer deleted successfully. Customer ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                customer.getId().toString(),
+                AuditActionType.DELETE,
+                performedBy,
+                performedBy,
+                "Customer deleted successfully",
+                oldValue,
+                null,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Customer deleted successfully. Customer ID: "
+                        + id
+        );
 
         return "Customer Deleted Successfully";
     }
 
 
-    // =========================================================
-    // LEADS
-    // =========================================================
+// =========================================================
+// LEADS
+// =========================================================
 
     public String createLead(
             Long customerId,
@@ -150,18 +369,104 @@ public class CRMService {
 
         leadRepository.save(lead);
 
+        String performedBy = getLoggedInEmployeeId();
+        String newValue = convertToJson(lead);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "CREATE_LEAD",
+                "CRM",
+                "Lead created successfully. Lead ID: "
+                        + lead.getId(),
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                lead.getId().toString(),
+                AuditActionType.CREATE,
+                null,
+                performedBy,
+                "Lead created successfully",
+                null,
+                newValue,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Lead created successfully. Lead ID: "
+                        + lead.getId()
+        );
+
         return "Lead Created Successfully";
     }
 
 
     public List<Lead> getAllLeads() {
 
-        return leadRepository.findAll();
+        List<Lead> leads =
+                leadRepository.findAll();
+
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logActivity(
+                performedBy,
+                "GET_ALL_LEADS",
+                "CRM",
+                "All leads retrieved successfully",
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "All leads retrieved successfully. Count: "
+                        + leads.size()
+        );
+
+        return leads;
     }
 
 
     public Lead getLead(Long id) {
-        return leadRepository.findById(id).orElseThrow(() -> new RuntimeException("Lead Not Found"));
+
+        Lead lead =
+                leadRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Lead Not Found"));
+
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logActivity(
+                performedBy,
+                "GET_LEAD",
+                "CRM",
+                "Lead retrieved successfully. Lead ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Lead retrieved successfully. Lead ID: "
+                        + id
+        );
+
+        return lead;
     }
 
 
@@ -170,6 +475,10 @@ public class CRMService {
             Lead lead) {
 
         Lead existing = getLead(id);
+
+        String oldValue = convertToJson(existing);
+
+        String performedBy = getLoggedInEmployeeId();
 
         existing.setLeadSource(
                 lead.getLeadSource());
@@ -194,6 +503,40 @@ public class CRMService {
 
         leadRepository.save(existing);
 
+        String newValue = convertToJson(existing);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "UPDATE_LEAD",
+                "CRM",
+                "Lead updated successfully. Lead ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                existing.getId().toString(),
+                AuditActionType.UPDATE,
+                performedBy,
+                performedBy,
+                "Lead updated successfully",
+                oldValue,
+                newValue,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Lead updated successfully. Lead ID: "
+                        + id
+        );
+
         return "Lead Updated Successfully";
     }
 
@@ -202,15 +545,51 @@ public class CRMService {
 
         Lead lead = getLead(id);
 
+        String oldValue = convertToJson(lead);
+
+        String performedBy = getLoggedInEmployeeId();
+
         leadRepository.delete(lead);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "DELETE_LEAD",
+                "CRM",
+                "Lead deleted successfully. Lead ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                lead.getId().toString(),
+                AuditActionType.DELETE,
+                performedBy,
+                performedBy,
+                "Lead deleted successfully",
+                oldValue,
+                null,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Lead deleted successfully. Lead ID: "
+                        + id
+        );
 
         return "Lead Deleted Successfully";
     }
 
 
-    // =========================================================
-    // OPPORTUNITIES
-    // =========================================================
+// =========================================================
+// OPPORTUNITIES
+// =========================================================
 
     public String createOpportunity(
             Long leadId,
@@ -233,22 +612,104 @@ public class CRMService {
 
         opportunityRepository.save(opportunity);
 
+        String performedBy = getLoggedInEmployeeId();
+        String newValue = convertToJson(opportunity);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "CREATE_OPPORTUNITY",
+                "CRM",
+                "Opportunity created successfully. Opportunity ID: "
+                        + opportunity.getId(),
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                opportunity.getId().toString(),
+                AuditActionType.CREATE,
+                null,
+                performedBy,
+                "Opportunity created successfully",
+                null,
+                newValue,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Opportunity created successfully. Opportunity ID: "
+                        + opportunity.getId()
+        );
+
         return "Opportunity Created Successfully";
     }
 
 
     public List<Opportunity> getAllOpportunities() {
 
-        return opportunityRepository.findAll();
+        List<Opportunity> opportunities =
+                opportunityRepository.findAll();
+
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logActivity(
+                performedBy,
+                "GET_ALL_OPPORTUNITIES",
+                "CRM",
+                "All opportunities retrieved successfully",
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "All opportunities retrieved successfully. Count: "
+                        + opportunities.size()
+        );
+
+        return opportunities;
     }
 
 
     public Opportunity getOpportunity(Long id) {
 
-        return opportunityRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Opportunity Not Found"));
+        Opportunity opportunity =
+                opportunityRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Opportunity Not Found"));
+
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logActivity(
+                performedBy,
+                "GET_OPPORTUNITY",
+                "CRM",
+                "Opportunity retrieved successfully. Opportunity ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Opportunity retrieved successfully. Opportunity ID: "
+                        + id
+        );
+
+        return opportunity;
     }
 
 
@@ -258,6 +719,10 @@ public class CRMService {
 
         Opportunity existing =
                 getOpportunity(id);
+
+        String oldValue = convertToJson(existing);
+
+        String performedBy = getLoggedInEmployeeId();
 
         existing.setOpportunityName(
                 opportunity.getOpportunityName());
@@ -279,6 +744,40 @@ public class CRMService {
 
         opportunityRepository.save(existing);
 
+        String newValue = convertToJson(existing);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "UPDATE_OPPORTUNITY",
+                "CRM",
+                "Opportunity updated successfully. Opportunity ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                existing.getId().toString(),
+                AuditActionType.UPDATE,
+                null,
+                performedBy,
+                "Opportunity updated successfully",
+                oldValue,
+                newValue,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Opportunity updated successfully. Opportunity ID: "
+                        + id
+        );
+
         return "Opportunity Updated Successfully";
     }
 
@@ -288,15 +787,51 @@ public class CRMService {
         Opportunity opportunity =
                 getOpportunity(id);
 
+        String oldValue = convertToJson(opportunity);
+
+        String performedBy = getLoggedInEmployeeId();
+
         opportunityRepository.delete(opportunity);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "DELETE_OPPORTUNITY",
+                "CRM",
+                "Opportunity deleted successfully. Opportunity ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                opportunity.getId().toString(),
+                AuditActionType.DELETE,
+                performedBy,
+                performedBy,
+                "Opportunity deleted successfully",
+                oldValue,
+                null,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Opportunity deleted successfully. Opportunity ID: "
+                        + id
+        );
 
         return "Opportunity Deleted Successfully";
     }
 
 
-    // =========================================================
-    // QUOTATIONS
-    // =========================================================
+// =========================================================
+// QUOTATIONS
+// =========================================================
 
     public String createQuotation(
             Long opportunityId,
@@ -331,22 +866,104 @@ public class CRMService {
 
         quotationRepository.save(quotation);
 
+        String performedBy = getLoggedInEmployeeId();
+        String newValue = convertToJson(quotation);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "CREATE_QUOTATION",
+                "CRM",
+                "Quotation created successfully. Quotation ID: "
+                        + quotation.getId(),
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                quotation.getId().toString(),
+                AuditActionType.CREATE,
+                performedBy,
+                performedBy,
+                "Quotation created successfully",
+                null,
+                newValue,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Quotation created successfully. Quotation ID: "
+                        + quotation.getId()
+        );
+
         return "Quotation Created Successfully";
     }
 
 
     public List<Quotation> getAllQuotations() {
 
-        return quotationRepository.findAll();
+        List<Quotation> quotations =
+                quotationRepository.findAll();
+
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logActivity(
+                performedBy,
+                "GET_ALL_QUOTATIONS",
+                "CRM",
+                "All quotations retrieved successfully",
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "All quotations retrieved successfully. Count: "
+                        + quotations.size()
+        );
+
+        return quotations;
     }
 
 
     public Quotation getQuotation(Long id) {
 
-        return quotationRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Quotation Not Found"));
+        Quotation quotation =
+                quotationRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Quotation Not Found"));
+
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logActivity(
+                performedBy,
+                "GET_QUOTATION",
+                "CRM",
+                "Quotation retrieved successfully. Quotation ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Quotation retrieved successfully. Quotation ID: "
+                        + id
+        );
+
+        return quotation;
     }
 
 
@@ -356,6 +973,10 @@ public class CRMService {
 
         Quotation existing =
                 getQuotation(id);
+
+        String oldValue = convertToJson(existing);
+
+        String performedBy = getLoggedInEmployeeId();
 
         existing.setQuotationNumber(
                 quotation.getQuotationNumber());
@@ -383,6 +1004,40 @@ public class CRMService {
 
         quotationRepository.save(existing);
 
+        String newValue = convertToJson(existing);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "UPDATE_QUOTATION",
+                "CRM",
+                "Quotation updated successfully. Quotation ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                existing.getId().toString(),
+                AuditActionType.UPDATE,
+                null,
+                performedBy,
+                "Quotation updated successfully",
+                oldValue,
+                newValue,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Quotation updated successfully. Quotation ID: "
+                        + id
+        );
+
         return "Quotation Updated Successfully";
     }
 
@@ -392,15 +1047,51 @@ public class CRMService {
         Quotation quotation =
                 getQuotation(id);
 
+        String oldValue = convertToJson(quotation);
+
+        String performedBy = getLoggedInEmployeeId();
+
         quotationRepository.delete(quotation);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "DELETE_QUOTATION",
+                "CRM",
+                "Quotation deleted successfully. Quotation ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                quotation.getId().toString(),
+                AuditActionType.DELETE,
+                null,
+                performedBy,
+                "Quotation deleted successfully",
+                oldValue,
+                null,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Quotation deleted successfully. Quotation ID: "
+                        + id
+        );
 
         return "Quotation Deleted Successfully";
     }
 
 
-    // =========================================================
-    // FOLLOWUPS
-    // =========================================================
+// =========================================================
+// FOLLOWUPS
+// =========================================================
 
     public String createFollowup(
             Long customerId,
@@ -435,22 +1126,104 @@ public class CRMService {
 
         followupRepository.save(followup);
 
+        String performedBy = getLoggedInEmployeeId();
+        String newValue = convertToJson(followup);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "CREATE_FOLLOWUP",
+                "CRM",
+                "Followup created successfully. Followup ID: "
+                        + followup.getId(),
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                followup.getId().toString(),
+                AuditActionType.CREATE,
+                null,
+                performedBy,
+                "Followup created successfully",
+                null,
+                newValue,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Followup created successfully. Followup ID: "
+                        + followup.getId()
+        );
+
         return "Followup Created Successfully";
     }
 
 
     public List<Followup> getAllFollowups() {
 
-        return followupRepository.findAll();
+        List<Followup> followups =
+                followupRepository.findAll();
+
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logActivity(
+                performedBy,
+                "GET_ALL_FOLLOWUPS",
+                "CRM",
+                "All followups retrieved successfully",
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "All followups retrieved successfully. Count: "
+                        + followups.size()
+        );
+
+        return followups;
     }
 
 
     public Followup getFollowup(Long id) {
 
-        return followupRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Followup Not Found"));
+        Followup followup =
+                followupRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Followup Not Found"));
+
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logActivity(
+                performedBy,
+                "GET_FOLLOWUP",
+                "CRM",
+                "Followup retrieved successfully. Followup ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Followup retrieved successfully. Followup ID: "
+                        + id
+        );
+
+        return followup;
     }
 
 
@@ -460,6 +1233,10 @@ public class CRMService {
 
         Followup existing =
                 getFollowup(id);
+
+        String oldValue = convertToJson(existing);
+
+        String performedBy = getLoggedInEmployeeId();
 
         existing.setFollowupDate(
                 followup.getFollowupDate());
@@ -478,6 +1255,40 @@ public class CRMService {
 
         followupRepository.save(existing);
 
+        String newValue = convertToJson(existing);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "UPDATE_FOLLOWUP",
+                "CRM",
+                "Followup updated successfully. Followup ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                existing.getId().toString(),
+                AuditActionType.UPDATE,
+                null,
+                performedBy,
+                "Followup updated successfully",
+                oldValue,
+                newValue,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Followup updated successfully. Followup ID: "
+                        + id
+        );
+
         return "Followup Updated Successfully";
     }
 
@@ -487,15 +1298,51 @@ public class CRMService {
         Followup followup =
                 getFollowup(id);
 
+        String oldValue = convertToJson(followup);
+
+        String performedBy = getLoggedInEmployeeId();
+
         followupRepository.delete(followup);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "DELETE_FOLLOWUP",
+                "CRM",
+                "Followup deleted successfully. Followup ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                followup.getId().toString(),
+                AuditActionType.DELETE,
+                null,
+                performedBy,
+                "Followup deleted successfully",
+                oldValue,
+                null,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Followup deleted successfully. Followup ID: "
+                        + id
+        );
 
         return "Followup Deleted Successfully";
     }
 
 
-    // =========================================================
-    // CUSTOMER MEETINGS
-    // =========================================================
+// =========================================================
+// CUSTOMER MEETINGS
+// =========================================================
 
     public String createCustomerMeeting(
             Long customerId,
@@ -530,6 +1377,41 @@ public class CRMService {
 
         customerMeetingRepository.save(meeting);
 
+        String performedBy = getLoggedInEmployeeId();
+        String newValue = convertToJson(meeting);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "CREATE_CUSTOMER_MEETING",
+                "CRM",
+                "Customer meeting created successfully. Meeting ID: "
+                        + meeting.getId(),
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                meeting.getId().toString(),
+                AuditActionType.CREATE,
+                null,
+                performedBy,
+                "Customer meeting created successfully",
+                null,
+                newValue,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Customer meeting created successfully. Meeting ID: "
+                        + meeting.getId()
+        );
+
         return "Customer Meeting Created Successfully";
     }
 
@@ -537,18 +1419,65 @@ public class CRMService {
     public List<CustomerMeeting>
     getAllCustomerMeetings() {
 
-        return customerMeetingRepository.findAll();
+        List<CustomerMeeting> meetings =
+                customerMeetingRepository.findAll();
+
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logActivity(
+                performedBy,
+                "GET_ALL_CUSTOMER_MEETINGS",
+                "CRM",
+                "All customer meetings retrieved successfully",
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "All customer meetings retrieved successfully. Count: "
+                        + meetings.size()
+        );
+
+        return meetings;
     }
 
 
     public CustomerMeeting getCustomerMeeting(
             Long id) {
 
-        return customerMeetingRepository
-                .findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Customer Meeting Not Found"));
+        CustomerMeeting meeting =
+                customerMeetingRepository
+                        .findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Customer Meeting Not Found"));
+
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logActivity(
+                performedBy,
+                "GET_CUSTOMER_MEETING",
+                "CRM",
+                "Customer meeting retrieved successfully. Meeting ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Customer meeting retrieved successfully. Meeting ID: "
+                        + id
+        );
+
+        return meeting;
     }
 
 
@@ -558,6 +1487,10 @@ public class CRMService {
 
         CustomerMeeting existing =
                 getCustomerMeeting(id);
+
+        String oldValue = convertToJson(existing);
+
+        String performedBy = getLoggedInEmployeeId();
 
         existing.setMeetingTitle(
                 meeting.getMeetingTitle());
@@ -585,6 +1518,40 @@ public class CRMService {
 
         customerMeetingRepository.save(existing);
 
+        String newValue = convertToJson(existing);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "UPDATE_CUSTOMER_MEETING",
+                "CRM",
+                "Customer meeting updated successfully. Meeting ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                existing.getId().toString(),
+                AuditActionType.UPDATE,
+                null,
+                performedBy,
+                "Customer meeting updated successfully",
+                oldValue,
+                newValue,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Customer meeting updated successfully. Meeting ID: "
+                        + id
+        );
+
         return "Customer Meeting Updated Successfully";
     }
 
@@ -595,9 +1562,46 @@ public class CRMService {
         CustomerMeeting meeting =
                 getCustomerMeeting(id);
 
+        String oldValue = convertToJson(meeting);
+
+        String performedBy = getLoggedInEmployeeId();
+
         customerMeetingRepository.delete(meeting);
+
+        auditLogsService.logActivity(
+                performedBy,
+                "DELETE_CUSTOMER_MEETING",
+                "CRM",
+                "Customer meeting deleted successfully. Meeting ID: "
+                        + id,
+                ActivityStatus.SUCCESS,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getBrowser(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.createAuditLog(
+                "CRM",
+                meeting.getId().toString(),
+                AuditActionType.DELETE,
+                null,
+                performedBy,
+                "Customer meeting deleted successfully",
+                oldValue,
+                null,
+                clientInfoService.getClientInfo().getIpAddress(),
+                clientInfoService.getClientInfo().getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "CRM",
+                "CRMService",
+                "Customer meeting deleted successfully. Meeting ID: "
+                        + id
+        );
 
         return "Customer Meeting Deleted Successfully";
     }
+
 }
 

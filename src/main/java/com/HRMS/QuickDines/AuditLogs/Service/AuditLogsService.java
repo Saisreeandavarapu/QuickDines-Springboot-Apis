@@ -39,10 +39,10 @@ public class AuditLogsService
      */
     public AuditLog createAuditLog(
             String moduleName,
-            Long referenceId,
+            String referenceId,
             AuditActionType actionType,
-            Long performedBy,
-            Long employeeId,
+            String performedBy,
+            String employeeId,
             String description,
             String oldValue,
             String newValue,
@@ -89,9 +89,9 @@ public class AuditLogsService
      */
     public AuditLog logCreate(
             String moduleName,
-            Long referenceId,
-            Long performedBy,
-            Long employeeId,
+            String referenceId,
+            String performedBy,
+            String employeeId,
             String description) {
 
         return createAuditLog(
@@ -114,9 +114,9 @@ public class AuditLogsService
      */
     public AuditLog logUpdate(
             String moduleName,
-            Long referenceId,
-            Long performedBy,
-            Long employeeId,
+            String referenceId,
+            String performedBy,
+            String employeeId,
             String description,
             String oldValue,
             String newValue) {
@@ -141,9 +141,9 @@ public class AuditLogsService
      */
     public AuditLog logDelete(
             String moduleName,
-            Long referenceId,
-            Long performedBy,
-            Long employeeId,
+            String referenceId,
+            String performedBy,
+            String employeeId,
             String description) {
 
         return createAuditLog(
@@ -166,9 +166,9 @@ public class AuditLogsService
      */
     public AuditLog logApprove(
             String moduleName,
-            Long referenceId,
-            Long performedBy,
-            Long employeeId,
+            String referenceId,
+            String performedBy,
+            String employeeId,
             String description) {
 
         return createAuditLog(
@@ -191,9 +191,9 @@ public class AuditLogsService
      */
     public AuditLog logReject(
             String moduleName,
-            Long referenceId,
-            Long performedBy,
-            Long employeeId,
+            String referenceId,
+            String performedBy,
+            String employeeId,
             String description) {
 
         return createAuditLog(
@@ -215,7 +215,7 @@ public class AuditLogsService
      * Log LOGIN operation.
      */
     public AuditLog logLogin(
-            Long employeeId,
+            String employeeId,
             String ipAddress,
             String deviceInfo) {
 
@@ -238,7 +238,7 @@ public class AuditLogsService
      * Log LOGOUT operation.
      */
     public AuditLog logLogout(
-            Long employeeId,
+            String employeeId,
             String ipAddress,
             String deviceInfo) {
 
@@ -383,7 +383,7 @@ public class AuditLogsService
      * Generic activity logger.
      */
     public ActivityLog logActivity(
-            Long employeeId,
+            String employeeId,
             String activityName,
             String activityModule,
             String description,
@@ -393,7 +393,7 @@ public class AuditLogsService
             String operatingSystem) {
 
         return createActivityLog(
-                employeeId,
+                Long.valueOf(employeeId),
                 activityName,
                 activityModule,
                 description,

@@ -38,7 +38,7 @@ public class AuditLog {
     // =====================================================
 
     @Column(name = "reference_id")
-    private Long referenceId;
+    private String referenceId;
 
 
     // =====================================================

@@ -9,5 +9,6 @@ public enum AuditActionType {
     APPROVE,
     REJECT,
     LOGIN,
-    LOGOUT
+    LOGOUT,
+    VIEW
 }

@@ -34,10 +34,10 @@ public class AuditLogController {
     public ResponseEntity<AuditLog> createAuditLog(
 
             @RequestParam String moduleName,
-            @RequestParam(required = false) Long referenceId,
+            @RequestParam(required = false) String referenceId,
             @RequestParam AuditActionType actionType,
-            @RequestParam(required = false) Long performedBy,
-            @RequestParam(required = false) Long employeeId,
+            @RequestParam(required = false) String performedBy,
+            @RequestParam(required = false) String employeeId,
             @RequestParam(required = false) String description,
             @RequestParam(required = false) String oldValue,
             @RequestParam(required = false) String newValue,
@@ -162,9 +162,9 @@ public class AuditLogController {
     public ResponseEntity<AuditLog> logCreate(
 
             @RequestParam String moduleName,
-            @RequestParam(required = false) Long referenceId,
-            @RequestParam(required = false) Long performedBy,
-            @RequestParam(required = false) Long employeeId,
+            @RequestParam(required = false) String referenceId,
+            @RequestParam(required = false) String performedBy,
+            @RequestParam(required = false) String employeeId,
             @RequestParam String description) {
 
         return ResponseEntity.ok(
@@ -186,9 +186,9 @@ public class AuditLogController {
     public ResponseEntity<AuditLog> logUpdate(
 
             @RequestParam String moduleName,
-            @RequestParam(required = false) Long referenceId,
-            @RequestParam(required = false) Long performedBy,
-            @RequestParam(required = false) Long employeeId,
+            @RequestParam(required = false) String referenceId,
+            @RequestParam(required = false) String performedBy,
+            @RequestParam(required = false) String employeeId,
             @RequestParam String description,
             @RequestParam(required = false) String oldValue,
             @RequestParam(required = false) String newValue) {
@@ -214,9 +214,9 @@ public class AuditLogController {
     public ResponseEntity<AuditLog> logDelete(
 
             @RequestParam String moduleName,
-            @RequestParam(required = false) Long referenceId,
-            @RequestParam(required = false) Long performedBy,
-            @RequestParam(required = false) Long employeeId,
+            @RequestParam(required = false) String referenceId,
+            @RequestParam(required = false) String performedBy,
+            @RequestParam(required = false) String employeeId,
             @RequestParam String description) {
 
         return ResponseEntity.ok(
@@ -238,9 +238,9 @@ public class AuditLogController {
     public ResponseEntity<AuditLog> logApprove(
 
             @RequestParam String moduleName,
-            @RequestParam(required = false) Long referenceId,
-            @RequestParam(required = false) Long performedBy,
-            @RequestParam(required = false) Long employeeId,
+            @RequestParam(required = false) String referenceId,
+            @RequestParam(required = false) String performedBy,
+            @RequestParam(required = false) String employeeId,
             @RequestParam String description) {
 
         return ResponseEntity.ok(
@@ -262,9 +262,9 @@ public class AuditLogController {
     public ResponseEntity<AuditLog> logReject(
 
             @RequestParam String moduleName,
-            @RequestParam(required = false) Long referenceId,
-            @RequestParam(required = false) Long performedBy,
-            @RequestParam(required = false) Long employeeId,
+            @RequestParam(required = false) String referenceId,
+            @RequestParam(required = false) String performedBy,
+            @RequestParam(required = false) String employeeId,
             @RequestParam String description) {
 
         return ResponseEntity.ok(
@@ -285,7 +285,7 @@ public class AuditLogController {
     @PostMapping("/audit-log/login/{employeeId}")
     public ResponseEntity<AuditLog> logLogin(
 
-            @PathVariable Long employeeId,
+            @PathVariable String employeeId,
             @RequestParam(required = false) String ipAddress,
             @RequestParam(required = false) String deviceInfo) {
 
@@ -305,7 +305,7 @@ public class AuditLogController {
     @PostMapping("/audit-log/logout/{employeeId}")
     public ResponseEntity<AuditLog> logLogout(
 
-            @PathVariable Long employeeId,
+            @PathVariable String employeeId,
             @RequestParam(required = false) String ipAddress,
             @RequestParam(required = false) String deviceInfo) {
 
@@ -359,7 +359,7 @@ public class AuditLogController {
     @PostMapping("/activity/log")
     public ResponseEntity<ActivityLog> logActivity(
 
-            @RequestParam Long employeeId,
+            @RequestParam String employeeId,
             @RequestParam String activityName,
             @RequestParam String activityModule,
             @RequestParam String description,
