@@ -62,7 +62,7 @@ public class AttendanceService {
 
         return authentication.getName();
     }
-    String performedBy = getLoggedInEmployeeId();
+
 //---------------------------------
 // EMPLOYEE ATTENDANCE
 //---------------------------------
@@ -343,7 +343,7 @@ public class AttendanceService {
 // =========================================================
 
     public List<Attendance> getAllAttendance() {
-
+        String performedBy = getLoggedInEmployeeId();
         List<Attendance> attendanceList =
                 attendanceRepository.findAll();
 
@@ -503,7 +503,7 @@ public class AttendanceService {
             );
         }
 
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logUpdate(
                 "ATTENDANCE",
                 existingAttendance.getId().toString(),
@@ -569,7 +569,7 @@ public class AttendanceService {
         // =====================================================
         // AUDIT LOG
         // =====================================================
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logDelete(
                 "ATTENDANCE",
                 attendance.getId().toString(),
@@ -3147,7 +3147,7 @@ public class AttendanceService {
 
         attendanceRegularizationRepository.save(regularization);
 
-
+        String performedBy = getLoggedInEmployeeId();
         // =====================================================
         // AUDIT LOG
         // =====================================================
@@ -3331,7 +3331,7 @@ public class AttendanceService {
         // =====================================================
         // AUDIT LOG
         // =====================================================
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logUpdate(
                 "ATTENDANCE_REGULARIZATION",
                 String.valueOf(existingRegularization.getId()),
@@ -3396,7 +3396,7 @@ public class AttendanceService {
         // =====================================================
         // AUDIT LOG
         // =====================================================
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logDelete(
                 "ATTENDANCE_REGULARIZATION",
                 String.valueOf(existingRegularization.getId()),
@@ -3466,7 +3466,7 @@ public class AttendanceService {
         // =====================================================
         // AUDIT LOG
         // =====================================================
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logCreate(
                 "OVERTIME_REQUEST",
                 String.valueOf(overtimeRequest.getId()),
@@ -3665,7 +3665,7 @@ public class AttendanceService {
         // =====================================================
         // AUDIT LOG
         // =====================================================
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logUpdate(
                 "OVERTIME_REQUEST",
                 String.valueOf(existingOvertime.getId()),
@@ -3735,7 +3735,7 @@ public class AttendanceService {
         // =====================================================
         // AUDIT LOG
         // =====================================================
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logDelete(
                 "OVERTIME_REQUEST",
                 String.valueOf(existingOvertime.getId()),
@@ -3825,7 +3825,7 @@ public Attendance getAttendance(Long id) {
                         "PRESENT".equalsIgnoreCase(
                                 attendance.getAttendanceStatus()))
                 .toList();
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "VIEW_PRESENT_EMPLOYEES",
@@ -3853,7 +3853,7 @@ public Attendance getAttendance(Long id) {
                         "ABSENT".equalsIgnoreCase(
                                 attendance.getAttendanceStatus()))
                 .toList();
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "VIEW_ABSENT_EMPLOYEES",
@@ -3882,7 +3882,7 @@ public Attendance getAttendance(Long id) {
                         Boolean.TRUE.equals(
                                 attendance.getLate()))
                 .toList();
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "VIEW_LATE_EMPLOYEES",
@@ -3911,7 +3911,7 @@ public Attendance getAttendance(Long id) {
                         Boolean.TRUE.equals(
                                 attendance.getEarlyLeaving()))
                 .toList();
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "VIEW_EARLY_LEAVING_EMPLOYEES",
@@ -3940,7 +3940,7 @@ public Attendance getAttendance(Long id) {
                                 "APPROVED".equalsIgnoreCase(
                                         overtime.getStatus()))
                         .toList();
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "VIEW_APPROVED_OVERTIME",
@@ -3970,7 +3970,7 @@ public Attendance getAttendance(Long id) {
                                 "PENDING".equalsIgnoreCase(
                                         overtime.getStatus()))
                         .toList();
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "VIEW_PENDING_OVERTIME",
@@ -4000,7 +4000,7 @@ public Attendance getAttendance(Long id) {
                                 "PENDING".equalsIgnoreCase(
                                         regularization.getStatus()))
                         .toList();
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "VIEW_PENDING_REGULARIZATION",
@@ -4030,7 +4030,7 @@ public Attendance getAttendance(Long id) {
                                 "APPROVED".equalsIgnoreCase(
                                         regularization.getStatus()))
                         .toList();
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "VIEW_APPROVED_REGULARIZATION",
@@ -4068,7 +4068,7 @@ public Attendance getAttendance(Long id) {
                             .equals(today);
                 })
                 .toList();
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "VIEW_TODAY_ATTENDANCE",
@@ -4099,7 +4099,7 @@ public Attendance getAttendance(Long id) {
                                 &&
                                 gps.getLogoutLocation() == null)
                 .toList();
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "VIEW_LIVE_GPS",

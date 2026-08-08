@@ -49,7 +49,7 @@ public class CRMService {
 
         return authentication.getName();
     }
-    String performedBy = getLoggedInEmployeeId();
+
 // =========================================================
 // CONVERT OBJECT TO JSON
 // =========================================================

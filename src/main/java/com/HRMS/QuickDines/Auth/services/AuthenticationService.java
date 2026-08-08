@@ -80,7 +80,7 @@ public class AuthenticationService {
 
         return authentication.getName();
     }
-    String performedBy = getLoggedInEmployeeId();
+
 
     // Email Service
 
@@ -189,7 +189,7 @@ public class AuthenticationService {
         // =====================================================
 // AUDIT LOG
 // =====================================================
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logCreate(
                 "SUPER_ADMIN",
                 savedUser.getEmployeeId(),
@@ -1759,7 +1759,7 @@ public class AuthenticationService {
         // =====================================================
         // AUDIT LOG
         // =====================================================
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.createAuditLog(
 
                 "USER_MANAGEMENT",
@@ -1853,7 +1853,7 @@ public class AuthenticationService {
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
 
                 user.getEmployeeId(),
@@ -1990,7 +1990,7 @@ public class AuthenticationService {
         // =====================================================
         // AUDIT LOG
         // =====================================================
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.createAuditLog(
 
                 "USER_MANAGEMENT",
@@ -2100,7 +2100,7 @@ public class AuthenticationService {
         // =====================================================
         // AUDIT LOG
         // =====================================================
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.createAuditLog(
 
                 "USER_MANAGEMENT",
@@ -2184,7 +2184,7 @@ public class AuthenticationService {
         // =====================================================
         // AUDIT LOG
         // =====================================================
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.createAuditLog(
 
                 "ROLE_MANAGEMENT",
@@ -2406,7 +2406,7 @@ public class AuthenticationService {
         // =====================================================
         // AUDIT LOG
         // =====================================================
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.createAuditLog(
 
                 "ROLE_MANAGEMENT",
@@ -2504,7 +2504,7 @@ public class AuthenticationService {
         // =====================================================
         // AUDIT LOG
         // =====================================================
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.createAuditLog(
 
                 "ROLE_MANAGEMENT",
@@ -2863,7 +2863,7 @@ public class AuthenticationService {
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "GET_ALL_PERMISSIONS",
@@ -3124,7 +3124,7 @@ public class AuthenticationService {
                 permissionRepository.findByModuleName(
                         moduleName);
 
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "VIEW_MODULE_PERMISSIONS",

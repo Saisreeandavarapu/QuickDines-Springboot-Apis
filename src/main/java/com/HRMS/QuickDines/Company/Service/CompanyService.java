@@ -49,7 +49,7 @@ public class CompanyService {
 
         return authentication.getName();
     }
-    String performedBy = getLoggedInEmployeeId();
+
 
 
     //=========================================================
@@ -59,7 +59,7 @@ public class CompanyService {
     public String createCompany(Company company) {
 
         companyRepository.save(company);
-
+        String performedBy = getLoggedInEmployeeId();
         // ACTIVITY LOG
         auditLogsService.logActivity(
                 performedBy,
@@ -130,7 +130,7 @@ public class CompanyService {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException("Company Not Found"));
-
+        String performedBy = getLoggedInEmployeeId();
         // ACTIVITY LOG
         auditLogsService.logActivity(
                 performedBy,
@@ -184,7 +184,7 @@ public class CompanyService {
         
         String newValue=existingCompany.toString();
 
-
+        String performedBy = getLoggedInEmployeeId();
         // ACTIVITY LOG
         auditLogsService.logActivity(
                 performedBy,
@@ -231,6 +231,7 @@ public class CompanyService {
         companyRepository.delete(company);
 
         // ACTIVITY LOG
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "DELETE_COMPANY",
@@ -243,6 +244,7 @@ public class CompanyService {
         );
 
         // AUDIT LOG
+
         auditLogsService.createAuditLog(
                 "COMPANY",
                 company.getCompanyCode(),
@@ -294,6 +296,7 @@ public class CompanyService {
         );
 
         // AUDIT LOG
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.createAuditLog(
                 "BRANCH",
                 branch.getBranchCode(),
@@ -425,7 +428,7 @@ public class CompanyService {
         branchRepository.save(existingBranch);
 
         String newValue = existingBranch.toString();
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "UPDATE_BRANCH",
@@ -467,7 +470,7 @@ public class CompanyService {
                         new RuntimeException("Branch Not Found"));
 
         branchRepository.delete(branch);
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "DELETE_BRANCH",
@@ -529,7 +532,7 @@ public class CompanyService {
                 clientInfoService.getClientInfo().getBrowser(),
                 clientInfoService.getClientInfo().getOperatingSystem()
         );
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.createAuditLog(
                 "BRANCH_LOCATION",
                 String.valueOf(location.getId()),
@@ -558,7 +561,7 @@ public class CompanyService {
 
         List<BranchLocation> locations =
                 branchLocationRepository.findAll();
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "GET_ALL_BRANCH_LOCATIONS",
@@ -587,7 +590,7 @@ public class CompanyService {
                         .orElseThrow(() ->
                                 new RuntimeException(
                                         "Branch Location Not Found"));
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "GET_BRANCH_LOCATION",
@@ -617,7 +620,7 @@ public class CompanyService {
 
         List<BranchLocation> locations =
                 branchLocationRepository.findByBranch(branch);
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "GET_BRANCH_LOCATIONS",
@@ -666,7 +669,7 @@ public class CompanyService {
         branchLocationRepository.save(existingLocation);
 
         String newValue = existingLocation.toString();
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "UPDATE_BRANCH_LOCATION",
@@ -710,7 +713,7 @@ public class CompanyService {
                                         "Branch Location Not Found"));
 
         branchLocationRepository.delete(location);
-
+        String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(
                 performedBy,
                 "DELETE_BRANCH_LOCATION",
