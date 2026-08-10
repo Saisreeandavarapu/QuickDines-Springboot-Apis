@@ -1,11 +1,19 @@
 package com.HRMS.QuickDines.Workflow.Service;
 
+import com.HRMS.QuickDines.AuditLogs.Entity.ActivityStatus;
+import com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType;
+import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
+import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
 import com.HRMS.QuickDines.Workflow.Entity.*;
 import com.HRMS.QuickDines.Workflow.model.*;
 import com.HRMS.QuickDines.Workflow.repo.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,11 +34,101 @@ public class WorkflowService {
     private final ApprovalHistoryRepository historyRepository;
 
     private final EmployeeRepository employeeRepository;
+    private final AuditLogsService auditLogsService;
+    private final ClientInfoService clientInfoService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
 
-    // =========================================================
-    // 1. CREATE WORKFLOW
-    // =========================================================
+// =========================================================
+// CONVERT OBJECT TO JSON
+// =========================================================
+
+    private String convertToJson(Object object) {
+
+        try {
+
+            if (object == null) {
+                return null;
+            }
+
+            return objectMapper.writeValueAsString(object);
+
+        } catch (JsonProcessingException e) {
+
+            throw new RuntimeException(
+                    "Unable to convert data to JSON",
+                    e
+            );
+        }
+    }
+
+
+// =========================================================
+// LOGGED-IN EMPLOYEE
+// =========================================================
+
+    private String getLoggedInEmployeeId() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication == null ||
+                !authentication.isAuthenticated()) {
+
+            throw new RuntimeException(
+                    "User is not authenticated");
+        }
+
+        return authentication.getName();
+    }
+
+
+// =========================================================
+// CLIENT INFORMATION
+// =========================================================
+
+    private String getIpAddress() {
+
+        try {
+            return clientInfoService
+                    .getClientInfo()
+                    .getIpAddress();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+
+    private String getBrowser() {
+
+        try {
+            return clientInfoService
+                    .getClientInfo()
+                    .getBrowser();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+
+    private String getOperatingSystem() {
+
+        try {
+            return clientInfoService
+                    .getClientInfo()
+                    .getOperatingSystem();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+
+// =========================================================
+// 1. CREATE WORKFLOW
+// =========================================================
 
     public ApprovalWorkflow createWorkflow(
             ApprovalWorkflow workflow) {
@@ -65,9 +163,42 @@ public class WorkflowService {
                     WorkflowStatus.ACTIVE);
         }
 
-        return workflowRepository.save(workflow);
-    }
+        ApprovalWorkflow savedWorkflow =
+                workflowRepository.save(workflow);
 
+        String performedBy =
+                getLoggedInEmployeeId();
+
+        String newValue =
+                convertToJson(savedWorkflow);
+
+        auditLogsService.logCreate(
+                "WORKFLOW",
+                String.valueOf(savedWorkflow.getId()),
+                performedBy,
+                savedWorkflow.getId().toString(),
+                "Workflow created successfully"
+        );
+
+        auditLogsService.logActivity(
+                performedBy,
+                "CREATE_WORKFLOW",
+                "WORKFLOW",
+                "Workflow created successfully",
+                ActivityStatus.SUCCESS,
+                getIpAddress(),
+                getBrowser(),
+                getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "WORKFLOW",
+                "WorkflowService",
+                "Workflow created successfully"
+        );
+
+        return savedWorkflow;
+    }
 
     // =========================================================
     // 2. GET ALL WORKFLOWS
@@ -93,9 +224,9 @@ public class WorkflowService {
     }
 
 
-    // =========================================================
-    // 4. UPDATE WORKFLOW
-    // =========================================================
+// =========================================================
+// 4. UPDATE WORKFLOW
+// =========================================================
 
     public ApprovalWorkflow updateWorkflow(
             Long id,
@@ -103,6 +234,10 @@ public class WorkflowService {
 
         ApprovalWorkflow workflow =
                 getWorkflowById(id);
+
+        // Capture OLD value before modification
+        String oldValue =
+                convertToJson(workflow);
 
         if (updatedWorkflow.getWorkflowName() != null) {
 
@@ -152,7 +287,48 @@ public class WorkflowService {
                     updatedWorkflow.getStatus());
         }
 
-        return workflowRepository.save(workflow);
+        ApprovalWorkflow savedWorkflow =
+                workflowRepository.save(workflow);
+
+        // Capture NEW value after modification
+        String newValue =
+                convertToJson(savedWorkflow);
+
+        String performedBy =
+                getLoggedInEmployeeId();
+
+        // =====================================================
+        // AUDIT LOG
+        // =====================================================
+
+        auditLogsService.logUpdate(
+                "WORKFLOW",
+                String.valueOf(savedWorkflow.getId()),
+                performedBy,
+                null,
+                "Workflow updated successfully",
+                oldValue,
+                newValue
+        );
+
+        auditLogsService.logActivity(
+                performedBy,
+                "UPDATE_WORKFLOW",
+                "WORKFLOW",
+                "Workflow updated successfully",
+                ActivityStatus.SUCCESS,
+                getIpAddress(),
+                getBrowser(),
+                getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "WORKFLOW",
+                "WorkflowService",
+                "Workflow updated successfully"
+        );
+
+        return savedWorkflow;
     }
 
 
@@ -166,6 +342,12 @@ public class WorkflowService {
                 getWorkflowById(id);
 
         workflowRepository.delete(workflow);
+        String deletedValue = convertToJson(workflow);
+        String performedBy = getLoggedInEmployeeId();
+        workflowRepository.delete(workflow);
+        auditLogsService.createAuditLog("WORKFLOW", String.valueOf(id), AuditActionType.DELETE, performedBy, workflow.getId().toString(), "Workflow deleted successfully", deletedValue, null, getIpAddress(), getOperatingSystem());
+        auditLogsService.logActivity(performedBy, "DELETE_WORKFLOW", "WORKFLOW", "Workflow deleted successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+        auditLogsService.logInfo("WORKFLOW", "WorkflowService", "Workflow deleted successfully");
 
         return "Workflow deleted successfully";
     }
@@ -289,6 +471,14 @@ public class WorkflowService {
                 levelRepository.save(level);
 
         updateWorkflowTotalLevels(workflow);
+        String performedBy = getLoggedInEmployeeId();
+        String newValue = convertToJson(saved);
+        // =====================================================
+        // AUDIT LOG
+        // =====================================================
+        auditLogsService.logCreate("WORKFLOW_LEVEL", String.valueOf(saved.getId()), performedBy, saved.getId().toString(), "Workflow level created successfully");
+        auditLogsService.logActivity(performedBy, "CREATE_WORKFLOW_LEVEL", "WORKFLOW_LEVEL", "Workflow level created successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+        auditLogsService.logInfo("WORKFLOW_LEVEL", "WorkflowService", "Workflow level created successfully");
 
         return saved;
     }
@@ -372,8 +562,21 @@ public class WorkflowService {
             level.setStatus(
                     updatedLevel.getStatus());
         }
+        ApprovalWorkflowLevel saved = levelRepository.save(level);
+        String oldValue = convertToJson(level);
+        // =====================================================
+        // NEW VALUE
+        // =====================================================
+        String newValue = convertToJson(saved);
+        String performedBy = getLoggedInEmployeeId();
+        // =====================================================
+        // AUDIT LOG
+        // =====================================================
 
-        return levelRepository.save(level);
+        auditLogsService.logUpdate("WORKFLOW_LEVEL", String.valueOf(saved.getId()), performedBy, null, "Workflow level updated successfully", oldValue, newValue);
+        auditLogsService.logActivity(performedBy, "UPDATE_WORKFLOW_LEVEL", "WORKFLOW_LEVEL", "Workflow level updated successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+        auditLogsService.logInfo("WORKFLOW_LEVEL", "WorkflowService", "Workflow level updated successfully");
+        return saved;
     }
 
 
@@ -381,21 +584,57 @@ public class WorkflowService {
     // 14. DELETE LEVEL
     // =========================================================
 
+
     public String deleteWorkflowLevel(
             Long id) {
 
         ApprovalWorkflowLevel level =
                 getWorkflowLevelById(id);
 
-        levelRepository.delete(level);
+        String deletedValue =
+                convertToJson(level);
+
+        String performedBy =
+                getLoggedInEmployeeId();
 
         ApprovalWorkflow workflow =
                 level.getWorkflow();
+
+        levelRepository.delete(level);
 
         if (workflow != null) {
 
             updateWorkflowTotalLevels(workflow);
         }
+
+        // =====================================================
+        // AUDIT LOG
+        // =====================================================
+
+        auditLogsService.logDelete(
+                "WORKFLOW_LEVEL",
+                String.valueOf(id),
+                performedBy,
+                deletedValue,
+                "Workflow level deleted successfully"
+        );
+
+        auditLogsService.logActivity(
+                performedBy,
+                "DELETE_WORKFLOW_LEVEL",
+                "WORKFLOW_LEVEL",
+                "Workflow level deleted successfully",
+                ActivityStatus.SUCCESS,
+                getIpAddress(),
+                getBrowser(),
+                getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "WORKFLOW_LEVEL",
+                "WorkflowService",
+                "Workflow level deleted successfully"
+        );
 
         return "Workflow level deleted successfully";
     }
@@ -438,6 +677,8 @@ public class WorkflowService {
     // =========================================================
     // 17. CREATE APPROVAL REQUEST
     // =========================================================
+
+
 
     public ApprovalRequest createApprovalRequest(
             ApprovalRequest request) {
@@ -489,7 +730,9 @@ public class WorkflowService {
         }
 
         request.setWorkflow(workflow);
+
         request.setEmployee(employee);
+
         request.setCurrentLevel(1);
 
         if (request.getStatus() == null) {
@@ -504,8 +747,44 @@ public class WorkflowService {
                     LocalDateTime.now());
         }
 
-        return requestRepository.save(request);
+        ApprovalRequest saved =
+                requestRepository.save(request);
+
+        String performedBy =
+                getLoggedInEmployeeId();
+
+        // =====================================================
+        // AUDIT LOG
+        // =====================================================
+
+        auditLogsService.logCreate(
+                "APPROVAL_REQUEST",
+                String.valueOf(saved.getId()),
+                performedBy,
+                saved.getId().toString(),
+                "Approval request created successfully"
+        );
+
+        auditLogsService.logActivity(
+                performedBy,
+                "CREATE_APPROVAL_REQUEST",
+                "APPROVAL_REQUEST",
+                "Approval request created successfully",
+                ActivityStatus.SUCCESS,
+                getIpAddress(),
+                getBrowser(),
+                getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "APPROVAL_REQUEST",
+                "WorkflowService",
+                "Approval request created successfully"
+        );
+
+        return saved;
     }
+
 
 
     // =========================================================
@@ -871,7 +1150,6 @@ public class WorkflowService {
         throw new RuntimeException(
                 "Invalid approval action: " + action);
     }
-
 
 
     // =========================================================

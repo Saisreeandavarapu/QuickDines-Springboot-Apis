@@ -1,6 +1,10 @@
 package com.HRMS.QuickDines.Leave.Service;
 
 import com.HRMS.QuickDines.AdvanceServices.EmailService;
+import com.HRMS.QuickDines.AuditLogs.Entity.ActivityStatus;
+import com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType;
+import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
+import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
 import com.HRMS.QuickDines.CRM.repo.CustomerRepository;
 import com.HRMS.QuickDines.Company.model.Company;
 import com.HRMS.QuickDines.Company.repo.CompanyRepository;
@@ -9,7 +13,11 @@ import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
 import com.HRMS.QuickDines.Leave.model.*;
 import com.HRMS.QuickDines.Leave.repo.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -30,74 +38,317 @@ public class LeaveService {
     private final LeaveCancellationRepository leaveCancellationRepository;
     private final CompanyRepository companyRepository;
 
-    public String createLeaveType(LeaveType leaveType){
+    private final AuditLogsService auditLogsService;
+    private final ClientInfoService clientInfoService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+
+// =========================================================
+// CONVERT OBJECT TO JSON
+// =========================================================
+
+    private String convertToJson(Object object) {
+
+        try {
+
+            if (object == null) {
+                return null;
+            }
+
+            return objectMapper.writeValueAsString(object);
+
+        } catch (JsonProcessingException e) {
+
+            throw new RuntimeException(
+                    "Unable to convert data to JSON",
+                    e
+            );
+        }
+    }
+
+
+// =========================================================
+// LOGGED-IN EMPLOYEE
+// =========================================================
+
+    private String getLoggedInEmployeeId() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication == null ||
+                !authentication.isAuthenticated()) {
+
+            throw new RuntimeException(
+                    "User is not authenticated");
+        }
+
+        return authentication.getName();
+    }
+
+
+// =========================================================
+// CLIENT INFORMATION
+// =========================================================
+
+    private String getIpAddress() {
+
+        try {
+            return clientInfoService
+                    .getClientInfo()
+                    .getIpAddress();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+
+    private String getBrowser() {
+
+        try {
+            return clientInfoService
+                    .getClientInfo()
+                    .getBrowser();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+
+    private String getOperatingSystem() {
+
+        try {
+            return clientInfoService
+                    .getClientInfo()
+                    .getOperatingSystem();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+
+    public String createLeaveType(LeaveType leaveType) {
 
         leaveTypeRepository.save(leaveType);
+
+        String performedBy = getLoggedInEmployeeId();
+
+        //String newValue = convertToJson(leaveType);
+
+        auditLogsService.logCreate(
+                "LEAVE",
+                String.valueOf(leaveType.getId()),
+                performedBy,
+                leaveType.getId().toString(),
+                "Leave Type created successfully"
+
+        );
+
+        auditLogsService.logActivity(
+                performedBy,
+                "CREATE_LEAVE_TYPE",
+                "LEAVE",
+                "Leave Type created successfully",
+                ActivityStatus.SUCCESS,
+                getIpAddress(),
+                getBrowser(),
+                getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "LEAVE",
+                "LeaveService",
+                "Leave Type created successfully"
+        );
 
         return "Leave Type Created Successfully";
     }
 
 
-
-    public Object getAllLeaveTypes(){
+    public Object getAllLeaveTypes() {
 
         return leaveTypeRepository.findAll();
     }
 
 
-
-    public Object getLeaveType(Long id){
+    public Object getLeaveType(Long id) {
 
         return leaveTypeRepository.findById(id).orElseThrow(() -> new RuntimeException("Leave Type Not Found"));
     }
 
 
+    public String updateLeaveType(Long id, LeaveType leaveType) {
 
-    public String updateLeaveType(Long id, LeaveType leaveType){
+        LeaveType existingLeaveType =
+                leaveTypeRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Leave Type Not Found"));
 
-        LeaveType existingLeaveType = leaveTypeRepository.findById(id).orElseThrow(() -> new RuntimeException("Leave Type Not Found"));
+        String oldValue =
+                convertToJson(existingLeaveType);
 
-        existingLeaveType.setLeaveName(leaveType.getLeaveName());
+        existingLeaveType.setLeaveName(
+                leaveType.getLeaveName());
 
-        existingLeaveType.setTotalLeaves(leaveType.getTotalLeaves());
+        existingLeaveType.setTotalLeaves(
+                leaveType.getTotalLeaves());
 
-        existingLeaveType.setDescription(leaveType.getDescription());
+        existingLeaveType.setDescription(
+                leaveType.getDescription());
 
-        existingLeaveType.setStatus(leaveType.getStatus());
+        existingLeaveType.setStatus(
+                leaveType.getStatus());
 
-        leaveTypeRepository.save(existingLeaveType);
+        LeaveType updatedLeaveType =
+                leaveTypeRepository.save(existingLeaveType);
+
+        String newValue =
+                convertToJson(updatedLeaveType);
+
+        String performedBy =
+                getLoggedInEmployeeId();
+
+        auditLogsService.logUpdate(
+                "LEAVE",
+                String.valueOf(id),
+                performedBy,
+                null,
+                "Leave Type updated successfully",
+                oldValue,
+                newValue
+        );
+
+        auditLogsService.logActivity(
+                performedBy,
+                "UPDATE_LEAVE_TYPE",
+                "LEAVE",
+                "Leave Type updated successfully",
+                ActivityStatus.SUCCESS,
+                getIpAddress(),
+                getBrowser(),
+                getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "LEAVE",
+                "LeaveService",
+                "Leave Type updated successfully"
+        );
 
         return "Leave Type Updated Successfully";
     }
 
 
+    public String deleteLeaveType(Long id) {
 
-    public String deleteLeaveType(Long id){
+        LeaveType existingLeaveType =
+                leaveTypeRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Leave Type Not Found"));
 
-        leaveTypeRepository.deleteById(id);
+        String deletedValue =
+                convertToJson(existingLeaveType);
+
+        String performedBy =
+                getLoggedInEmployeeId();
+
+        leaveTypeRepository.delete(existingLeaveType);
+
+        auditLogsService.createAuditLog(
+                "LEAVE",
+                String.valueOf(id),
+                com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType.DELETE,
+                performedBy,
+                existingLeaveType.getId().toString(),
+                "Leave Type deleted successfully",
+                deletedValue,
+                null,
+                getIpAddress(), getOperatingSystem()
+
+        );
+
+        auditLogsService.logActivity(
+                performedBy,
+                "DELETE_LEAVE_TYPE",
+                "LEAVE",
+                "Leave Type deleted successfully",
+                ActivityStatus.SUCCESS,
+                getIpAddress(),
+                getBrowser(),
+                getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "LEAVE",
+                "LeaveService",
+                "Leave Type deleted successfully"
+        );
 
         return "Leave Type Deleted Successfully";
     }
-
 
 
 //==================================
 // LEAVE REQUESTS
 //==================================
 
-    public String applyLeave(String employeeId, LeaveRequest leaveRequest) {
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+    public String applyLeave(
+            String employeeId,
+            LeaveRequest leaveRequest) {
+
+        Employee employee =
+                employeeRepository.findById(employeeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Employee Not Found"));
 
         leaveRequest.setEmployee(employee);
 
         leaveRequest.setStatus("PENDING");
 
-        leaveRequestRepository.save(leaveRequest);
+        LeaveRequest savedRequest =
+                leaveRequestRepository.save(leaveRequest);
+
+        String performedBy =
+                getLoggedInEmployeeId();
+
+        String newValue =
+                convertToJson(savedRequest);
+
+        auditLogsService.logCreate(
+                "LEAVE",
+                String.valueOf(savedRequest.getId()),
+                performedBy,
+                employeeId,
+                "Leave request created successfully"
+
+        );
+
+        auditLogsService.logActivity(
+                performedBy,
+                "CREATE_LEAVE_REQUEST",
+                "LEAVE",
+                "Employee applied for leave",
+                ActivityStatus.SUCCESS,
+                getIpAddress(),
+                getBrowser(),
+                getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "LEAVE",
+                "LeaveService",
+                "Leave request created successfully"
+        );
 
         return "Leave Applied Successfully";
     }
-
 
 
     public Object getAllRequests() {
@@ -106,42 +357,138 @@ public class LeaveService {
     }
 
 
-
     public Object getLeaveRequest(Long id) {
 
         return leaveRequestRepository.findById(id).orElseThrow(() -> new RuntimeException("Leave Request Not Found"));
     }
 
 
+    public String updateLeaveRequest(
+            Long id,
+            LeaveRequest leaveRequest) {
 
-    public String updateLeaveRequest(Long id, LeaveRequest leaveRequest) {
+        LeaveRequest existingRequest =
+                leaveRequestRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Leave Request Not Found"));
 
-        LeaveRequest existingRequest = leaveRequestRepository.findById(id).orElseThrow(() -> new RuntimeException("Leave Request Not Found"));
+        String oldValue =
+                convertToJson(existingRequest);
 
-        existingRequest.setFromDate(leaveRequest.getFromDate());
+        existingRequest.setFromDate(
+                leaveRequest.getFromDate());
 
-        existingRequest.setToDate(leaveRequest.getToDate());
+        existingRequest.setToDate(
+                leaveRequest.getToDate());
 
-        existingRequest.setNumberOfDays(leaveRequest.getNumberOfDays());
+        existingRequest.setNumberOfDays(
+                leaveRequest.getNumberOfDays());
 
-        existingRequest.setReason(leaveRequest.getReason());
+        existingRequest.setReason(
+                leaveRequest.getReason());
 
-        existingRequest.setRemarks(leaveRequest.getRemarks());
+        existingRequest.setRemarks(
+                leaveRequest.getRemarks());
 
-        leaveRequestRepository.save(existingRequest);
+        LeaveRequest updatedRequest =
+                leaveRequestRepository.save(existingRequest);
+
+        String newValue =
+                convertToJson(updatedRequest);
+
+        String performedBy =
+                getLoggedInEmployeeId();
+
+        String employeeId =
+                existingRequest.getEmployee() != null
+                        ? existingRequest.getEmployee().getEmployeeId()
+                        : null;
+
+        auditLogsService.logUpdate(
+                "LEAVE",
+                String.valueOf(id),
+                performedBy,
+                employeeId,
+                "Leave request updated successfully",
+                oldValue,
+                newValue
+        );
+
+        auditLogsService.logActivity(
+                performedBy,
+                "UPDATE_LEAVE_REQUEST",
+                "LEAVE",
+                "Leave request updated successfully",
+                ActivityStatus.SUCCESS,
+                getIpAddress(),
+                getBrowser(),
+                getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "LEAVE",
+                "LeaveService",
+                "Leave request updated successfully"
+        );
 
         return "Leave Request Updated Successfully";
     }
 
 
-
     public String deleteLeaveRequest(Long id) {
 
-        leaveRequestRepository.deleteById(id);
+        LeaveRequest existingRequest =
+                leaveRequestRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Leave Request Not Found"));
+
+        String deletedValue =
+                convertToJson(existingRequest);
+
+        String performedBy =
+                getLoggedInEmployeeId();
+
+        String employeeId =
+                existingRequest.getEmployee() != null
+                        ? existingRequest.getEmployee().getEmployeeId()
+                        : null;
+
+        leaveRequestRepository.delete(existingRequest);
+
+        auditLogsService.createAuditLog(
+                "LEAVE",
+                String.valueOf(id),
+                com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType.DELETE,
+                performedBy,
+                existingRequest.getId().toString(),
+                "Leave request deleted successfully",
+                deletedValue,
+                null,
+                getIpAddress(), getOperatingSystem()
+
+        );
+
+        auditLogsService.logActivity(
+                performedBy,
+                "DELETE_LEAVE_REQUEST",
+                "LEAVE",
+                "Leave request deleted successfully",
+                ActivityStatus.SUCCESS,
+                getIpAddress(),
+                getBrowser(),
+                getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "LEAVE",
+                "LeaveService",
+                "Leave request deleted successfully"
+        );
 
         return "Leave Request Deleted Successfully";
     }
-
 
 
 //==================================
@@ -156,9 +503,37 @@ public class LeaveService {
 
         leaveBalanceRepository.save(leaveBalance);
 
+
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logCreate(
+                "LEAVE",
+                String.valueOf(employee.getId()),
+                performedBy,
+                employee.getId().toString(),
+                "Leave balance created successfully"
+
+        );
+
+        auditLogsService.logActivity(
+                performedBy,
+                "CREATE_BALANCE_TYPE",
+                "LEAVE",
+                "Leave balance created successfully",
+                ActivityStatus.SUCCESS,
+                getIpAddress(),
+                getBrowser(),
+                getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "LEAVE",
+                "LeaveService",
+                "Leave balance created successfully"
+        );
+
         return "Leave Balance Created Successfully";
     }
-
 
 
     public Object getLeaveBalance(String employeeId) {
@@ -167,11 +542,10 @@ public class LeaveService {
     }
 
 
-
     public String updateLeaveBalance(String employeeId, LeaveBalance leaveBalance) {
 
         LeaveBalance existingBalance = (LeaveBalance) leaveBalanceRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException(
-                                        "Leave Balance Not Found"));
+                "Leave Balance Not Found"));
         existingBalance.setTotalLeaves(leaveBalance.getTotalLeaves());
 
         existingBalance.setUsedLeaves(leaveBalance.getUsedLeaves());
@@ -183,16 +557,34 @@ public class LeaveService {
         existingBalance.setUnpaidLeaves(leaveBalance.getUnpaidLeaves());
 
         leaveBalanceRepository.save(existingBalance);
+        LeaveBalance updatedBalance =
+                leaveBalanceRepository.save(existingBalance);
+        String oldvalue = convertToJson(existingBalance);
+
+        String newValue =
+                convertToJson(updatedBalance);
+
+        String performedBy =
+                getLoggedInEmployeeId();
+
+        auditLogsService.logUpdate(
+                "LEAVE",
+                employeeId,
+                performedBy,
+                employeeId,
+                "Leave balance updated successfully",
+                oldvalue,
+                newValue
+        );
 
         return "Leave Balance Updated Successfully";
     }
 
 
-
-    public String approveLeave(Long leaveRequestId,String approvedBy) {
+    public String approveLeave(Long leaveRequestId, String approvedBy) {
 
         LeaveRequest leaveRequest = leaveRequestRepository.findById(leaveRequestId).orElseThrow(() ->
-                                new RuntimeException("Leave Request Not Found"));
+                new RuntimeException("Leave Request Not Found"));
         Employee approvedByEmployee = employeeRepository.findById(approvedBy).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
         // Update Leave Request
@@ -221,7 +613,7 @@ public class LeaveService {
         Employee employee = leaveRequest.getEmployee();
 
         LeaveBalance balance = (LeaveBalance) leaveBalanceRepository.findByEmployeeId(employee.getEmployeeId()).orElseThrow(() ->
-                                new RuntimeException("Leave Balance Not Found"));
+                new RuntimeException("Leave Balance Not Found"));
 
 
         Integer usedLeaves = balance.getUsedLeaves() + leaveRequest.getNumberOfDays();
@@ -258,12 +650,22 @@ public class LeaveService {
                         + "\n\n"
                         + "Thank You."
         );
+        String performedBy = getLoggedInEmployeeId();
+        auditLogsService.logApprove(
+                "LEAVE",
+                String.valueOf(leaveRequestId),
+                performedBy,
+                leaveRequest.getEmployee().getEmployeeId(),
+                "Leave request approved"
+
+        );
         return "Leave Approved Successfully";
     }
-    public String rejectLeave(Long leaveRequestId, String reason,String approvedBy) {
+
+    public String rejectLeave(Long leaveRequestId, String reason, String approvedBy) {
         LeaveRequest leaveRequest = leaveRequestRepository.findById(leaveRequestId).orElseThrow(() ->
                 new RuntimeException("Leave Request Not Found"));
-        Employee approvedByEmployee = employeeRepository.findById(approvedBy).orElseThrow(() ->new RuntimeException("Employee Not Found"));
+        Employee approvedByEmployee = employeeRepository.findById(approvedBy).orElseThrow(() -> new RuntimeException("Employee Not Found"));
         // Update Leave Request
 
         leaveRequest.setStatus("REJECTED");
@@ -310,23 +712,37 @@ public class LeaveService {
                         + "Please contact HR for more information."
 
         );
+        String newValue =
+                convertToJson(leaveRequest);
+
+        String performedBy =
+                getLoggedInEmployeeId();
+
+        auditLogsService.logReject(
+                "LEAVE",
+                String.valueOf(leaveRequestId),
+                performedBy,
+                leaveRequest.getEmployee().getEmployeeId(),
+                "Leave request rejected"
+
+        );
 
 
         return "Leave Rejected Successfully";
 
     }
-    public Object getApprovals(){
+
+    public Object getApprovals() {
 
         return leaveApprovalRepository.findAll();
 
     }
 
-    public Object getApproval(Long id){
+    public Object getApproval(Long id) {
 
         return leaveApprovalRepository.findById(id).orElseThrow(() -> new RuntimeException("Approval Not Found"));
 
     }
-
 
 
 //==================================
@@ -334,28 +750,25 @@ public class LeaveService {
 //==================================
 
     public Object getEmployeeLeaves(
-            String employeeId){
+            String employeeId) {
 
         return leaveRequestRepository.findByEmployeeEmployeeId(employeeId);
     }
 
 
-
-    public Object getPendingLeaves(){
+    public Object getPendingLeaves() {
 
         return leaveRequestRepository.findByStatus("PENDING");
     }
 
 
-
-    public Object getApprovedLeaves(){
+    public Object getApprovedLeaves() {
 
         return leaveRequestRepository.findByStatus("APPROVED");
     }
 
 
-
-    public Object getRejectedLeaves(){
+    public Object getRejectedLeaves() {
 
         return leaveRequestRepository.findByStatus("REJECTED");
     }
@@ -369,13 +782,40 @@ public class LeaveService {
             LeavePolicy leavePolicy) {
 
         // If Company entity is available:
-         Company company = companyRepository.findById(companyId)
-                 .orElseThrow(() ->
-                         new RuntimeException("Company Not Found"));
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() ->
+                        new RuntimeException("Company Not Found"));
 
-         leavePolicy.setCompany(company);
+        leavePolicy.setCompany(company);
 
         leavePolicyRepository.save(leavePolicy);
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logCreate(
+                "LEAVE",
+                String.valueOf(leavePolicy.getId()),
+                performedBy,
+                leavePolicy.getId().toString(),
+                "Leave policy created successfully"
+
+        );
+
+        auditLogsService.logActivity(
+                performedBy,
+                "CREATE_POLICY_TYPE",
+                "LEAVE",
+                "Leave policy created successfully",
+                ActivityStatus.SUCCESS,
+                getIpAddress(),
+                getBrowser(),
+                getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "LEAVE",
+                "LeaveService",
+                "Leave policy created successfully"
+        );
 
         return "Leave Policy Created Successfully";
     }
@@ -424,6 +864,21 @@ public class LeaveService {
                 leavePolicy.getStatus());
 
         leavePolicyRepository.save(existingPolicy);
+        // OLD JSON
+        String oldValue = convertToJson(existingPolicy);
+        existingPolicy.setPolicyName(leavePolicy.getPolicyName());
+        existingPolicy.setAnnualLimit(leavePolicy.getAnnualLimit());
+        existingPolicy.setCarryForwardLimit(leavePolicy.getCarryForwardLimit());
+        existingPolicy.setEncashmentAllowed(leavePolicy.getEncashmentAllowed());
+        existingPolicy.setApprovalRequired(leavePolicy.getApprovalRequired());
+        existingPolicy.setStatus(leavePolicy.getStatus());
+        LeavePolicy updatedPolicy = leavePolicyRepository.save(existingPolicy);
+        // NEW JSON
+        String newValue = convertToJson(updatedPolicy);
+        String performedBy = getLoggedInEmployeeId();
+        auditLogsService.logUpdate("LEAVE", String.valueOf(id), performedBy, existingPolicy.getId().toString(), "Leave Policy updated successfully", oldValue, newValue);
+        auditLogsService.logActivity(performedBy, "UPDATE_LEAVE_POLICY", "LEAVE", "Leave Policy updated successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+        auditLogsService.logInfo("LEAVE", "LeaveService", "Leave Policy updated successfully");
 
         return "Leave Policy Updated Successfully";
     }
@@ -438,6 +893,48 @@ public class LeaveService {
                                         "Leave Policy Not Found"));
 
         leavePolicyRepository.delete(existingPolicy);
+        String deletedValue =
+                convertToJson(existingPolicy);
+
+        String performedBy =
+                getLoggedInEmployeeId();
+
+//        //String employeeId =
+//                existingPolicy.getId() != null
+//                        ? existingPolicy.getEmployee().getEmployeeId()
+//                        : null;
+
+       // leaveRequestRepository.delete(existingRequest);
+
+        auditLogsService.createAuditLog(
+                "LEAVE",
+                String.valueOf(id),
+                com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType.DELETE,
+                performedBy,
+                existingPolicy.getId().toString(),
+                "Leave policy deleted successfully",
+                deletedValue,
+                null,
+                getIpAddress(), getOperatingSystem()
+
+        );
+
+        auditLogsService.logActivity(
+                performedBy,
+                "DELETE_LEAVE_POLICY",
+                "LEAVE",
+                "Leave policy deleted successfully",
+                ActivityStatus.SUCCESS,
+                getIpAddress(),
+                getBrowser(),
+                getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "LEAVE",
+                "LeaveService",
+                "Leave policy deleted successfully"
+        );
 
         return "Leave Policy Deleted Successfully";
     }
@@ -464,6 +961,33 @@ public class LeaveService {
         }
 
         leaveEncashmentRepository.save(leaveEncashment);
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logCreate(
+                "LEAVE",
+                String.valueOf(employee.getId()),
+                performedBy,
+              employeeId,
+                "Leave encashment created successfully"
+
+        );
+
+        auditLogsService.logActivity(
+                performedBy,
+                "CREATE_ENCASHMENT_TYPE",
+                "LEAVE",
+                "Leave encashment created successfully",
+                ActivityStatus.SUCCESS,
+                getIpAddress(),
+                getBrowser(),
+                getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "LEAVE",
+                "LeaveService",
+                "Leave encashment created successfully"
+        );
 
         return "Leave Encashment Request Created Successfully";
     }
@@ -506,7 +1030,18 @@ public class LeaveService {
         existingEncashment.setApprovedBy(
                 leaveEncashment.getApprovedBy());
 
-        leaveEncashmentRepository.save(existingEncashment);
+       // leaveEncashmentRepository.save(existingEncashment);
+
+        // OLD JSON
+        String oldValue = convertToJson(existingEncashment);
+
+       LeaveEncashment updatedleave = leaveEncashmentRepository.save(existingEncashment);
+        // NEW JSON
+        String newValue = convertToJson(updatedleave);
+        String performedBy = getLoggedInEmployeeId();
+        auditLogsService.logUpdate("LEAVE", String.valueOf(id), performedBy, existingEncashment.getId().toString(), "Leave Encashment updated successfully", oldValue, newValue);
+        auditLogsService.logActivity(performedBy, "UPDATE_LEAVE_ENCASHMENT", "LEAVE", "Leave Encashment updated successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+        auditLogsService.logInfo("LEAVE", "LeaveService", "Leave Encashment updated successfully");
 
         return "Leave Encashment Updated Successfully";
     }
@@ -620,6 +1155,41 @@ public class LeaveService {
                                         "Leave Cancellation Not Found"));
 
         leaveCancellationRepository.delete(existingCancellation);
+        String deletedValue =
+                convertToJson(existingCancellation);
+
+        String performedBy =
+                getLoggedInEmployeeId();
+
+        auditLogsService.createAuditLog(
+                "LEAVE",
+                String.valueOf(id),
+                com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType.DELETE,
+                performedBy,
+                existingCancellation.getId().toString(),
+                "Leave cancellation deleted successfully",
+                deletedValue,
+                null,
+                getIpAddress(), getOperatingSystem()
+
+        );
+
+        auditLogsService.logActivity(
+                performedBy,
+                "DELETE_LEAVE_CANCELLATION",
+                "LEAVE",
+                "Leave cancellation deleted successfully",
+                ActivityStatus.SUCCESS,
+                getIpAddress(),
+                getBrowser(),
+                getOperatingSystem()
+        );
+
+        auditLogsService.logInfo(
+                "LEAVE",
+                "LeaveService",
+                "Leave cancellation deleted successfully"
+        );
 
         return "Leave Cancellation Deleted Successfully";
     }
@@ -690,7 +1260,6 @@ public class LeaveService {
                                 policy.getStatus()))
                 .toList();
     }
-
 
 
 }
