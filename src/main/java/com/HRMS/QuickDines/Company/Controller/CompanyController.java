@@ -6,6 +6,7 @@ import com.HRMS.QuickDines.Company.model.BranchLocation;
 import com.HRMS.QuickDines.Company.model.Company;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -15,12 +16,12 @@ public class CompanyController {
 
     private final CompanyService service;
 
-
-    //=========================================================
+    // =========================================================
     // COMPANY MANAGEMENT
-    //=========================================================
+    // =========================================================
 
     @PostMapping("/create")
+    @PreAuthorize("hasAuthority('COMPANY_CREATE')")
     public ResponseEntity<?> createCompany(
             @RequestBody Company company) {
 
@@ -30,6 +31,7 @@ public class CompanyController {
 
 
     @GetMapping("/all")
+    @PreAuthorize("hasAuthority('COMPANY_VIEW')")
     public ResponseEntity<?> getAllCompanies() {
 
         return ResponseEntity.ok(
@@ -38,6 +40,7 @@ public class CompanyController {
 
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('COMPANY_VIEW')")
     public ResponseEntity<?> getCompany(
             @PathVariable Long id) {
 
@@ -47,6 +50,7 @@ public class CompanyController {
 
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('COMPANY_UPDATE')")
     public ResponseEntity<?> updateCompany(
             @PathVariable Long id,
             @RequestBody Company company) {
@@ -57,6 +61,7 @@ public class CompanyController {
 
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('COMPANY_DELETE')")
     public ResponseEntity<?> deleteCompany(
             @PathVariable Long id) {
 
@@ -65,11 +70,12 @@ public class CompanyController {
     }
 
 
-    //=========================================================
+    // =========================================================
     // BRANCH MANAGEMENT
-    //=========================================================
+    // =========================================================
 
     @PostMapping("/branch/{companyId}")
+    @PreAuthorize("hasAuthority('BRANCH_CREATE')")
     public ResponseEntity<?> createBranch(
             @PathVariable Long companyId,
             @RequestBody Branch branch) {
@@ -80,6 +86,7 @@ public class CompanyController {
 
 
     @GetMapping("/branches")
+    @PreAuthorize("hasAuthority('BRANCH_VIEW')")
     public ResponseEntity<?> getAllBranches() {
 
         return ResponseEntity.ok(
@@ -88,6 +95,7 @@ public class CompanyController {
 
 
     @GetMapping("/branch/{id}")
+    @PreAuthorize("hasAuthority('BRANCH_VIEW')")
     public ResponseEntity<?> getBranch(
             @PathVariable Long id) {
 
@@ -97,6 +105,7 @@ public class CompanyController {
 
 
     @GetMapping("/company/{companyId}/branches")
+    @PreAuthorize("hasAuthority('BRANCH_VIEW')")
     public ResponseEntity<?> getBranchesByCompany(
             @PathVariable Long companyId) {
 
@@ -106,6 +115,7 @@ public class CompanyController {
 
 
     @PutMapping("/branch/{id}")
+    @PreAuthorize("hasAuthority('BRANCH_UPDATE')")
     public ResponseEntity<?> updateBranch(
             @PathVariable Long id,
             @RequestBody Branch branch) {
@@ -116,6 +126,7 @@ public class CompanyController {
 
 
     @DeleteMapping("/branch/{id}")
+    @PreAuthorize("hasAuthority('BRANCH_DELETE')")
     public ResponseEntity<?> deleteBranch(
             @PathVariable Long id) {
 
@@ -124,11 +135,12 @@ public class CompanyController {
     }
 
 
-    //=========================================================
+    // =========================================================
     // BRANCH LOCATION MANAGEMENT
-    //=========================================================
+    // =========================================================
 
     @PostMapping("/location/{branchId}")
+    @PreAuthorize("hasAuthority('BRANCH_LOCATION_CREATE')")
     public ResponseEntity<?> createBranchLocation(
             @PathVariable Long branchId,
             @RequestBody BranchLocation location) {
@@ -139,6 +151,7 @@ public class CompanyController {
 
 
     @GetMapping("/locations")
+    @PreAuthorize("hasAuthority('BRANCH_LOCATION_VIEW')")
     public ResponseEntity<?> getAllBranchLocations() {
 
         return ResponseEntity.ok(
@@ -147,6 +160,7 @@ public class CompanyController {
 
 
     @GetMapping("/location/{id}")
+    @PreAuthorize("hasAuthority('BRANCH_LOCATION_VIEW')")
     public ResponseEntity<?> getBranchLocation(
             @PathVariable Long id) {
 
@@ -156,6 +170,7 @@ public class CompanyController {
 
 
     @GetMapping("/branch/{branchId}/locations")
+    @PreAuthorize("hasAuthority('BRANCH_LOCATION_VIEW')")
     public ResponseEntity<?> getLocationsByBranch(
             @PathVariable Long branchId) {
 
@@ -165,6 +180,7 @@ public class CompanyController {
 
 
     @PutMapping("/location/{id}")
+    @PreAuthorize("hasAuthority('BRANCH_LOCATION_UPDATE')")
     public ResponseEntity<?> updateBranchLocation(
             @PathVariable Long id,
             @RequestBody BranchLocation location) {
@@ -175,6 +191,7 @@ public class CompanyController {
 
 
     @DeleteMapping("/location/{id}")
+    @PreAuthorize("hasAuthority('BRANCH_LOCATION_DELETE')")
     public ResponseEntity<?> deleteBranchLocation(
             @PathVariable Long id) {
 

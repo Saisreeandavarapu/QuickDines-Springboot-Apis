@@ -7,6 +7,7 @@ import com.HRMS.QuickDines.Attendance.model.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -15,30 +16,19 @@ import org.springframework.web.bind.annotation.*;
 public class AttendanceController {
 
     private final AttendanceService service;
-    private final AttendanceSchedulerService attendanceSchedulerService;
-//1. One attendance record per employee per day.
-//
-//            2. Employee can check in only once per day.
-//
-//            3. Employee can check out only once per day.
-//
-//            4. Check-out updates the same attendance record.
-//
-//            5. Total working hours are calculated automatically.
-//
-//            6. Employee can view only their own attendance.
-//
-//7. Attendance status is automatically set to PRESENT during check-in.
-//
-//8. Scheduler will mark ABSENT, LEAVE, HOLIDAY, and WEEKEND when applicable.
 
-    //---------------------------------
-// EMPLOYEE ATTENDANCE APIs
-//---------------------------------
+    private final AttendanceSchedulerService
+            attendanceSchedulerService;
+
+
+    // =========================================================
+    // EMPLOYEE ATTENDANCE
+    // =========================================================
 
     @PostMapping("/check-in/{employeeId}")
+    @PreAuthorize("hasAuthority('ATTENDANCE_CHECK_IN')")
     public ResponseEntity<?> checkIn(
-            @PathVariable String  employeeId) {
+            @PathVariable String employeeId) {
 
         return ResponseEntity.ok(
                 service.checkIn(employeeId));
@@ -46,6 +36,7 @@ public class AttendanceController {
 
 
     @PutMapping("/check-out/{employeeId}")
+    @PreAuthorize("hasAuthority('ATTENDANCE_CHECK_OUT')")
     public ResponseEntity<?> checkOut(
             @PathVariable String employeeId) {
 
@@ -55,6 +46,7 @@ public class AttendanceController {
 
 
     @GetMapping("/{employeeId}")
+    @PreAuthorize("hasAuthority('ATTENDANCE_READ')")
     public ResponseEntity<?> getAttendance(
             @PathVariable String employeeId) {
 
@@ -62,83 +54,109 @@ public class AttendanceController {
                 service.getAttendance(employeeId));
     }
 
-///---------------------------------
-// HR / ADMIN / SUPER ADMIN APIs
-//---------------------------------
 
-@GetMapping("/all")
-public ResponseEntity<?> getAllAttendance() {
-    return ResponseEntity.ok(service.getAllAttendance());
-}
+    // =========================================================
+    // HR / ADMIN ATTENDANCE
+    // =========================================================
+
+    @GetMapping("/all")
+    @PreAuthorize("hasAuthority('ATTENDANCE_READ')")
+    public ResponseEntity<?> getAllAttendance() {
+
+        return ResponseEntity.ok(
+                service.getAllAttendance());
+    }
 
 
     @PutMapping("/update-attendance/{attendanceId}")
+    @PreAuthorize("hasAuthority('ATTENDANCE_UPDATE')")
     public ResponseEntity<?> updateAttendance(
             @PathVariable Long attendanceId,
             @RequestBody Attendance attendance) {
 
-        return ResponseEntity.ok(service.updateAttendance(attendanceId, attendance));
+        return ResponseEntity.ok(
+                service.updateAttendance(
+                        attendanceId,
+                        attendance));
     }
 
 
     @DeleteMapping("/{attendanceId}")
-    public ResponseEntity<?> deleteAttendance(@PathVariable Long attendanceId) {
-    return ResponseEntity.ok(service.deleteAttendance(attendanceId));
+    @PreAuthorize("hasAuthority('ATTENDANCE_DELETE')")
+    public ResponseEntity<?> deleteAttendance(
+            @PathVariable Long attendanceId) {
+
+        return ResponseEntity.ok(
+                service.deleteAttendance(attendanceId));
     }
 
 
-//---------------------------------
-// SYSTEM APIs (Scheduler)
-//---------------------------------
+    // =========================================================
+    // SYSTEM / SCHEDULER
+    // =========================================================
 
     @PostMapping("/mark-absent")
+    @PreAuthorize("hasAuthority('ATTENDANCE_SCHEDULER')")
     public ResponseEntity<?> markAbsentEmployees() {
 
-        return ResponseEntity.ok(attendanceSchedulerService.markAbsentEmployees());
+        return ResponseEntity.ok(
+                attendanceSchedulerService
+                        .markAbsentEmployees());
     }
 
 
     @PostMapping("/mark-holiday")
+    @PreAuthorize("hasAuthority('ATTENDANCE_SCHEDULER')")
     public ResponseEntity<?> markHoliday() {
 
-        return ResponseEntity.ok(attendanceSchedulerService.markHoliday());
+        return ResponseEntity.ok(
+                attendanceSchedulerService
+                        .markHoliday());
     }
 
 
     @PostMapping("/mark-weekend")
+    @PreAuthorize("hasAuthority('ATTENDANCE_SCHEDULER')")
     public ResponseEntity<?> markWeekend() {
 
-        return ResponseEntity.ok(attendanceSchedulerService.markWeekend());
+        return ResponseEntity.ok(
+                attendanceSchedulerService
+                        .markWeekend());
     }
 
 
     @PostMapping("/mark-leave/{employeeId}")
+    @PreAuthorize("hasAuthority('ATTENDANCE_UPDATE')")
     public ResponseEntity<?> markLeave(
             @PathVariable String employeeId) {
 
-        return ResponseEntity.ok(service.markLeave(employeeId));
+        return ResponseEntity.ok(
+                service.markLeave(employeeId));
     }
 
-    //---------------------------------
-// DAILY ATTENDANCE REPORT APIs
-//---------------------------------
+
+    // =========================================================
+    // DAILY ATTENDANCE REPORT
+    // =========================================================
 
     @PostMapping("/generate-daily-report")
+    @PreAuthorize("hasAuthority('ATTENDANCE_SCHEDULER')")
     public ResponseEntity<?> generateDailyAttendanceReports() {
 
-        attendanceSchedulerService.generateDailyAttendanceReports();
+        attendanceSchedulerService
+                .generateDailyAttendanceReports();
 
         return ResponseEntity.ok(
                 "Daily Attendance Reports Generated Successfully");
     }
 
 
-
-    //---------------------------------
-// REPORTS
-//---------------------------------
+    // =========================================================
+    // REPORTS
+    // =========================================================
 
     @GetMapping("/reports/{employeeId}")
+    @PreAuthorize("hasAuthority('ATTENDANCE_REPORT_READ')")
     public ResponseEntity<?> getReports(
             @PathVariable String employeeId) {
 
@@ -148,6 +166,7 @@ public ResponseEntity<?> getAllAttendance() {
 
 
     @GetMapping("/monthly-report/{employeeId}")
+    @PreAuthorize("hasAuthority('ATTENDANCE_REPORT_READ')")
     public ResponseEntity<?> getMonthlyReport(
             @PathVariable String employeeId) {
 
@@ -156,12 +175,13 @@ public ResponseEntity<?> getAllAttendance() {
     }
 
 
-
-    //---------------------------------
-// WORKING HOURS
-//---------------------------------
+    // =========================================================
+    // WORKING HOURS
+    // =========================================================
 
     @GetMapping("/working-hours/{employeeId}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_WORKING_HOURS_READ')")
     public ResponseEntity<?> getWorkingHours(
             @PathVariable String employeeId) {
 
@@ -171,39 +191,54 @@ public ResponseEntity<?> getAllAttendance() {
 
 
     @PutMapping("/working-hours/{employeeId}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_WORKING_HOURS_UPDATE')")
     public ResponseEntity<?> updateWorkingHours(
             @PathVariable String employeeId,
             @RequestBody WorkingHours workingHours) {
 
         return ResponseEntity.ok(
-                service.updateWorkingHours(employeeId, workingHours));
+                service.updateWorkingHours(
+                        employeeId,
+                        workingHours));
     }
 
-    //---------------------------------
-// GPS TRACKING
-//---------------------------------
+
+    // =========================================================
+    // GPS TRACKING
+    // =========================================================
 
     @PostMapping("/gps-login/{employeeId}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_GPS_CREATE')")
     public ResponseEntity<?> gpsLogin(
             @PathVariable String employeeId,
             @RequestBody GpsTracking gpsTracking) {
 
         return ResponseEntity.ok(
-                service.gpsLogin(employeeId, gpsTracking));
+                service.gpsLogin(
+                        employeeId,
+                        gpsTracking));
     }
 
 
     @PutMapping("/gps-logout/{employeeId}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_GPS_UPDATE')")
     public ResponseEntity<?> gpsLogout(
             @PathVariable String employeeId,
             @RequestBody GpsTracking gpsTracking) {
 
         return ResponseEntity.ok(
-                service.gpsLogout(employeeId, gpsTracking));
+                service.gpsLogout(
+                        employeeId,
+                        gpsTracking));
     }
 
 
     @GetMapping("/gps/{employeeId}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_GPS_READ')")
     public ResponseEntity<?> getGps(
             @PathVariable String employeeId) {
 
@@ -213,6 +248,8 @@ public ResponseEntity<?> getAllAttendance() {
 
 
     @GetMapping("/live-location/{employeeId}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_GPS_READ')")
     public ResponseEntity<?> liveLocation(
             @PathVariable String employeeId) {
 
@@ -220,318 +257,485 @@ public ResponseEntity<?> getAllAttendance() {
                 service.liveLocation(employeeId));
     }
 
+
+    // =========================================================
+    // SHIFT
+    // =========================================================
+
     @PostMapping("/shift")
-    public ResponseEntity<?> createShift(@RequestBody Shift shift) {
-        return ResponseEntity.ok(service.createShift(shift));
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_SHIFT_CREATE')")
+    public ResponseEntity<?> createShift(
+            @RequestBody Shift shift) {
+
+        return ResponseEntity.ok(
+                service.createShift(shift));
     }
+
 
     @GetMapping("/shifts")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_SHIFT_READ')")
     public ResponseEntity<?> getShifts() {
-        return ResponseEntity.ok(service.getShifts());
+
+        return ResponseEntity.ok(
+                service.getShifts());
     }
+
 
     @GetMapping("/shift/{id}")
-    public ResponseEntity<?> getShift(@PathVariable Long id) {
-        return ResponseEntity.ok(service.getShift(id));
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_SHIFT_READ')")
+    public ResponseEntity<?> getShift(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getShift(id));
     }
+
 
     @PutMapping("/shift/{id}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_SHIFT_UPDATE')")
     public ResponseEntity<?> updateShift(
             @PathVariable Long id,
-            @RequestBody Shift shift) throws JsonProcessingException {
-        return ResponseEntity.ok(service.updateShift(id, shift));
+            @RequestBody Shift shift)
+            throws JsonProcessingException {
+
+        return ResponseEntity.ok(
+                service.updateShift(id, shift));
     }
+
 
     @DeleteMapping("/shift/{id}")
-    public ResponseEntity<?> deleteShift(@PathVariable Long id) throws JsonProcessingException {
-        return ResponseEntity.ok(service.deleteShift(id));
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_SHIFT_DELETE')")
+    public ResponseEntity<?> deleteShift(
+            @PathVariable Long id)
+            throws JsonProcessingException {
+
+        return ResponseEntity.ok(
+                service.deleteShift(id));
     }
 
-    //=========================================================
+
+    // =========================================================
     // EMPLOYEE SHIFTS
-    //=========================================================
+    // =========================================================
 
     @PostMapping("/employee-shift/{employeeId}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_SHIFT_CREATE')")
     public ResponseEntity<?> assignShift(
             @PathVariable String employeeId,
             @RequestBody EmployeeShift employeeShift) {
 
         return ResponseEntity.ok(
-                service.assignShift(employeeId, employeeShift));
+                service.assignShift(
+                        employeeId,
+                        employeeShift));
     }
+
 
     @GetMapping("/employee-shifts")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_SHIFT_READ')")
     public ResponseEntity<?> getEmployeeShifts() {
-        return ResponseEntity.ok(service.getEmployeeShifts());
+
+        return ResponseEntity.ok(
+                service.getEmployeeShifts());
     }
+
 
     @GetMapping("/employee-shift/{id}")
-    public ResponseEntity<?> getEmployeeShift(@PathVariable Long id) {
-        return ResponseEntity.ok(service.getEmployeeShift(id));
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_SHIFT_READ')")
+    public ResponseEntity<?> getEmployeeShift(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getEmployeeShift(id));
     }
 
+
     @PutMapping("/employee-shift/{id}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_SHIFT_UPDATE')")
     public ResponseEntity<?> updateEmployeeShift(
             @PathVariable Long id,
             @RequestBody EmployeeShift employeeShift) {
 
         return ResponseEntity.ok(
-                service.updateEmployeeShift(id, employeeShift));
+                service.updateEmployeeShift(
+                        id,
+                        employeeShift));
     }
+
 
     @DeleteMapping("/employee-shift/{id}")
-    public ResponseEntity<?> deleteEmployeeShift(@PathVariable Long id) {
-        return ResponseEntity.ok(service.deleteEmployeeShift(id));
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_SHIFT_DELETE')")
+    public ResponseEntity<?> deleteEmployeeShift(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteEmployeeShift(id));
     }
 
-    //=========================================================
+
+    // =========================================================
     // HOLIDAYS
-    //=========================================================
+    // =========================================================
 
     @PostMapping("/holiday")
-    public ResponseEntity<?> createHoliday(@RequestBody Holiday holiday) {
-        return ResponseEntity.ok(service.createHoliday(holiday));
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_HOLIDAY_CREATE')")
+    public ResponseEntity<?> createHoliday(
+            @RequestBody Holiday holiday) {
+
+        return ResponseEntity.ok(
+                service.createHoliday(holiday));
     }
+
 
     @GetMapping("/holidays")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_HOLIDAY_READ')")
     public ResponseEntity<?> getHolidays() {
-        return ResponseEntity.ok(service.getHolidays());
+
+        return ResponseEntity.ok(
+                service.getHolidays());
     }
+
 
     @GetMapping("/holiday/{id}")
-    public ResponseEntity<?> getHoliday(@PathVariable Long id) {
-        return ResponseEntity.ok(service.getHoliday(id));
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_HOLIDAY_READ')")
+    public ResponseEntity<?> getHoliday(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getHoliday(id));
     }
 
+
     @PutMapping("/holiday/{id}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_HOLIDAY_UPDATE')")
     public ResponseEntity<?> updateHoliday(
             @PathVariable Long id,
             @RequestBody Holiday holiday) {
 
-        return ResponseEntity.ok(service.updateHoliday(id, holiday));
+        return ResponseEntity.ok(
+                service.updateHoliday(id, holiday));
     }
+
 
     @DeleteMapping("/holiday/{id}")
-    public ResponseEntity<?> deleteHoliday(@PathVariable Long id) {
-        return ResponseEntity.ok(service.deleteHoliday(id));
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_HOLIDAY_DELETE')")
+    public ResponseEntity<?> deleteHoliday(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteHoliday(id));
     }
 
-    //=========================================================
+
+    // =========================================================
     // WEEKEND CONFIGURATION
-    //=========================================================
+    // =========================================================
 
     @PostMapping("/weekend")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_WEEKEND_CREATE')")
     public ResponseEntity<?> createWeekend(
             @RequestBody WeekendConfiguration weekend) {
 
-        return ResponseEntity.ok(service.createWeekend(weekend));
+        return ResponseEntity.ok(
+                service.createWeekend(weekend));
     }
+
 
     @GetMapping("/weekends")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_WEEKEND_READ')")
     public ResponseEntity<?> getWeekends() {
-        return ResponseEntity.ok(service.getWeekends());
+
+        return ResponseEntity.ok(
+                service.getWeekends());
     }
+
 
     @GetMapping("/weekend/{id}")
-    public ResponseEntity<?> getWeekend(@PathVariable Long id) {
-        return ResponseEntity.ok(service.getWeekend(id));
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_WEEKEND_READ')")
+    public ResponseEntity<?> getWeekend(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getWeekend(id));
     }
 
+
     @PutMapping("/weekend/{id}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_WEEKEND_UPDATE')")
     public ResponseEntity<?> updateWeekend(
             @PathVariable Long id,
             @RequestBody WeekendConfiguration weekend) {
 
-        return ResponseEntity.ok(service.updateWeekend(id, weekend));
+        return ResponseEntity.ok(
+                service.updateWeekend(id, weekend));
     }
+
 
     @DeleteMapping("/weekend/{id}")
-    public ResponseEntity<?> deleteWeekend(@PathVariable Long id) {
-        return ResponseEntity.ok(service.deleteWeekend(id));
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_WEEKEND_DELETE')")
+    public ResponseEntity<?> deleteWeekend(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteWeekend(id));
     }
 
-    //=========================================================
+
+    // =========================================================
     // ATTENDANCE REGULARIZATION
-    //=========================================================
+    // =========================================================
 
     @PostMapping("/regularization/{attendanceId}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_REGULARIZATION_CREATE')")
     public ResponseEntity<?> createRegularization(
             @PathVariable Long attendanceId,
             @RequestBody AttendanceRegularization regularization) {
 
         return ResponseEntity.ok(
-                service.createRegularization(attendanceId, regularization));
+                service.createRegularization(
+                        attendanceId,
+                        regularization));
     }
+
 
     @GetMapping("/regularizations")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_REGULARIZATION_READ')")
     public ResponseEntity<?> getRegularizations() {
-        return ResponseEntity.ok(service.getRegularizations());
+
+        return ResponseEntity.ok(
+                service.getRegularizations());
     }
+
 
     @GetMapping("/regularization/{id}")
-    public ResponseEntity<?> getRegularization(@PathVariable Long id) {
-        return ResponseEntity.ok(service.getRegularization(id));
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_REGULARIZATION_READ')")
+    public ResponseEntity<?> getRegularization(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getRegularization(id));
     }
 
+
     @PutMapping("/regularization/{id}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_REGULARIZATION_UPDATE')")
     public ResponseEntity<?> updateRegularization(
             @PathVariable Long id,
             @RequestBody AttendanceRegularization regularization) {
 
         return ResponseEntity.ok(
-                service.updateRegularization(id, regularization));
+                service.updateRegularization(
+                        id,
+                        regularization));
     }
+
 
     @DeleteMapping("/regularization/{id}")
-    public ResponseEntity<?> deleteRegularization(@PathVariable Long id) {
-        return ResponseEntity.ok(service.deleteRegularization(id));
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_REGULARIZATION_DELETE')")
+    public ResponseEntity<?> deleteRegularization(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteRegularization(id));
     }
 
-    //=========================================================
+
+    // =========================================================
     // OVERTIME REQUESTS
-    //=========================================================
+    // =========================================================
 
     @PostMapping("/overtime/{attendanceId}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_OVERTIME_CREATE')")
     public ResponseEntity<?> createOvertime(
             @PathVariable Long attendanceId,
             @RequestBody OvertimeRequest overtimeRequest) {
 
         return ResponseEntity.ok(
-                service.createOvertime(attendanceId, overtimeRequest));
+                service.createOvertime(
+                        attendanceId,
+                        overtimeRequest));
     }
+
 
     @GetMapping("/overtimes")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_OVERTIME_READ')")
     public ResponseEntity<?> getOvertimes() {
-        return ResponseEntity.ok(service.getOvertimes());
+
+        return ResponseEntity.ok(
+                service.getOvertimes());
     }
+
 
     @GetMapping("/overtime/{id}")
-    public ResponseEntity<?> getOvertime(@PathVariable Long id) {
-        return ResponseEntity.ok(service.getOvertime(id));
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_OVERTIME_READ')")
+    public ResponseEntity<?> getOvertime(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.getOvertime(id));
     }
 
+
     @PutMapping("/overtime/{id}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_OVERTIME_UPDATE')")
     public ResponseEntity<?> updateOvertime(
             @PathVariable Long id,
             @RequestBody OvertimeRequest overtimeRequest) {
 
         return ResponseEntity.ok(
-                service.updateOvertime(id, overtimeRequest));
+                service.updateOvertime(
+                        id,
+                        overtimeRequest));
     }
+
 
     @DeleteMapping("/overtime/{id}")
-    public ResponseEntity<?> deleteOvertime(@PathVariable Long id) {
-        return ResponseEntity.ok(service.deleteOvertime(id));
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_OVERTIME_DELETE')")
+    public ResponseEntity<?> deleteOvertime(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.deleteOvertime(id));
     }
 
-//    //=========================================================
-//    // ATTENDANCE
-//    //=========================================================
-//
-//    @PostMapping("/checkin/{employeeId}")
-//    public ResponseEntity<?> checkIn(
-//            @PathVariable String employeeId,
-//            @RequestParam Double latitude,
-//            @RequestParam Double longitude) {
-//
-//        return ResponseEntity.ok(
-//                service.checkIn(employeeId, latitude, longitude));
-//    }
-//
-//    @PutMapping("/checkout/{attendanceId}")
-//    public ResponseEntity<?> checkOut(
-//            @PathVariable Long attendanceId,
-//            @RequestParam Double latitude,
-//            @RequestParam Double longitude) {
-//
-//        return ResponseEntity.ok(
-//                service.checkOut(attendanceId, latitude, longitude));
-//    }
-//
-//    @GetMapping("/attendance/{employeeId}")
-//    public ResponseEntity<?> getEmployeeAttendance(
-//            @PathVariable String employeeId) {
-//
-//        return ResponseEntity.ok(
-//                service.getEmployeeAttendance(employeeId));
-//    }
-//
-//    @GetMapping("/attendance")
-//    public ResponseEntity<?> getAttendance() {
-//        return ResponseEntity.ok(service.getAttendance());
-//    }
-//
-//    @GetMapping("/attendance/details/{id}")
-//    public ResponseEntity<?> getAttendanceById(
-//            @PathVariable Long id) {
-//
-//        return ResponseEntity.ok(
-//                service.getAttendanceById(id));
-//    }
-//
-//    @DeleteMapping("/attendance/{id}")
-//    public ResponseEntity<?> deleteAttendance(
-//            @PathVariable Long id) {
-//
-//        return ResponseEntity.ok(
-//                service.deleteAttendance(id));
-//    }
 
-    //=========================================================
-    // REPORTS
-    //=========================================================
+    // =========================================================
+    // ATTENDANCE REPORTS
+    // =========================================================
 
     @GetMapping("/present")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_REPORT_READ')")
     public ResponseEntity<?> presentEmployees() {
-        return ResponseEntity.ok(service.presentEmployees());
+
+        return ResponseEntity.ok(
+                service.presentEmployees());
     }
+
 
     @GetMapping("/absent")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_REPORT_READ')")
     public ResponseEntity<?> absentEmployees() {
-        return ResponseEntity.ok(service.absentEmployees());
+
+        return ResponseEntity.ok(
+                service.absentEmployees());
     }
+
 
     @GetMapping("/late")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_REPORT_READ')")
     public ResponseEntity<?> lateEmployees() {
-        return ResponseEntity.ok(service.lateEmployees());
+
+        return ResponseEntity.ok(
+                service.lateEmployees());
     }
+
 
     @GetMapping("/early-leaving")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_REPORT_READ')")
     public ResponseEntity<?> earlyLeavingEmployees() {
-        return ResponseEntity.ok(service.earlyLeavingEmployees());
+
+        return ResponseEntity.ok(
+                service.earlyLeavingEmployees());
     }
+
 
     @GetMapping("/overtime/approved")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_REPORT_READ')")
     public ResponseEntity<?> approvedOvertime() {
-        return ResponseEntity.ok(service.approvedOvertime());
+
+        return ResponseEntity.ok(
+                service.approvedOvertime());
     }
+
 
     @GetMapping("/overtime/pending")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_REPORT_READ')")
     public ResponseEntity<?> pendingOvertime() {
-        return ResponseEntity.ok(service.pendingOvertime());
+
+        return ResponseEntity.ok(
+                service.pendingOvertime());
     }
+
 
     @GetMapping("/regularization/pending")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_REPORT_READ')")
     public ResponseEntity<?> pendingRegularization() {
-        return ResponseEntity.ok(service.pendingRegularization());
+
+        return ResponseEntity.ok(
+                service.pendingRegularization());
     }
+
 
     @GetMapping("/regularization/approved")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_REPORT_READ')")
     public ResponseEntity<?> approvedRegularization() {
-        return ResponseEntity.ok(service.approvedRegularization());
+
+        return ResponseEntity.ok(
+                service.approvedRegularization());
     }
+
 
     @GetMapping("/today-attendance")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_REPORT_READ')")
     public ResponseEntity<?> todayAttendance() {
-        return ResponseEntity.ok(service.todayAttendance());
+
+        return ResponseEntity.ok(
+                service.todayAttendance());
     }
+
 
     @GetMapping("/gps/live")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_GPS_READ')")
     public ResponseEntity<?> liveTracking() {
-        return ResponseEntity.ok(service.liveTracking());
+
+        return ResponseEntity.ok(
+                service.liveTracking());
     }
 
+
     @GetMapping("/gps/history/{employeeId}")
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_GPS_READ')")
     public ResponseEntity<?> gpsHistory(
             @PathVariable String employeeId) {
 
@@ -539,60 +743,17 @@ public ResponseEntity<?> getAllAttendance() {
                 service.gpsHistory(employeeId));
     }
 
-    //=========================================================
+
+    // =========================================================
     // DASHBOARD
-    //=========================================================
+    // =========================================================
 
     @GetMapping("/counts")
-    public AttendanceDashboardDTO getCounts() {
-        return ResponseEntity.ok(service.getCounts()).getBody();
+    @PreAuthorize(
+            "hasAuthority('ATTENDANCE_DASHBOARD_READ')")
+    public ResponseEntity<AttendanceDashboardDTO> getCounts() {
+
+        return ResponseEntity.ok(
+                service.getCounts());
     }
-
-//        //---------------------------------
-//        // DAILY ATTENDANCE REPORT
-//        //---------------------------------
-//
-//        @PostMapping("/generate-daily-report")
-//        public ResponseEntity<?> generateDailyAttendanceReport() {
-//
-//            return ResponseEntity.ok(
-//                    service.generateDailyAttendanceReport());
-//        }
-//
-//
-//        //---------------------------------
-//        // MONTHLY ATTENDANCE REPORT
-//        //---------------------------------
-//
-//        @PostMapping("/generate-monthly-report")
-//        public ResponseEntity<?> generateMonthlyAttendanceReport() {
-//
-//            return ResponseEntity.ok(
-//                    service.generateMonthlyAttendanceReport());
-//        }
-//
-//
-//        //---------------------------------
-//        // GET REPORTS
-//        //---------------------------------
-//
-//        @GetMapping("/reports")
-//        public ResponseEntity<?> getAllReports() {
-//
-//            return ResponseEntity.ok(
-//                    service.getAllReports());
-//        }
-//
-//
-//        @GetMapping("/reports/{employeeId}")
-//        public ResponseEntity<?> getEmployeeReports(
-//                @PathVariable Long employeeId) {
-//
-//            return ResponseEntity.ok(
-//                    service.getEmployeeReports(employeeId));
-//        }
-
-    }
-
-
-
+}

@@ -4,6 +4,7 @@ import com.HRMS.QuickDines.Notification.Services.NotificationService;
 import com.HRMS.QuickDines.Notification.model.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,6 +20,7 @@ public class NotificationController {
     //=========================================================
 
     @PostMapping("/{employeeId}")
+    @PreAuthorize("hasAuthority('NOTIFICATION_CREATE')")
     public ResponseEntity<?> createNotification(
             @PathVariable String employeeId,
             @RequestBody Notification notification) {
@@ -29,6 +31,7 @@ public class NotificationController {
 
 
     @GetMapping
+    @PreAuthorize("hasAuthority('NOTIFICATION_VIEW')")
     public ResponseEntity<?> getNotifications() {
 
         return ResponseEntity.ok(
@@ -37,6 +40,7 @@ public class NotificationController {
 
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('NOTIFICATION_VIEW')")
     public ResponseEntity<?> getNotification(
             @PathVariable Long id) {
 
@@ -46,6 +50,7 @@ public class NotificationController {
 
 
     @GetMapping("/employee/{employeeId}")
+    @PreAuthorize("hasAuthority('NOTIFICATION_VIEW')")
     public ResponseEntity<?> getEmployeeNotifications(
             @PathVariable String employeeId) {
 
@@ -55,6 +60,7 @@ public class NotificationController {
 
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('NOTIFICATION_UPDATE')")
     public ResponseEntity<?> updateNotification(
             @PathVariable Long id,
             @RequestBody Notification notification) {
@@ -65,6 +71,7 @@ public class NotificationController {
 
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('NOTIFICATION_DELETE')")
     public ResponseEntity<?> deleteNotification(
             @PathVariable Long id) {
 
@@ -74,6 +81,7 @@ public class NotificationController {
 
 
     @PutMapping("/{id}/read")
+    @PreAuthorize("hasAuthority('NOTIFICATION_MARK_READ')")
     public ResponseEntity<?> markAsRead(
             @PathVariable Long id) {
 
@@ -83,6 +91,7 @@ public class NotificationController {
 
 
     @PutMapping("/{id}/archive")
+    @PreAuthorize("hasAuthority('NOTIFICATION_ARCHIVE')")
     public ResponseEntity<?> archiveNotification(
             @PathVariable Long id) {
 
@@ -96,6 +105,7 @@ public class NotificationController {
     //=========================================================
 
     @PostMapping("/email/{notificationId}/{employeeId}")
+    @PreAuthorize("hasAuthority('EMAIL_NOTIFICATION_CREATE')")
     public ResponseEntity<?> createEmailNotification(
             @PathVariable Long notificationId,
             @PathVariable String employeeId,
@@ -110,6 +120,7 @@ public class NotificationController {
 
 
     @GetMapping("/emails")
+    @PreAuthorize("hasAuthority('EMAIL_NOTIFICATION_VIEW')")
     public ResponseEntity<?> getEmailNotifications() {
 
         return ResponseEntity.ok(
@@ -118,6 +129,7 @@ public class NotificationController {
 
 
     @GetMapping("/email/{id}")
+    @PreAuthorize("hasAuthority('EMAIL_NOTIFICATION_VIEW')")
     public ResponseEntity<?> getEmailNotification(
             @PathVariable Long id) {
 
@@ -127,6 +139,7 @@ public class NotificationController {
 
 
     @PutMapping("/email/{id}")
+    @PreAuthorize("hasAuthority('EMAIL_NOTIFICATION_UPDATE')")
     public ResponseEntity<?> updateEmailNotification(
             @PathVariable Long id,
             @RequestBody EmailNotification emailNotification) {
@@ -139,6 +152,7 @@ public class NotificationController {
 
 
     @DeleteMapping("/email/{id}")
+    @PreAuthorize("hasAuthority('EMAIL_NOTIFICATION_DELETE')")
     public ResponseEntity<?> deleteEmailNotification(
             @PathVariable Long id) {
 
@@ -152,6 +166,7 @@ public class NotificationController {
     //=========================================================
 
     @PostMapping("/push/{notificationId}/{employeeId}")
+    @PreAuthorize("hasAuthority('PUSH_NOTIFICATION_CREATE')")
     public ResponseEntity<?> createPushNotification(
             @PathVariable Long notificationId,
             @PathVariable String employeeId,
@@ -166,6 +181,7 @@ public class NotificationController {
 
 
     @GetMapping("/pushes")
+    @PreAuthorize("hasAuthority('PUSH_NOTIFICATION_VIEW')")
     public ResponseEntity<?> getPushNotifications() {
 
         return ResponseEntity.ok(
@@ -174,6 +190,7 @@ public class NotificationController {
 
 
     @GetMapping("/push/{id}")
+    @PreAuthorize("hasAuthority('PUSH_NOTIFICATION_VIEW')")
     public ResponseEntity<?> getPushNotification(
             @PathVariable Long id) {
 
@@ -183,6 +200,7 @@ public class NotificationController {
 
 
     @PutMapping("/push/{id}")
+    @PreAuthorize("hasAuthority('PUSH_NOTIFICATION_UPDATE')")
     public ResponseEntity<?> updatePushNotification(
             @PathVariable Long id,
             @RequestBody PushNotification pushNotification) {
@@ -195,6 +213,7 @@ public class NotificationController {
 
 
     @DeleteMapping("/push/{id}")
+    @PreAuthorize("hasAuthority('PUSH_NOTIFICATION_DELETE')")
     public ResponseEntity<?> deletePushNotification(
             @PathVariable Long id) {
 
@@ -208,6 +227,7 @@ public class NotificationController {
     //=========================================================
 
     @PostMapping("/sms/{notificationId}/{employeeId}")
+    @PreAuthorize("hasAuthority('SMS_NOTIFICATION_CREATE')")
     public ResponseEntity<?> createSmsNotification(
             @PathVariable Long notificationId,
             @PathVariable String employeeId,
@@ -222,6 +242,7 @@ public class NotificationController {
 
 
     @GetMapping("/sms")
+    @PreAuthorize("hasAuthority('SMS_NOTIFICATION_VIEW')")
     public ResponseEntity<?> getSmsNotifications() {
 
         return ResponseEntity.ok(
@@ -230,6 +251,7 @@ public class NotificationController {
 
 
     @GetMapping("/sms/{id}")
+    @PreAuthorize("hasAuthority('SMS_NOTIFICATION_VIEW')")
     public ResponseEntity<?> getSmsNotification(
             @PathVariable Long id) {
 
@@ -239,6 +261,7 @@ public class NotificationController {
 
 
     @PutMapping("/sms/{id}")
+    @PreAuthorize("hasAuthority('SMS_NOTIFICATION_UPDATE')")
     public ResponseEntity<?> updateSmsNotification(
             @PathVariable Long id,
             @RequestBody SmsNotification smsNotification) {
@@ -251,6 +274,7 @@ public class NotificationController {
 
 
     @DeleteMapping("/sms/{id}")
+    @PreAuthorize("hasAuthority('SMS_NOTIFICATION_DELETE')")
     public ResponseEntity<?> deleteSmsNotification(
             @PathVariable Long id) {
 
@@ -264,6 +288,7 @@ public class NotificationController {
     //=========================================================
 
     @PostMapping("/whatsapp/{notificationId}/{employeeId}")
+    @PreAuthorize("hasAuthority('WHATSAPP_NOTIFICATION_CREATE')")
     public ResponseEntity<?> createWhatsappNotification(
             @PathVariable Long notificationId,
             @PathVariable String employeeId,
@@ -278,6 +303,7 @@ public class NotificationController {
 
 
     @GetMapping("/whatsapps")
+    @PreAuthorize("hasAuthority('WHATSAPP_NOTIFICATION_VIEW')")
     public ResponseEntity<?> getWhatsappNotifications() {
 
         return ResponseEntity.ok(
@@ -286,6 +312,7 @@ public class NotificationController {
 
 
     @GetMapping("/whatsapp/{id}")
+    @PreAuthorize("hasAuthority('WHATSAPP_NOTIFICATION_VIEW')")
     public ResponseEntity<?> getWhatsappNotification(
             @PathVariable Long id) {
 
@@ -295,6 +322,7 @@ public class NotificationController {
 
 
     @PutMapping("/whatsapp/{id}")
+    @PreAuthorize("hasAuthority('WHATSAPP_NOTIFICATION_UPDATE')")
     public ResponseEntity<?> updateWhatsappNotification(
             @PathVariable Long id,
             @RequestBody WhatsappNotification whatsappNotification) {
@@ -307,6 +335,7 @@ public class NotificationController {
 
 
     @DeleteMapping("/whatsapp/{id}")
+    @PreAuthorize("hasAuthority('WHATSAPP_NOTIFICATION_DELETE')")
     public ResponseEntity<?> deleteWhatsappNotification(
             @PathVariable Long id) {
 
@@ -320,6 +349,7 @@ public class NotificationController {
     //=========================================================
 
     @PostMapping("/template")
+    @PreAuthorize("hasAuthority('NOTIFICATION_TEMPLATE_CREATE')")
     public ResponseEntity<?> createTemplate(
             @RequestBody NotificationTemplate template) {
 
@@ -329,6 +359,7 @@ public class NotificationController {
 
 
     @GetMapping("/templates")
+    @PreAuthorize("hasAuthority('NOTIFICATION_TEMPLATE_VIEW')")
     public ResponseEntity<?> getTemplates() {
 
         return ResponseEntity.ok(
@@ -337,6 +368,7 @@ public class NotificationController {
 
 
     @GetMapping("/template/{id}")
+    @PreAuthorize("hasAuthority('NOTIFICATION_TEMPLATE_VIEW')")
     public ResponseEntity<?> getTemplate(
             @PathVariable Long id) {
 
@@ -346,6 +378,7 @@ public class NotificationController {
 
 
     @PutMapping("/template/{id}")
+    @PreAuthorize("hasAuthority('NOTIFICATION_TEMPLATE_UPDATE')")
     public ResponseEntity<?> updateTemplate(
             @PathVariable Long id,
             @RequestBody NotificationTemplate template) {
@@ -356,6 +389,7 @@ public class NotificationController {
 
 
     @DeleteMapping("/template/{id}")
+    @PreAuthorize("hasAuthority('NOTIFICATION_TEMPLATE_DELETE')")
     public ResponseEntity<?> deleteTemplate(
             @PathVariable Long id) {
 
@@ -369,6 +403,7 @@ public class NotificationController {
     //=========================================================
 
     @PostMapping("/log/{notificationId}/{employeeId}")
+    @PreAuthorize("hasAuthority('NOTIFICATION_LOG_CREATE')")
     public ResponseEntity<?> createNotificationLog(
             @PathVariable Long notificationId,
             @PathVariable String employeeId,
@@ -383,6 +418,7 @@ public class NotificationController {
 
 
     @GetMapping("/logs")
+    @PreAuthorize("hasAuthority('NOTIFICATION_LOG_VIEW')")
     public ResponseEntity<?> getNotificationLogs() {
 
         return ResponseEntity.ok(
@@ -391,6 +427,7 @@ public class NotificationController {
 
 
     @GetMapping("/log/{id}")
+    @PreAuthorize("hasAuthority('NOTIFICATION_LOG_VIEW')")
     public ResponseEntity<?> getNotificationLog(
             @PathVariable Long id) {
 
@@ -400,6 +437,7 @@ public class NotificationController {
 
 
     @GetMapping("/logs/employee/{employeeId}")
+    @PreAuthorize("hasAuthority('NOTIFICATION_LOG_VIEW')")
     public ResponseEntity<?> getEmployeeNotificationLogs(
             @PathVariable String employeeId) {
 
@@ -409,6 +447,7 @@ public class NotificationController {
 
 
     @PutMapping("/log/{id}")
+    @PreAuthorize("hasAuthority('NOTIFICATION_LOG_UPDATE')")
     public ResponseEntity<?> updateNotificationLog(
             @PathVariable Long id,
             @RequestBody NotificationLog notificationLog) {
@@ -421,11 +460,11 @@ public class NotificationController {
 
 
     @DeleteMapping("/log/{id}")
+    @PreAuthorize("hasAuthority('NOTIFICATION_LOG_DELETE')")
     public ResponseEntity<?> deleteNotificationLog(
             @PathVariable Long id) {
 
         return ResponseEntity.ok(
                 service.deleteNotificationLog(id));
     }
-
 }

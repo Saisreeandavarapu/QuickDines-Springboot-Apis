@@ -7,6 +7,7 @@ import com.HRMS.QuickDines.Training.model.TrainingAssignment;
 import com.HRMS.QuickDines.Training.model.TrainingCertificate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,6 +22,7 @@ public class TrainingController {
     // TRAININGS
     //=========================================================
 
+    @PreAuthorize("hasAuthority('TRAINING_CREATE')")
     @PostMapping("/create")
     public ResponseEntity<?> createTraining(
             @RequestBody Training training) {
@@ -29,7 +31,7 @@ public class TrainingController {
                 service.createTraining(training));
     }
 
-
+    @PreAuthorize("hasAuthority('TRAINING_READ')")
     @GetMapping("/all")
     public ResponseEntity<?> getAllTrainings() {
 
@@ -37,7 +39,7 @@ public class TrainingController {
                 service.getAllTrainings());
     }
 
-
+    @PreAuthorize("hasAuthority('TRAINING_READ')")
     @GetMapping("/{id}")
     public ResponseEntity<?> getTraining(
             @PathVariable Long id) {
@@ -46,7 +48,7 @@ public class TrainingController {
                 service.getTraining(id));
     }
 
-
+    @PreAuthorize("hasAuthority('TRAINING_UPDATE')")
     @PutMapping("/{id}")
     public ResponseEntity<?> updateTraining(
             @PathVariable Long id,
@@ -56,7 +58,7 @@ public class TrainingController {
                 service.updateTraining(id, training));
     }
 
-
+    @PreAuthorize("hasAuthority('TRAINING_DELETE')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteTraining(
             @PathVariable Long id) {
@@ -70,6 +72,7 @@ public class TrainingController {
     // TRAINING ASSIGNMENTS
     //=========================================================
 
+    @PreAuthorize("hasAuthority('TRAINING_ASSIGNMENT_CREATE')")
     @PostMapping("/assignment/{trainingId}/{employeeId}")
     public ResponseEntity<?> createAssignment(
             @PathVariable Long trainingId,
@@ -83,7 +86,7 @@ public class TrainingController {
                         assignment));
     }
 
-
+    @PreAuthorize("hasAuthority('TRAINING_ASSIGNMENT_READ')")
     @GetMapping("/assignments")
     public ResponseEntity<?> getAllAssignments() {
 
@@ -91,7 +94,7 @@ public class TrainingController {
                 service.getAllAssignments());
     }
 
-
+    @PreAuthorize("hasAuthority('TRAINING_ASSIGNMENT_READ')")
     @GetMapping("/assignment/{id}")
     public ResponseEntity<?> getAssignment(
             @PathVariable Long id) {
@@ -100,7 +103,7 @@ public class TrainingController {
                 service.getAssignment(id));
     }
 
-
+    @PreAuthorize("hasAuthority('EMPLOYEE_TRAINING_READ')")
     @GetMapping("/employee/{employeeId}/assignments")
     public ResponseEntity<?> getEmployeeAssignments(
             @PathVariable String employeeId) {
@@ -109,7 +112,7 @@ public class TrainingController {
                 service.getEmployeeAssignments(employeeId));
     }
 
-
+    @PreAuthorize("hasAuthority('TRAINING_ASSIGNMENT_READ')")
     @GetMapping("/training/{trainingId}/assignments")
     public ResponseEntity<?> getTrainingAssignments(
             @PathVariable Long trainingId) {
@@ -118,7 +121,7 @@ public class TrainingController {
                 service.getTrainingAssignments(trainingId));
     }
 
-
+    @PreAuthorize("hasAuthority('TRAINING_ASSIGNMENT_UPDATE')")
     @PutMapping("/assignment/{id}")
     public ResponseEntity<?> updateAssignment(
             @PathVariable Long id,
@@ -128,7 +131,7 @@ public class TrainingController {
                 service.updateAssignment(id, assignment));
     }
 
-
+    @PreAuthorize("hasAuthority('TRAINING_ASSIGNMENT_DELETE')")
     @DeleteMapping("/assignment/{id}")
     public ResponseEntity<?> deleteAssignment(
             @PathVariable Long id) {
@@ -142,6 +145,7 @@ public class TrainingController {
     // COURSE COMPLETION
     //=========================================================
 
+    @PreAuthorize("hasAuthority('COURSE_COMPLETION_CREATE')")
     @PostMapping("/completion/{assignmentId}")
     public ResponseEntity<?> createCompletion(
             @PathVariable Long assignmentId,
@@ -153,7 +157,7 @@ public class TrainingController {
                         completion));
     }
 
-
+    @PreAuthorize("hasAuthority('COURSE_COMPLETION_READ')")
     @GetMapping("/completions")
     public ResponseEntity<?> getAllCompletions() {
 
@@ -161,7 +165,7 @@ public class TrainingController {
                 service.getAllCompletions());
     }
 
-
+    @PreAuthorize("hasAuthority('COURSE_COMPLETION_READ')")
     @GetMapping("/completion/{id}")
     public ResponseEntity<?> getCompletion(
             @PathVariable Long id) {
@@ -170,7 +174,7 @@ public class TrainingController {
                 service.getCompletion(id));
     }
 
-
+    @PreAuthorize("hasAuthority('EMPLOYEE_COMPLETION_READ')")
     @GetMapping("/employee/{employeeId}/completions")
     public ResponseEntity<?> getEmployeeCompletions(
             @PathVariable String employeeId) {
@@ -179,7 +183,7 @@ public class TrainingController {
                 service.getEmployeeCompletions(employeeId));
     }
 
-
+    @PreAuthorize("hasAuthority('COURSE_COMPLETION_UPDATE')")
     @PutMapping("/completion/{id}")
     public ResponseEntity<?> updateCompletion(
             @PathVariable Long id,
@@ -189,7 +193,7 @@ public class TrainingController {
                 service.updateCompletion(id, completion));
     }
 
-
+    @PreAuthorize("hasAuthority('COURSE_COMPLETION_DELETE')")
     @DeleteMapping("/completion/{id}")
     public ResponseEntity<?> deleteCompletion(
             @PathVariable Long id) {
@@ -203,6 +207,7 @@ public class TrainingController {
     // TRAINING CERTIFICATES
     //=========================================================
 
+    @PreAuthorize("hasAuthority('TRAINING_CERTIFICATE_CREATE')")
     @PostMapping("/certificate/{completionId}")
     public ResponseEntity<?> createCertificate(
             @PathVariable Long completionId,
@@ -214,7 +219,7 @@ public class TrainingController {
                         certificate));
     }
 
-
+    @PreAuthorize("hasAuthority('TRAINING_CERTIFICATE_READ')")
     @GetMapping("/certificates")
     public ResponseEntity<?> getAllCertificates() {
 
@@ -222,7 +227,7 @@ public class TrainingController {
                 service.getAllCertificates());
     }
 
-
+    @PreAuthorize("hasAuthority('TRAINING_CERTIFICATE_READ')")
     @GetMapping("/certificate/{id}")
     public ResponseEntity<?> getCertificate(
             @PathVariable Long id) {
@@ -231,7 +236,7 @@ public class TrainingController {
                 service.getCertificate(id));
     }
 
-
+    @PreAuthorize("hasAuthority('EMPLOYEE_CERTIFICATE_READ')")
     @GetMapping("/employee/{employeeId}/certificates")
     public ResponseEntity<?> getEmployeeCertificates(
             @PathVariable String employeeId) {
@@ -240,7 +245,7 @@ public class TrainingController {
                 service.getEmployeeCertificates(employeeId));
     }
 
-
+    @PreAuthorize("hasAuthority('TRAINING_CERTIFICATE_UPDATE')")
     @PutMapping("/certificate/{id}")
     public ResponseEntity<?> updateCertificate(
             @PathVariable Long id,
@@ -250,7 +255,7 @@ public class TrainingController {
                 service.updateCertificate(id, certificate));
     }
 
-
+    @PreAuthorize("hasAuthority('TRAINING_CERTIFICATE_DELETE')")
     @DeleteMapping("/certificate/{id}")
     public ResponseEntity<?> deleteCertificate(
             @PathVariable Long id) {

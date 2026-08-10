@@ -7,6 +7,7 @@ import com.HRMS.QuickDines.Organization.model.OrganizationHierarchy;
 import com.HRMS.QuickDines.Organization.model.Team;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,11 +17,13 @@ public class OrganizationController {
 
     private final OrganizationService service;
 
+
     // ==============================
     // Department APIs
     // ==============================
 
     @PostMapping("/department")
+    @PreAuthorize("hasAuthority('DEPARTMENT_CREATE')")
     public ResponseEntity<?> createDepartment(
             @RequestBody Department department) {
 
@@ -28,14 +31,18 @@ public class OrganizationController {
                 service.createDepartment(department));
     }
 
+
     @GetMapping("/departments")
+    @PreAuthorize("hasAuthority('DEPARTMENT_VIEW')")
     public ResponseEntity<?> getAllDepartments() {
 
         return ResponseEntity.ok(
                 service.getAllDepartments());
     }
 
+
     @PutMapping("/department/{id}")
+    @PreAuthorize("hasAuthority('DEPARTMENT_UPDATE')")
     public ResponseEntity<?> updateDepartment(
             @PathVariable Long id,
             @RequestBody Department department) {
@@ -44,7 +51,9 @@ public class OrganizationController {
                 service.updateDepartment(id, department));
     }
 
+
     @DeleteMapping("/department/{id}")
+    @PreAuthorize("hasAuthority('DEPARTMENT_DELETE')")
     public ResponseEntity<?> deleteDepartment(
             @PathVariable Long id) {
 
@@ -58,6 +67,7 @@ public class OrganizationController {
     // ==============================
 
     @PostMapping("/designation")
+    @PreAuthorize("hasAuthority('DESIGNATION_CREATE')")
     public ResponseEntity<?> createDesignation(
             @RequestBody Designation designation) {
 
@@ -65,14 +75,18 @@ public class OrganizationController {
                 service.createDesignation(designation));
     }
 
+
     @GetMapping("/designations")
+    @PreAuthorize("hasAuthority('DESIGNATION_VIEW')")
     public ResponseEntity<?> getAllDesignation() {
 
         return ResponseEntity.ok(
                 service.getAllDesignation());
     }
 
+
     @PutMapping("/designation/{id}")
+    @PreAuthorize("hasAuthority('DESIGNATION_UPDATE')")
     public ResponseEntity<?> updateDesignation(
             @PathVariable Long id,
             @RequestBody Designation designation) {
@@ -81,7 +95,9 @@ public class OrganizationController {
                 service.updateDesignation(id, designation));
     }
 
+
     @DeleteMapping("/designation/{id}")
+    @PreAuthorize("hasAuthority('DESIGNATION_DELETE')")
     public ResponseEntity<?> deleteDesignation(
             @PathVariable Long id) {
 
@@ -95,6 +111,7 @@ public class OrganizationController {
     // ==============================
 
     @PostMapping("/team")
+    @PreAuthorize("hasAuthority('TEAM_CREATE')")
     public ResponseEntity<?> createTeam(
             @RequestBody Team team) {
 
@@ -102,14 +119,18 @@ public class OrganizationController {
                 service.createTeam(team));
     }
 
+
     @GetMapping("/teams")
+    @PreAuthorize("hasAuthority('TEAM_VIEW')")
     public ResponseEntity<?> getAllTeams() {
 
         return ResponseEntity.ok(
                 service.getAllTeams());
     }
 
+
     @PutMapping("/team/{id}")
+    @PreAuthorize("hasAuthority('TEAM_UPDATE')")
     public ResponseEntity<?> updateTeam(
             @PathVariable Long id,
             @RequestBody Team team) {
@@ -118,7 +139,9 @@ public class OrganizationController {
                 service.updateTeam(id, team));
     }
 
+
     @DeleteMapping("/team/{id}")
+    @PreAuthorize("hasAuthority('TEAM_DELETE')")
     public ResponseEntity<?> deleteTeam(
             @PathVariable Long id) {
 
@@ -132,6 +155,7 @@ public class OrganizationController {
     // ==============================
 
     @PostMapping("/hierarchy")
+    @PreAuthorize("hasAuthority('ORGANIZATION_HIERARCHY_CREATE')")
     public ResponseEntity<?> createHierarchy(
             @RequestBody OrganizationHierarchy hierarchy) {
 
@@ -139,14 +163,18 @@ public class OrganizationController {
                 service.createHierarchy(hierarchy));
     }
 
+
     @GetMapping("/hierarchies")
+    @PreAuthorize("hasAuthority('ORGANIZATION_HIERARCHY_VIEW')")
     public ResponseEntity<?> getAllHierarchies() {
 
         return ResponseEntity.ok(
                 service.getAllHierarchies());
     }
 
+
     @PutMapping("/hierarchy/{id}")
+    @PreAuthorize("hasAuthority('ORGANIZATION_HIERARCHY_UPDATE')")
     public ResponseEntity<?> updateHierarchy(
             @PathVariable Long id,
             @RequestBody OrganizationHierarchy hierarchy) {
@@ -155,12 +183,13 @@ public class OrganizationController {
                 service.updateHierarchy(id, hierarchy));
     }
 
+
     @DeleteMapping("/hierarchy/{id}")
+    @PreAuthorize("hasAuthority('ORGANIZATION_HIERARCHY_DELETE')")
     public ResponseEntity<?> deleteHierarchy(
             @PathVariable Long id) {
 
         return ResponseEntity.ok(
                 service.deleteHierarchy(id));
     }
-
 }

@@ -2,8 +2,11 @@ package com.HRMS.QuickDines.Leave.Controller;
 
 import com.HRMS.QuickDines.Leave.Service.LeaveService;
 import com.HRMS.QuickDines.Leave.model.*;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -13,208 +16,233 @@ public class LeaveController {
 
     private final LeaveService service;
 
-
-//==================================
-// LEAVE TYPES
-//==================================
+    //=========================================================
+    // LEAVE TYPES
+    //=========================================================
 
     @PostMapping("/type")
+    @PreAuthorize("hasAuthority('LEAVE_TYPE_CREATE')")
     public ResponseEntity<?> createLeaveType(
-            @RequestBody LeaveType leaveType){
+            @RequestBody LeaveType leaveType) {
 
         return ResponseEntity.ok(
                 service.createLeaveType(leaveType));
     }
 
-
     @GetMapping("/types")
-    public ResponseEntity<?> getAllLeaveTypes(){
+    @PreAuthorize("hasAuthority('LEAVE_TYPE_VIEW')")
+    public ResponseEntity<?> getAllLeaveTypes() {
 
         return ResponseEntity.ok(
                 service.getAllLeaveTypes());
     }
 
-
     @GetMapping("/type/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_TYPE_VIEW')")
     public ResponseEntity<?> getLeaveType(
-            @PathVariable Long id){
+            @PathVariable Long id) {
 
         return ResponseEntity.ok(
                 service.getLeaveType(id));
     }
 
-
     @PutMapping("/type/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_TYPE_UPDATE')")
     public ResponseEntity<?> updateLeaveType(
             @PathVariable Long id,
-            @RequestBody LeaveType leaveType){
+            @RequestBody LeaveType leaveType) {
 
         return ResponseEntity.ok(
                 service.updateLeaveType(id, leaveType));
     }
 
-
     @DeleteMapping("/type/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_TYPE_DELETE')")
     public ResponseEntity<?> deleteLeaveType(
-            @PathVariable Long id){
+            @PathVariable Long id) {
 
         return ResponseEntity.ok(
                 service.deleteLeaveType(id));
     }
 
 
-
-//==================================
-// LEAVE REQUESTS
-//==================================
+    //=========================================================
+    // LEAVE REQUESTS
+    //=========================================================
 
     @PostMapping("/request/{employeeId}")
+    @PreAuthorize("hasAuthority('LEAVE_REQUEST_CREATE')")
     public ResponseEntity<?> applyLeave(
             @PathVariable String employeeId,
             @RequestBody LeaveRequest leaveRequest) {
 
-        return ResponseEntity.ok(service.applyLeave(employeeId, leaveRequest));
+        return ResponseEntity.ok(
+                service.applyLeave(employeeId, leaveRequest));
     }
-
 
     @GetMapping("/requests")
+    @PreAuthorize("hasAuthority('LEAVE_REQUEST_VIEW')")
     public ResponseEntity<?> getAllRequests() {
 
-        return ResponseEntity.ok(service.getAllRequests());
+        return ResponseEntity.ok(
+                service.getAllRequests());
     }
 
-
     @GetMapping("/request/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_REQUEST_VIEW')")
     public ResponseEntity<?> getLeaveRequest(
             @PathVariable Long id) {
 
-        return ResponseEntity.ok(service.getLeaveRequest(id));
+        return ResponseEntity.ok(
+                service.getLeaveRequest(id));
     }
 
-
     @PutMapping("/request/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_REQUEST_UPDATE')")
     public ResponseEntity<?> updateLeaveRequest(
             @PathVariable Long id,
             @RequestBody LeaveRequest leaveRequest) {
 
-        return ResponseEntity.ok(service.updateLeaveRequest(id, leaveRequest));
+        return ResponseEntity.ok(
+                service.updateLeaveRequest(id, leaveRequest));
     }
 
-
     @DeleteMapping("/request/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_REQUEST_DELETE')")
     public ResponseEntity<?> deleteLeaveRequest(
             @PathVariable Long id) {
 
-        return ResponseEntity.ok(service.deleteLeaveRequest(id));
+        return ResponseEntity.ok(
+                service.deleteLeaveRequest(id));
     }
 
 
-
-//==================================
-// LEAVE BALANCES
-//==================================
+    //=========================================================
+    // LEAVE BALANCES
+    //=========================================================
 
     @PostMapping("/balance/{employeeId}")
+    @PreAuthorize("hasAuthority('LEAVE_BALANCE_CREATE')")
     public ResponseEntity<?> createLeaveBalance(
             @PathVariable String employeeId,
             @RequestBody LeaveBalance leaveBalance) {
 
-        return ResponseEntity.ok(service.createLeaveBalance(employeeId, leaveBalance));
+        return ResponseEntity.ok(
+                service.createLeaveBalance(employeeId, leaveBalance));
     }
 
-
     @GetMapping("/balance/{employeeId}")
+    @PreAuthorize("hasAuthority('LEAVE_BALANCE_VIEW')")
     public ResponseEntity<?> getLeaveBalance(
             @PathVariable String employeeId) {
 
-        return ResponseEntity.ok(service.getLeaveBalance(employeeId));
+        return ResponseEntity.ok(
+                service.getLeaveBalance(employeeId));
     }
 
-
     @PutMapping("/balance/{employeeId}")
+    @PreAuthorize("hasAuthority('LEAVE_BALANCE_UPDATE')")
     public ResponseEntity<?> updateLeaveBalance(
             @PathVariable String employeeId,
             @RequestBody LeaveBalance leaveBalance) {
 
-        return ResponseEntity.ok(service.updateLeaveBalance(employeeId, leaveBalance));
+        return ResponseEntity.ok(
+                service.updateLeaveBalance(employeeId, leaveBalance));
     }
 
 
-
-//==================================
-// LEAVE APPROVALS
-//==================================
+    //=========================================================
+    // LEAVE APPROVALS
+    //=========================================================
 
     @PostMapping("/approve/{leaveRequestId}/{approvedById}")
+    @PreAuthorize("hasAuthority('LEAVE_APPROVE')")
     public ResponseEntity<?> approveLeave(
             @PathVariable Long leaveRequestId,
-            @PathVariable String approvedById){
+            @PathVariable String approvedById) {
 
-        return ResponseEntity.ok(service.approveLeave(leaveRequestId, approvedById));
+        return ResponseEntity.ok(
+                service.approveLeave(
+                        leaveRequestId,
+                        approvedById));
     }
-
 
     @PostMapping("/reject/{leaveRequestId}/{approvedById}")
-    public ResponseEntity<?> rejectLeave(@PathVariable Long leaveRequestId,
-            @RequestParam String reason,@PathVariable String approvedById){
+    @PreAuthorize("hasAuthority('LEAVE_REJECT')")
+    public ResponseEntity<?> rejectLeave(
+            @PathVariable Long leaveRequestId,
+            @RequestParam String reason,
+            @PathVariable String approvedById) {
 
-        return ResponseEntity.ok(service.rejectLeave(leaveRequestId, reason,approvedById));
+        return ResponseEntity.ok(
+                service.rejectLeave(
+                        leaveRequestId,
+                        reason,
+                        approvedById));
     }
-
 
     @GetMapping("/approvals")
-    public ResponseEntity<?> getApprovals(){
+    @PreAuthorize("hasAuthority('LEAVE_APPROVAL_VIEW')")
+    public ResponseEntity<?> getApprovals() {
 
-        return ResponseEntity.ok(service.getApprovals());
+        return ResponseEntity.ok(
+                service.getApprovals());
     }
-
 
     @GetMapping("/approval/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_APPROVAL_VIEW')")
     public ResponseEntity<?> getApproval(
-            @PathVariable Long id){
+            @PathVariable Long id) {
 
-        return ResponseEntity.ok(service.getApproval(id));
+        return ResponseEntity.ok(
+                service.getApproval(id));
     }
 
 
+    //=========================================================
+    // REPORTS
+    //=========================================================
 
-///==================================
-// REPORTS
-//==================================
+    @GetMapping("/employee/{employeeId}")
+    @PreAuthorize("hasAuthority('LEAVE_REPORT_VIEW')")
+    public ResponseEntity<?> getEmployeeLeaves(
+            @PathVariable String employeeId) {
 
-@GetMapping("/employee/{employeeId}")
-public ResponseEntity<?> getEmployeeLeaves(
-        @PathVariable String employeeId){
-
-    return ResponseEntity.ok(service.getEmployeeLeaves(employeeId));
-}
-
+        return ResponseEntity.ok(
+                service.getEmployeeLeaves(employeeId));
+    }
 
     @GetMapping("/pending")
-    public ResponseEntity<?> getPendingLeaves(){
+    @PreAuthorize("hasAuthority('LEAVE_REPORT_VIEW')")
+    public ResponseEntity<?> getPendingLeaves() {
 
-        return ResponseEntity.ok(service.getPendingLeaves());
+        return ResponseEntity.ok(
+                service.getPendingLeaves());
     }
-
 
     @GetMapping("/approved")
-    public ResponseEntity<?> getApprovedLeaves(){
+    @PreAuthorize("hasAuthority('LEAVE_REPORT_VIEW')")
+    public ResponseEntity<?> getApprovedLeaves() {
 
-        return ResponseEntity.ok(service.getApprovedLeaves());
+        return ResponseEntity.ok(
+                service.getApprovedLeaves());
     }
-
 
     @GetMapping("/rejected")
-    public ResponseEntity<?> getRejectedLeaves(){
+    @PreAuthorize("hasAuthority('LEAVE_REPORT_VIEW')")
+    public ResponseEntity<?> getRejectedLeaves() {
 
-        return ResponseEntity.ok(service.getRejectedLeaves());
+        return ResponseEntity.ok(
+                service.getRejectedLeaves());
     }
 
-//=========================================================
-// LEAVE POLICIES
-//=========================================================
+
+    //=========================================================
+    // LEAVE POLICIES
+    //=========================================================
 
     @PostMapping("/policy/{companyId}")
+    @PreAuthorize("hasAuthority('LEAVE_POLICY_CREATE')")
     public ResponseEntity<?> createLeavePolicy(
             @PathVariable Long companyId,
             @RequestBody LeavePolicy leavePolicy) {
@@ -223,16 +251,16 @@ public ResponseEntity<?> getEmployeeLeaves(
                 service.createLeavePolicy(companyId, leavePolicy));
     }
 
-
     @GetMapping("/policies")
+    @PreAuthorize("hasAuthority('LEAVE_POLICY_VIEW')")
     public ResponseEntity<?> getLeavePolicies() {
 
         return ResponseEntity.ok(
                 service.getLeavePolicies());
     }
 
-
     @GetMapping("/policy/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_POLICY_VIEW')")
     public ResponseEntity<?> getLeavePolicy(
             @PathVariable Long id) {
 
@@ -240,8 +268,8 @@ public ResponseEntity<?> getEmployeeLeaves(
                 service.getLeavePolicy(id));
     }
 
-
     @PutMapping("/policy/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_POLICY_UPDATE')")
     public ResponseEntity<?> updateLeavePolicy(
             @PathVariable Long id,
             @RequestBody LeavePolicy leavePolicy) {
@@ -250,8 +278,8 @@ public ResponseEntity<?> getEmployeeLeaves(
                 service.updateLeavePolicy(id, leavePolicy));
     }
 
-
     @DeleteMapping("/policy/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_POLICY_DELETE')")
     public ResponseEntity<?> deleteLeavePolicy(
             @PathVariable Long id) {
 
@@ -260,29 +288,32 @@ public ResponseEntity<?> getEmployeeLeaves(
     }
 
 
-//=========================================================
-// LEAVE ENCASHMENT
-//=========================================================
+    //=========================================================
+    // LEAVE ENCASHMENT
+    //=========================================================
 
     @PostMapping("/encashment/{employeeId}")
+    @PreAuthorize("hasAuthority('LEAVE_ENCASHMENT_CREATE')")
     public ResponseEntity<?> createLeaveEncashment(
             @PathVariable String employeeId,
             @RequestBody LeaveEncashment leaveEncashment) {
 
         return ResponseEntity.ok(
-                service.createLeaveEncashment(employeeId, leaveEncashment));
+                service.createLeaveEncashment(
+                        employeeId,
+                        leaveEncashment));
     }
 
-
     @GetMapping("/encashments")
+    @PreAuthorize("hasAuthority('LEAVE_ENCASHMENT_VIEW')")
     public ResponseEntity<?> getLeaveEncashments() {
 
         return ResponseEntity.ok(
                 service.getLeaveEncashments());
     }
 
-
     @GetMapping("/encashment/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_ENCASHMENT_VIEW')")
     public ResponseEntity<?> getLeaveEncashment(
             @PathVariable Long id) {
 
@@ -290,18 +321,20 @@ public ResponseEntity<?> getEmployeeLeaves(
                 service.getLeaveEncashment(id));
     }
 
-
     @PutMapping("/encashment/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_ENCASHMENT_UPDATE')")
     public ResponseEntity<?> updateLeaveEncashment(
             @PathVariable Long id,
             @RequestBody LeaveEncashment leaveEncashment) {
 
         return ResponseEntity.ok(
-                service.updateLeaveEncashment(id, leaveEncashment));
+                service.updateLeaveEncashment(
+                        id,
+                        leaveEncashment));
     }
 
-
     @DeleteMapping("/encashment/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_ENCASHMENT_DELETE')")
     public ResponseEntity<?> deleteLeaveEncashment(
             @PathVariable Long id) {
 
@@ -310,11 +343,12 @@ public ResponseEntity<?> getEmployeeLeaves(
     }
 
 
-//=========================================================
-// LEAVE CANCELLATIONS
-//=========================================================
+    //=========================================================
+    // LEAVE CANCELLATIONS
+    //=========================================================
 
     @PostMapping("/cancellation/{leaveRequestId}/{employeeId}")
+    @PreAuthorize("hasAuthority('LEAVE_CANCELLATION_CREATE')")
     public ResponseEntity<?> createLeaveCancellation(
             @PathVariable Long leaveRequestId,
             @PathVariable String employeeId,
@@ -327,16 +361,16 @@ public ResponseEntity<?> getEmployeeLeaves(
                         leaveCancellation));
     }
 
-
     @GetMapping("/cancellations")
+    @PreAuthorize("hasAuthority('LEAVE_CANCELLATION_VIEW')")
     public ResponseEntity<?> getLeaveCancellations() {
 
         return ResponseEntity.ok(
                 service.getLeaveCancellations());
     }
 
-
     @GetMapping("/cancellation/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_CANCELLATION_VIEW')")
     public ResponseEntity<?> getLeaveCancellation(
             @PathVariable Long id) {
 
@@ -344,18 +378,20 @@ public ResponseEntity<?> getEmployeeLeaves(
                 service.getLeaveCancellation(id));
     }
 
-
     @PutMapping("/cancellation/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_CANCELLATION_UPDATE')")
     public ResponseEntity<?> updateLeaveCancellation(
             @PathVariable Long id,
             @RequestBody LeaveCancellation leaveCancellation) {
 
         return ResponseEntity.ok(
-                service.updateLeaveCancellation(id, leaveCancellation));
+                service.updateLeaveCancellation(
+                        id,
+                        leaveCancellation));
     }
 
-
     @DeleteMapping("/cancellation/{id}")
+    @PreAuthorize("hasAuthority('LEAVE_CANCELLATION_DELETE')")
     public ResponseEntity<?> deleteLeaveCancellation(
             @PathVariable Long id) {
 
@@ -364,19 +400,20 @@ public ResponseEntity<?> getEmployeeLeaves(
     }
 
 
-//=========================================================
-// LEAVE ENCASHMENT REPORTS
-//=========================================================
+    //=========================================================
+    // LEAVE ENCASHMENT REPORTS
+    //=========================================================
 
     @GetMapping("/encashment/pending")
+    @PreAuthorize("hasAuthority('LEAVE_ENCASHMENT_REPORT_VIEW')")
     public ResponseEntity<?> getPendingEncashments() {
 
         return ResponseEntity.ok(
                 service.getPendingEncashments());
     }
 
-
     @GetMapping("/encashment/approved")
+    @PreAuthorize("hasAuthority('LEAVE_ENCASHMENT_REPORT_VIEW')")
     public ResponseEntity<?> getApprovedEncashments() {
 
         return ResponseEntity.ok(
@@ -384,19 +421,20 @@ public ResponseEntity<?> getEmployeeLeaves(
     }
 
 
-//=========================================================
-// LEAVE CANCELLATION REPORTS
-//=========================================================
+    //=========================================================
+    // LEAVE CANCELLATION REPORTS
+    //=========================================================
 
     @GetMapping("/cancellation/pending")
+    @PreAuthorize("hasAuthority('LEAVE_CANCELLATION_REPORT_VIEW')")
     public ResponseEntity<?> getPendingCancellations() {
 
         return ResponseEntity.ok(
                 service.getPendingCancellations());
     }
 
-
     @GetMapping("/cancellation/approved")
+    @PreAuthorize("hasAuthority('LEAVE_CANCELLATION_REPORT_VIEW')")
     public ResponseEntity<?> getApprovedCancellations() {
 
         return ResponseEntity.ok(
@@ -404,16 +442,15 @@ public ResponseEntity<?> getEmployeeLeaves(
     }
 
 
-//=========================================================
-// LEAVE POLICY REPORT
-//=========================================================
+    //=========================================================
+    // LEAVE POLICY REPORT
+    //=========================================================
 
     @GetMapping("/policies/active")
+    @PreAuthorize("hasAuthority('LEAVE_POLICY_REPORT_VIEW')")
     public ResponseEntity<?> getActiveLeavePolicies() {
 
         return ResponseEntity.ok(
                 service.getActiveLeavePolicies());
     }
-
-
 }

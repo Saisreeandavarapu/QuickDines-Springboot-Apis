@@ -4,6 +4,7 @@ import com.HRMS.QuickDines.CRM.Service.CRMService;
 import com.HRMS.QuickDines.CRM.model.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,6 +20,7 @@ public class CRMController {
     // =========================================================
 
     @PostMapping("/customer/{employeeId}")
+    @PreAuthorize("hasAuthority('CUSTOMER_CREATE')")
     public ResponseEntity<?> createCustomer(
             @PathVariable String employeeId,
             @RequestBody Customer customer) {
@@ -29,6 +31,7 @@ public class CRMController {
 
 
     @GetMapping("/customers")
+    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
     public ResponseEntity<?> getAllCustomers() {
 
         return ResponseEntity.ok(
@@ -37,6 +40,7 @@ public class CRMController {
 
 
     @GetMapping("/customer/{id}")
+    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
     public ResponseEntity<?> getCustomer(
             @PathVariable Long id) {
 
@@ -46,6 +50,7 @@ public class CRMController {
 
 
     @PutMapping("/customer/{id}")
+    @PreAuthorize("hasAuthority('CUSTOMER_UPDATE')")
     public ResponseEntity<?> updateCustomer(
             @PathVariable Long id,
             @RequestBody Customer customer) {
@@ -56,6 +61,7 @@ public class CRMController {
 
 
     @DeleteMapping("/customer/{id}")
+    @PreAuthorize("hasAuthority('CUSTOMER_DELETE')")
     public ResponseEntity<?> deleteCustomer(
             @PathVariable Long id) {
 
@@ -69,6 +75,7 @@ public class CRMController {
     // =========================================================
 
     @PostMapping("/lead/{customerId}/{employeeId}")
+    @PreAuthorize("hasAuthority('LEAD_CREATE')")
     public ResponseEntity<?> createLead(
             @PathVariable Long customerId,
             @PathVariable String employeeId,
@@ -83,6 +90,7 @@ public class CRMController {
 
 
     @GetMapping("/leads")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<?> getAllLeads() {
 
         return ResponseEntity.ok(
@@ -91,6 +99,7 @@ public class CRMController {
 
 
     @GetMapping("/lead/{id}")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<?> getLead(
             @PathVariable Long id) {
 
@@ -100,6 +109,7 @@ public class CRMController {
 
 
     @PutMapping("/lead/{id}")
+    @PreAuthorize("hasAuthority('LEAD_UPDATE')")
     public ResponseEntity<?> updateLead(
             @PathVariable Long id,
             @RequestBody Lead lead) {
@@ -110,6 +120,7 @@ public class CRMController {
 
 
     @DeleteMapping("/lead/{id}")
+    @PreAuthorize("hasAuthority('LEAD_DELETE')")
     public ResponseEntity<?> deleteLead(
             @PathVariable Long id) {
 
@@ -123,6 +134,7 @@ public class CRMController {
     // =========================================================
 
     @PostMapping("/opportunity/{leadId}/{employeeId}")
+    @PreAuthorize("hasAuthority('OPPORTUNITY_CREATE')")
     public ResponseEntity<?> createOpportunity(
             @PathVariable Long leadId,
             @PathVariable String employeeId,
@@ -137,6 +149,7 @@ public class CRMController {
 
 
     @GetMapping("/opportunities")
+    @PreAuthorize("hasAuthority('OPPORTUNITY_VIEW')")
     public ResponseEntity<?> getAllOpportunities() {
 
         return ResponseEntity.ok(
@@ -145,6 +158,7 @@ public class CRMController {
 
 
     @GetMapping("/opportunity/{id}")
+    @PreAuthorize("hasAuthority('OPPORTUNITY_VIEW')")
     public ResponseEntity<?> getOpportunity(
             @PathVariable Long id) {
 
@@ -154,6 +168,7 @@ public class CRMController {
 
 
     @PutMapping("/opportunity/{id}")
+    @PreAuthorize("hasAuthority('OPPORTUNITY_UPDATE')")
     public ResponseEntity<?> updateOpportunity(
             @PathVariable Long id,
             @RequestBody Opportunity opportunity) {
@@ -164,6 +179,7 @@ public class CRMController {
 
 
     @DeleteMapping("/opportunity/{id}")
+    @PreAuthorize("hasAuthority('OPPORTUNITY_DELETE')")
     public ResponseEntity<?> deleteOpportunity(
             @PathVariable Long id) {
 
@@ -177,6 +193,7 @@ public class CRMController {
     // =========================================================
 
     @PostMapping("/quotation/{opportunityId}/{customerId}/{employeeId}")
+    @PreAuthorize("hasAuthority('QUOTATION_CREATE')")
     public ResponseEntity<?> createQuotation(
             @PathVariable Long opportunityId,
             @PathVariable Long customerId,
@@ -193,6 +210,7 @@ public class CRMController {
 
 
     @GetMapping("/quotations")
+    @PreAuthorize("hasAuthority('QUOTATION_VIEW')")
     public ResponseEntity<?> getAllQuotations() {
 
         return ResponseEntity.ok(
@@ -201,6 +219,7 @@ public class CRMController {
 
 
     @GetMapping("/quotation/{id}")
+    @PreAuthorize("hasAuthority('QUOTATION_VIEW')")
     public ResponseEntity<?> getQuotation(
             @PathVariable Long id) {
 
@@ -210,6 +229,7 @@ public class CRMController {
 
 
     @PutMapping("/quotation/{id}")
+    @PreAuthorize("hasAuthority('QUOTATION_UPDATE')")
     public ResponseEntity<?> updateQuotation(
             @PathVariable Long id,
             @RequestBody Quotation quotation) {
@@ -220,6 +240,7 @@ public class CRMController {
 
 
     @DeleteMapping("/quotation/{id}")
+    @PreAuthorize("hasAuthority('QUOTATION_DELETE')")
     public ResponseEntity<?> deleteQuotation(
             @PathVariable Long id) {
 
@@ -233,6 +254,7 @@ public class CRMController {
     // =========================================================
 
     @PostMapping("/followup/{customerId}/{leadId}/{employeeId}")
+    @PreAuthorize("hasAuthority('FOLLOWUP_CREATE')")
     public ResponseEntity<?> createFollowup(
             @PathVariable Long customerId,
             @PathVariable Long leadId,
@@ -249,6 +271,7 @@ public class CRMController {
 
 
     @GetMapping("/followups")
+    @PreAuthorize("hasAuthority('FOLLOWUP_VIEW')")
     public ResponseEntity<?> getAllFollowups() {
 
         return ResponseEntity.ok(
@@ -257,6 +280,7 @@ public class CRMController {
 
 
     @GetMapping("/followup/{id}")
+    @PreAuthorize("hasAuthority('FOLLOWUP_VIEW')")
     public ResponseEntity<?> getFollowup(
             @PathVariable Long id) {
 
@@ -266,6 +290,7 @@ public class CRMController {
 
 
     @PutMapping("/followup/{id}")
+    @PreAuthorize("hasAuthority('FOLLOWUP_UPDATE')")
     public ResponseEntity<?> updateFollowup(
             @PathVariable Long id,
             @RequestBody Followup followup) {
@@ -276,6 +301,7 @@ public class CRMController {
 
 
     @DeleteMapping("/followup/{id}")
+    @PreAuthorize("hasAuthority('FOLLOWUP_DELETE')")
     public ResponseEntity<?> deleteFollowup(
             @PathVariable Long id) {
 
@@ -289,6 +315,7 @@ public class CRMController {
     // =========================================================
 
     @PostMapping("/meeting/{customerId}/{opportunityId}/{employeeId}")
+    @PreAuthorize("hasAuthority('MEETING_CREATE')")
     public ResponseEntity<?> createCustomerMeeting(
             @PathVariable Long customerId,
             @PathVariable Long opportunityId,
@@ -305,6 +332,7 @@ public class CRMController {
 
 
     @GetMapping("/meetings")
+    @PreAuthorize("hasAuthority('MEETING_VIEW')")
     public ResponseEntity<?> getAllCustomerMeetings() {
 
         return ResponseEntity.ok(
@@ -313,6 +341,7 @@ public class CRMController {
 
 
     @GetMapping("/meeting/{id}")
+    @PreAuthorize("hasAuthority('MEETING_VIEW')")
     public ResponseEntity<?> getCustomerMeeting(
             @PathVariable Long id) {
 
@@ -322,6 +351,7 @@ public class CRMController {
 
 
     @PutMapping("/meeting/{id}")
+    @PreAuthorize("hasAuthority('MEETING_UPDATE')")
     public ResponseEntity<?> updateCustomerMeeting(
             @PathVariable Long id,
             @RequestBody CustomerMeeting meeting) {
@@ -332,6 +362,7 @@ public class CRMController {
 
 
     @DeleteMapping("/meeting/{id}")
+    @PreAuthorize("hasAuthority('MEETING_DELETE')")
     public ResponseEntity<?> deleteCustomerMeeting(
             @PathVariable Long id) {
 

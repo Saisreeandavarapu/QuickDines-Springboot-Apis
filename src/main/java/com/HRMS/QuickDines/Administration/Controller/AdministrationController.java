@@ -2,8 +2,11 @@ package com.HRMS.QuickDines.Administration.Controller;
 
 import com.HRMS.QuickDines.Administration.Service.AdministrationService;
 import com.HRMS.QuickDines.Administration.model.*;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,17 +22,24 @@ public class AdministrationController {
     // =========================================================
 
     @PostMapping("/asset/{companyId}/{branchId}/{vendorId}")
+    @PreAuthorize("hasAuthority('ASSET_CREATE')")
     public ResponseEntity<?> createAsset(
             @PathVariable Long companyId,
             @PathVariable Long branchId,
             @PathVariable Long vendorId,
             @RequestBody Asset asset) {
 
-        return ResponseEntity.ok(service.createAsset(companyId, branchId, vendorId, asset));
+        return ResponseEntity.ok(
+                service.createAsset(
+                        companyId,
+                        branchId,
+                        vendorId,
+                        asset));
     }
 
 
     @GetMapping("/assets")
+    @PreAuthorize("hasAuthority('ASSET_READ')")
     public ResponseEntity<?> getAllAssets() {
 
         return ResponseEntity.ok(
@@ -38,6 +48,7 @@ public class AdministrationController {
 
 
     @GetMapping("/asset/{id}")
+    @PreAuthorize("hasAuthority('ASSET_READ')")
     public ResponseEntity<?> getAsset(
             @PathVariable Long id) {
 
@@ -47,6 +58,7 @@ public class AdministrationController {
 
 
     @PutMapping("/asset/{id}")
+    @PreAuthorize("hasAuthority('ASSET_UPDATE')")
     public ResponseEntity<?> updateAsset(
             @PathVariable Long id,
             @RequestBody Asset asset) {
@@ -57,6 +69,7 @@ public class AdministrationController {
 
 
     @DeleteMapping("/asset/{id}")
+    @PreAuthorize("hasAuthority('ASSET_DELETE')")
     public ResponseEntity<?> deleteAsset(
             @PathVariable Long id) {
 
@@ -70,6 +83,7 @@ public class AdministrationController {
     // =========================================================
 
     @PostMapping("/asset-assignment/{assetId}/{employeeId}/{assignedById}")
+    @PreAuthorize("hasAuthority('ASSET_ASSIGNMENT_CREATE')")
     public ResponseEntity<?> createAssetAssignment(
             @PathVariable Long assetId,
             @PathVariable String employeeId,
@@ -86,6 +100,7 @@ public class AdministrationController {
 
 
     @GetMapping("/asset-assignments")
+    @PreAuthorize("hasAuthority('ASSET_ASSIGNMENT_READ')")
     public ResponseEntity<?> getAllAssetAssignments() {
 
         return ResponseEntity.ok(
@@ -94,6 +109,7 @@ public class AdministrationController {
 
 
     @GetMapping("/asset-assignment/{id}")
+    @PreAuthorize("hasAuthority('ASSET_ASSIGNMENT_READ')")
     public ResponseEntity<?> getAssetAssignment(
             @PathVariable Long id) {
 
@@ -103,6 +119,7 @@ public class AdministrationController {
 
 
     @PutMapping("/asset-assignment/{id}")
+    @PreAuthorize("hasAuthority('ASSET_ASSIGNMENT_UPDATE')")
     public ResponseEntity<?> updateAssetAssignment(
             @PathVariable Long id,
             @RequestBody AssetAssignment assignment) {
@@ -113,6 +130,7 @@ public class AdministrationController {
 
 
     @DeleteMapping("/asset-assignment/{id}")
+    @PreAuthorize("hasAuthority('ASSET_ASSIGNMENT_DELETE')")
     public ResponseEntity<?> deleteAssetAssignment(
             @PathVariable Long id) {
 
@@ -126,6 +144,7 @@ public class AdministrationController {
     // =========================================================
 
     @PostMapping("/vendor")
+    @PreAuthorize("hasAuthority('VENDOR_CREATE')")
     public ResponseEntity<?> createVendor(
             @RequestBody Vendor vendor) {
 
@@ -135,6 +154,7 @@ public class AdministrationController {
 
 
     @GetMapping("/vendors")
+    @PreAuthorize("hasAuthority('VENDOR_READ')")
     public ResponseEntity<?> getAllVendors() {
 
         return ResponseEntity.ok(
@@ -143,6 +163,7 @@ public class AdministrationController {
 
 
     @GetMapping("/vendor/{id}")
+    @PreAuthorize("hasAuthority('VENDOR_READ')")
     public ResponseEntity<?> getVendor(
             @PathVariable Long id) {
 
@@ -152,6 +173,7 @@ public class AdministrationController {
 
 
     @PutMapping("/vendor/{id}")
+    @PreAuthorize("hasAuthority('VENDOR_UPDATE')")
     public ResponseEntity<?> updateVendor(
             @PathVariable Long id,
             @RequestBody Vendor vendor) {
@@ -162,6 +184,7 @@ public class AdministrationController {
 
 
     @DeleteMapping("/vendor/{id}")
+    @PreAuthorize("hasAuthority('VENDOR_DELETE')")
     public ResponseEntity<?> deleteVendor(
             @PathVariable Long id) {
 
@@ -175,6 +198,7 @@ public class AdministrationController {
     // =========================================================
 
     @PostMapping("/visitor/{employeeId}")
+    @PreAuthorize("hasAuthority('VISITOR_CREATE')")
     public ResponseEntity<?> createVisitor(
             @PathVariable String employeeId,
             @RequestBody Visitor visitor) {
@@ -185,6 +209,7 @@ public class AdministrationController {
 
 
     @GetMapping("/visitors")
+    @PreAuthorize("hasAuthority('VISITOR_READ')")
     public ResponseEntity<?> getAllVisitors() {
 
         return ResponseEntity.ok(
@@ -193,6 +218,7 @@ public class AdministrationController {
 
 
     @GetMapping("/visitor/{id}")
+    @PreAuthorize("hasAuthority('VISITOR_READ')")
     public ResponseEntity<?> getVisitor(
             @PathVariable Long id) {
 
@@ -202,6 +228,7 @@ public class AdministrationController {
 
 
     @PutMapping("/visitor/{id}")
+    @PreAuthorize("hasAuthority('VISITOR_UPDATE')")
     public ResponseEntity<?> updateVisitor(
             @PathVariable Long id,
             @RequestBody Visitor visitor) {
@@ -212,6 +239,7 @@ public class AdministrationController {
 
 
     @DeleteMapping("/visitor/{id}")
+    @PreAuthorize("hasAuthority('VISITOR_DELETE')")
     public ResponseEntity<?> deleteVisitor(
             @PathVariable Long id) {
 
@@ -225,6 +253,7 @@ public class AdministrationController {
     // =========================================================
 
     @PostMapping("/inventory/{vendorId}")
+    @PreAuthorize("hasAuthority('INVENTORY_CREATE')")
     public ResponseEntity<?> createInventory(
             @PathVariable Long vendorId,
             @RequestBody Inventory inventory) {
@@ -235,6 +264,7 @@ public class AdministrationController {
 
 
     @GetMapping("/inventories")
+    @PreAuthorize("hasAuthority('INVENTORY_READ')")
     public ResponseEntity<?> getAllInventory() {
 
         return ResponseEntity.ok(
@@ -243,6 +273,7 @@ public class AdministrationController {
 
 
     @GetMapping("/inventory/{id}")
+    @PreAuthorize("hasAuthority('INVENTORY_READ')")
     public ResponseEntity<?> getInventory(
             @PathVariable Long id) {
 
@@ -252,6 +283,7 @@ public class AdministrationController {
 
 
     @PutMapping("/inventory/{id}")
+    @PreAuthorize("hasAuthority('INVENTORY_UPDATE')")
     public ResponseEntity<?> updateInventory(
             @PathVariable Long id,
             @RequestBody Inventory inventory) {
@@ -262,6 +294,7 @@ public class AdministrationController {
 
 
     @DeleteMapping("/inventory/{id}")
+    @PreAuthorize("hasAuthority('INVENTORY_DELETE')")
     public ResponseEntity<?> deleteInventory(
             @PathVariable Long id) {
 
@@ -275,6 +308,7 @@ public class AdministrationController {
     // =========================================================
 
     @PostMapping("/inventory-transaction/{inventoryId}/{employeeId}")
+    @PreAuthorize("hasAuthority('INVENTORY_TRANSACTION_CREATE')")
     public ResponseEntity<?> createInventoryTransaction(
             @PathVariable Long inventoryId,
             @PathVariable String employeeId,
@@ -289,6 +323,7 @@ public class AdministrationController {
 
 
     @GetMapping("/inventory-transactions")
+    @PreAuthorize("hasAuthority('INVENTORY_TRANSACTION_READ')")
     public ResponseEntity<?> getAllInventoryTransactions() {
 
         return ResponseEntity.ok(
@@ -297,6 +332,7 @@ public class AdministrationController {
 
 
     @GetMapping("/inventory-transaction/{id}")
+    @PreAuthorize("hasAuthority('INVENTORY_TRANSACTION_READ')")
     public ResponseEntity<?> getInventoryTransaction(
             @PathVariable Long id) {
 
@@ -306,6 +342,7 @@ public class AdministrationController {
 
 
     @PutMapping("/inventory-transaction/{id}")
+    @PreAuthorize("hasAuthority('INVENTORY_TRANSACTION_UPDATE')")
     public ResponseEntity<?> updateInventoryTransaction(
             @PathVariable Long id,
             @RequestBody InventoryTransaction transaction) {
@@ -316,6 +353,7 @@ public class AdministrationController {
 
 
     @DeleteMapping("/inventory-transaction/{id}")
+    @PreAuthorize("hasAuthority('INVENTORY_TRANSACTION_DELETE')")
     public ResponseEntity<?> deleteInventoryTransaction(
             @PathVariable Long id) {
 
@@ -329,6 +367,7 @@ public class AdministrationController {
     // =========================================================
 
     @PostMapping("/office-expense/{vendorId}/{approvedById}")
+    @PreAuthorize("hasAuthority('OFFICE_EXPENSE_CREATE')")
     public ResponseEntity<?> createOfficeExpense(
             @PathVariable Long vendorId,
             @PathVariable String approvedById,
@@ -343,6 +382,7 @@ public class AdministrationController {
 
 
     @GetMapping("/office-expenses")
+    @PreAuthorize("hasAuthority('OFFICE_EXPENSE_READ')")
     public ResponseEntity<?> getAllOfficeExpenses() {
 
         return ResponseEntity.ok(
@@ -351,6 +391,7 @@ public class AdministrationController {
 
 
     @GetMapping("/office-expense/{id}")
+    @PreAuthorize("hasAuthority('OFFICE_EXPENSE_READ')")
     public ResponseEntity<?> getOfficeExpense(
             @PathVariable Long id) {
 
@@ -360,6 +401,7 @@ public class AdministrationController {
 
 
     @PutMapping("/office-expense/{id}")
+    @PreAuthorize("hasAuthority('OFFICE_EXPENSE_UPDATE')")
     public ResponseEntity<?> updateOfficeExpense(
             @PathVariable Long id,
             @RequestBody OfficeExpense expense) {
@@ -370,6 +412,7 @@ public class AdministrationController {
 
 
     @DeleteMapping("/office-expense/{id}")
+    @PreAuthorize("hasAuthority('OFFICE_EXPENSE_DELETE')")
     public ResponseEntity<?> deleteOfficeExpense(
             @PathVariable Long id) {
 
@@ -383,6 +426,7 @@ public class AdministrationController {
     // =========================================================
 
     @PostMapping("/company-policy/{companyId}")
+    @PreAuthorize("hasAuthority('COMPANY_POLICY_CREATE')")
     public ResponseEntity<?> createCompanyPolicy(
             @PathVariable Long companyId,
             @RequestBody CompanyPolicy policy) {
@@ -393,6 +437,7 @@ public class AdministrationController {
 
 
     @GetMapping("/company-policies")
+    @PreAuthorize("hasAuthority('COMPANY_POLICY_READ')")
     public ResponseEntity<?> getAllCompanyPolicies() {
 
         return ResponseEntity.ok(
@@ -401,6 +446,7 @@ public class AdministrationController {
 
 
     @GetMapping("/company-policy/{id}")
+    @PreAuthorize("hasAuthority('COMPANY_POLICY_READ')")
     public ResponseEntity<?> getCompanyPolicy(
             @PathVariable Long id) {
 
@@ -410,6 +456,7 @@ public class AdministrationController {
 
 
     @PutMapping("/company-policy/{id}")
+    @PreAuthorize("hasAuthority('COMPANY_POLICY_UPDATE')")
     public ResponseEntity<?> updateCompanyPolicy(
             @PathVariable Long id,
             @RequestBody CompanyPolicy policy) {
@@ -420,6 +467,7 @@ public class AdministrationController {
 
 
     @DeleteMapping("/company-policy/{id}")
+    @PreAuthorize("hasAuthority('COMPANY_POLICY_DELETE')")
     public ResponseEntity<?> deleteCompanyPolicy(
             @PathVariable Long id) {
 
@@ -433,6 +481,7 @@ public class AdministrationController {
     // =========================================================
 
     @PostMapping("/announcement/{companyId}/{branchId}/{postedById}")
+    @PreAuthorize("hasAuthority('ANNOUNCEMENT_CREATE')")
     public ResponseEntity<?> createAnnouncement(
             @PathVariable Long companyId,
             @PathVariable Long branchId,
@@ -449,6 +498,7 @@ public class AdministrationController {
 
 
     @GetMapping("/announcements")
+    @PreAuthorize("hasAuthority('ANNOUNCEMENT_READ')")
     public ResponseEntity<?> getAllAnnouncements() {
 
         return ResponseEntity.ok(
@@ -457,6 +507,7 @@ public class AdministrationController {
 
 
     @GetMapping("/announcement/{id}")
+    @PreAuthorize("hasAuthority('ANNOUNCEMENT_READ')")
     public ResponseEntity<?> getAnnouncement(
             @PathVariable Long id) {
 
@@ -466,6 +517,7 @@ public class AdministrationController {
 
 
     @PutMapping("/announcement/{id}")
+    @PreAuthorize("hasAuthority('ANNOUNCEMENT_UPDATE')")
     public ResponseEntity<?> updateAnnouncement(
             @PathVariable Long id,
             @RequestBody Announcement announcement) {
@@ -476,6 +528,7 @@ public class AdministrationController {
 
 
     @DeleteMapping("/announcement/{id}")
+    @PreAuthorize("hasAuthority('ANNOUNCEMENT_DELETE')")
     public ResponseEntity<?> deleteAnnouncement(
             @PathVariable Long id) {
 
@@ -489,6 +542,7 @@ public class AdministrationController {
     // =========================================================
 
     @PostMapping("/event/{companyId}/{branchId}/{organizerId}")
+    @PreAuthorize("hasAuthority('EVENT_CREATE')")
     public ResponseEntity<?> createEvent(
             @PathVariable Long companyId,
             @PathVariable Long branchId,
@@ -505,6 +559,7 @@ public class AdministrationController {
 
 
     @GetMapping("/events")
+    @PreAuthorize("hasAuthority('EVENT_READ')")
     public ResponseEntity<?> getAllEvents() {
 
         return ResponseEntity.ok(
@@ -513,6 +568,7 @@ public class AdministrationController {
 
 
     @GetMapping("/event/{id}")
+    @PreAuthorize("hasAuthority('EVENT_READ')")
     public ResponseEntity<?> getEvent(
             @PathVariable Long id) {
 
@@ -522,6 +578,7 @@ public class AdministrationController {
 
 
     @PutMapping("/event/{id}")
+    @PreAuthorize("hasAuthority('EVENT_UPDATE')")
     public ResponseEntity<?> updateEvent(
             @PathVariable Long id,
             @RequestBody Event event) {
@@ -532,6 +589,7 @@ public class AdministrationController {
 
 
     @DeleteMapping("/event/{id}")
+    @PreAuthorize("hasAuthority('EVENT_DELETE')")
     public ResponseEntity<?> deleteEvent(
             @PathVariable Long id) {
 
@@ -539,4 +597,3 @@ public class AdministrationController {
                 service.deleteEvent(id));
     }
 }
-

@@ -4,6 +4,7 @@ import com.HRMS.QuickDines.Sales.Service.SalesService;
 import com.HRMS.QuickDines.Sales.model.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -13,253 +14,321 @@ public class SalesController {
 
     private final SalesService service;
 
-    //=================================
-// RESTAURANTS
-//=================================
+    //=========================================================
+    // RESTAURANTS
+    //=========================================================
 
+    @PreAuthorize("hasAuthority('RESTAURANT_CREATE')")
     @PostMapping("/restaurant")
     public ResponseEntity<?> createRestaurant(
-            @RequestBody Restaurant restaurant){
+            @RequestBody Restaurant restaurant) {
 
-        return ResponseEntity.ok(service.createRestaurant(restaurant));
+        return ResponseEntity.ok(
+                service.createRestaurant(restaurant));
     }
 
+    @PreAuthorize("hasAuthority('RESTAURANT_READ')")
     @GetMapping("/restaurants")
-    public ResponseEntity<?> getRestaurants(){
+    public ResponseEntity<?> getRestaurants() {
 
-        return ResponseEntity.ok(service.getRestaurants());
+        return ResponseEntity.ok(
+                service.getRestaurants());
     }
 
+    @PreAuthorize("hasAuthority('RESTAURANT_READ')")
     @GetMapping("/restaurant/{id}")
     public ResponseEntity<?> getRestaurant(
-            @PathVariable Long id){
+            @PathVariable Long id) {
 
-        return ResponseEntity.ok(service.getRestaurant(id));
+        return ResponseEntity.ok(
+                service.getRestaurant(id));
     }
 
+    @PreAuthorize("hasAuthority('RESTAURANT_UPDATE')")
     @PutMapping("/restaurant/{id}")
     public ResponseEntity<?> updateRestaurant(
             @PathVariable Long id,
-            @RequestBody Restaurant restaurant){
+            @RequestBody Restaurant restaurant) {
 
-        return ResponseEntity.ok(service.updateRestaurant(id, restaurant));
+        return ResponseEntity.ok(
+                service.updateRestaurant(id, restaurant));
     }
 
+    @PreAuthorize("hasAuthority('RESTAURANT_DELETE')")
     @DeleteMapping("/restaurant/{id}")
     public ResponseEntity<?> deleteRestaurant(
-            @PathVariable Long id){
+            @PathVariable Long id) {
 
-        return ResponseEntity.ok(service.deleteRestaurant(id));
+        return ResponseEntity.ok(
+                service.deleteRestaurant(id));
     }
 
 
-    //=================================
-// BUS SERVICES
-//=================================
+    //=========================================================
+    // BUS SERVICES
+    //=========================================================
 
+    @PreAuthorize("hasAuthority('BUS_SERVICE_CREATE')")
     @PostMapping("/bus")
     public ResponseEntity<?> createBusService(
-            @RequestBody BusService busService){
+            @RequestBody BusService busService) {
 
-        return ResponseEntity.ok(service.createBusService(busService));
+        return ResponseEntity.ok(
+                service.createBusService(busService));
     }
 
+    @PreAuthorize("hasAuthority('BUS_SERVICE_READ')")
     @GetMapping("/buses")
-    public ResponseEntity<?> getBusServices(){
+    public ResponseEntity<?> getBusServices() {
 
-        return ResponseEntity.ok(service.getBusServices());
+        return ResponseEntity.ok(
+                service.getBusServices());
     }
 
+    @PreAuthorize("hasAuthority('BUS_SERVICE_READ')")
     @GetMapping("/bus/{id}")
     public ResponseEntity<?> getBusService(
-            @PathVariable Long id){
+            @PathVariable Long id) {
 
-        return ResponseEntity.ok(service.getBusService(id));
+        return ResponseEntity.ok(
+                service.getBusService(id));
     }
 
+    @PreAuthorize("hasAuthority('BUS_SERVICE_UPDATE')")
     @PutMapping("/bus/{id}")
     public ResponseEntity<?> updateBusService(
             @PathVariable Long id,
-            @RequestBody BusService busService){
+            @RequestBody BusService busService) {
 
-        return ResponseEntity.ok(service.updateBusService(id, busService));
+        return ResponseEntity.ok(
+                service.updateBusService(id, busService));
     }
 
+    @PreAuthorize("hasAuthority('BUS_SERVICE_DELETE')")
     @DeleteMapping("/bus/{id}")
     public ResponseEntity<?> deleteBusService(
-            @PathVariable Long id){
+            @PathVariable Long id) {
 
-        return ResponseEntity.ok(service.deleteBusService(id));
+        return ResponseEntity.ok(
+                service.deleteBusService(id));
     }
 
 
-    //=================================
-// SALES TARGETS
-//=================================
+    //=========================================================
+    // SALES TARGETS
+    //=========================================================
 
+    @PreAuthorize("hasAuthority('SALES_TARGET_CREATE')")
     @PostMapping("/target/{employeeId}")
     public ResponseEntity<?> createTarget(
             @PathVariable String employeeId,
-            @RequestBody SalesTarget salesTarget){
+            @RequestBody SalesTarget salesTarget) {
 
-        return ResponseEntity.ok(service.createTarget(employeeId, salesTarget));
+        return ResponseEntity.ok(
+                service.createTarget(employeeId, salesTarget));
     }
 
+    @PreAuthorize("hasAuthority('SALES_TARGET_READ')")
     @GetMapping("/targets")
-    public ResponseEntity<?> getTargets(){
+    public ResponseEntity<?> getTargets() {
 
-        return ResponseEntity.ok(service.getTargets());
+        return ResponseEntity.ok(
+                service.getTargets());
     }
 
+    @PreAuthorize("hasAuthority('SALES_TARGET_READ')")
     @GetMapping("/target/{employeeId}")
     public ResponseEntity<?> getEmployeeTarget(
-            @PathVariable String employeeId){
+            @PathVariable String employeeId) {
 
-        return ResponseEntity.ok(service.getEmployeeTarget(employeeId));
+        return ResponseEntity.ok(
+                service.getEmployeeTarget(employeeId));
     }
 
+    @PreAuthorize("hasAuthority('SALES_TARGET_UPDATE')")
     @PutMapping("/target/{employeeId}")
     public ResponseEntity<?> updateTarget(
             @PathVariable String employeeId,
-            @RequestBody SalesTarget salesTarget){
+            @RequestBody SalesTarget salesTarget) {
 
-        return ResponseEntity.ok(service.updateTarget(employeeId, salesTarget));
+        return ResponseEntity.ok(
+                service.updateTarget(employeeId, salesTarget));
     }
 
+    @PreAuthorize("hasAuthority('SALES_TARGET_DELETE')")
     @DeleteMapping("/target/{employeeId}")
     public ResponseEntity<?> deleteTarget(
-            @PathVariable String employeeId){
+            @PathVariable String employeeId) {
 
-        return ResponseEntity.ok(service.deleteTarget(employeeId));
+        return ResponseEntity.ok(
+                service.deleteTarget(employeeId));
     }
 
 
+    //=========================================================
+    // SALES REPORTS
+    //=========================================================
+
+    @PreAuthorize("hasAuthority('SALES_REPORT_CREATE')")
     @PostMapping("/report/{employeeId}")
     public ResponseEntity<?> createReport(
             @PathVariable String employeeId,
             @RequestBody SalesReport report) {
 
-        return ResponseEntity.ok(service.createReport(employeeId, report));
+        return ResponseEntity.ok(
+                service.createReport(employeeId, report));
     }
 
+    @PreAuthorize("hasAuthority('SALES_REPORT_READ')")
     @GetMapping("/reports")
     public ResponseEntity<?> getReports() {
 
-        return ResponseEntity.ok(service.getReports());
+        return ResponseEntity.ok(
+                service.getReports());
     }
 
+    @PreAuthorize("hasAuthority('SALES_REPORT_READ')")
     @GetMapping("/report/{employeeId}")
     public ResponseEntity<?> getEmployeeReport(
             @PathVariable String employeeId) {
 
-        return ResponseEntity.ok(service.getEmployeeReport(employeeId));
+        return ResponseEntity.ok(
+                service.getEmployeeReport(employeeId));
     }
 
+    @PreAuthorize("hasAuthority('SALES_REPORT_UPDATE')")
     @PutMapping("/report/{employeeId}")
     public ResponseEntity<?> updateReport(
             @PathVariable String employeeId,
             @RequestBody SalesReport report) {
 
-        return ResponseEntity.ok(service.updateReport(employeeId, report));
+        return ResponseEntity.ok(
+                service.updateReport(employeeId, report));
     }
 
+    @PreAuthorize("hasAuthority('SALES_REPORT_DELETE')")
     @DeleteMapping("/report/{employeeId}")
     public ResponseEntity<?> deleteReport(
             @PathVariable String employeeId) {
 
-        return ResponseEntity.ok(service.deleteReport(employeeId));
+        return ResponseEntity.ok(
+                service.deleteReport(employeeId));
     }
 
-    //=================================
-// SALES INCENTIVES
-//=================================
 
+    //=========================================================
+    // SALES INCENTIVES
+    //=========================================================
+
+    @PreAuthorize("hasAuthority('SALES_INCENTIVE_CREATE')")
     @PostMapping("/incentive/{employeeId}")
     public ResponseEntity<?> createIncentive(
             @PathVariable String employeeId,
-            @RequestBody SalesIncentive incentive){
+            @RequestBody SalesIncentive incentive) {
 
-        return ResponseEntity.ok(service.createIncentive(employeeId, incentive));
+        return ResponseEntity.ok(
+                service.createIncentive(employeeId, incentive));
     }
 
+    @PreAuthorize("hasAuthority('SALES_INCENTIVE_READ')")
     @GetMapping("/incentives")
-    public ResponseEntity<?> getIncentives(){
+    public ResponseEntity<?> getIncentives() {
 
-        return ResponseEntity.ok(service.getIncentives());
+        return ResponseEntity.ok(
+                service.getIncentives());
     }
 
+    @PreAuthorize("hasAuthority('SALES_INCENTIVE_READ')")
     @GetMapping("/incentive/{employeeId}")
     public ResponseEntity<?> getEmployeeIncentive(
-            @PathVariable String employeeId){
+            @PathVariable String employeeId) {
 
-        return ResponseEntity.ok(service.getEmployeeIncentive(employeeId));
+        return ResponseEntity.ok(
+                service.getEmployeeIncentive(employeeId));
     }
 
+    @PreAuthorize("hasAuthority('SALES_INCENTIVE_UPDATE')")
     @PutMapping("/incentive/{employeeId}")
     public ResponseEntity<?> updateIncentive(
             @PathVariable String employeeId,
-            @RequestBody SalesIncentive incentive){
+            @RequestBody SalesIncentive incentive) {
 
-        return ResponseEntity.ok(service.updateIncentive(employeeId, incentive));
+        return ResponseEntity.ok(
+                service.updateIncentive(employeeId, incentive));
     }
 
+    @PreAuthorize("hasAuthority('SALES_INCENTIVE_DELETE')")
     @DeleteMapping("/incentive/{employeeId}")
     public ResponseEntity<?> deleteIncentive(
-            @PathVariable String employeeId){
+            @PathVariable String employeeId) {
 
-        return ResponseEntity.ok(service.deleteIncentive(employeeId));
+        return ResponseEntity.ok(
+                service.deleteIncentive(employeeId));
     }
 
 
-    //=================================
-// REPORTS
-//=================================
+    //=========================================================
+    // SALES REPORTS / STATUS
+    //=========================================================
 
+    @PreAuthorize("hasAuthority('SALES_TARGET_REPORT_READ')")
     @GetMapping("/completed-targets")
-    public ResponseEntity<?> completedTargets(){
+    public ResponseEntity<?> completedTargets() {
 
-        return ResponseEntity.ok(service.completedTargets());
+        return ResponseEntity.ok(
+                service.completedTargets());
     }
 
+    @PreAuthorize("hasAuthority('SALES_TARGET_REPORT_READ')")
     @GetMapping("/pending-targets")
-    public ResponseEntity<?> pendingTargets(){
+    public ResponseEntity<?> pendingTargets() {
 
-        return ResponseEntity.ok(service.pendingTargets());
+        return ResponseEntity.ok(
+                service.pendingTargets());
     }
 
+    @PreAuthorize("hasAuthority('RESTAURANT_STATUS_READ')")
     @GetMapping("/restaurants/active")
-    public ResponseEntity<?> activeRestaurants(){
+    public ResponseEntity<?> activeRestaurants() {
 
-        return ResponseEntity.ok(service.activeRestaurants());
+        return ResponseEntity.ok(
+                service.activeRestaurants());
     }
 
+    @PreAuthorize("hasAuthority('RESTAURANT_STATUS_READ')")
     @GetMapping("/restaurants/inactive")
-    public ResponseEntity<?> inactiveRestaurants(){
+    public ResponseEntity<?> inactiveRestaurants() {
 
-        return ResponseEntity.ok(service.inactiveRestaurants());
+        return ResponseEntity.ok(
+                service.inactiveRestaurants());
     }
 
+    @PreAuthorize("hasAuthority('BUS_SERVICE_STATUS_READ')")
     @GetMapping("/bus/active")
-    public ResponseEntity<?> activeBusServices(){
+    public ResponseEntity<?> activeBusServices() {
 
-        return ResponseEntity.ok(service.activeBusServices());
+        return ResponseEntity.ok(
+                service.activeBusServices());
     }
 
+    @PreAuthorize("hasAuthority('BUS_SERVICE_STATUS_READ')")
     @GetMapping("/bus/inactive")
-    public ResponseEntity<?> inactiveBusServices(){
+    public ResponseEntity<?> inactiveBusServices() {
 
-        return ResponseEntity.ok(service.inactiveBusServices());
+        return ResponseEntity.ok(
+                service.inactiveBusServices());
     }
 
 
-    //=================================
-// DASHBOARD COUNTS
-//=================================
+    //=========================================================
+    // DASHBOARD COUNTS
+    //=========================================================
 
+    @PreAuthorize("hasAuthority('SALES_DASHBOARD_READ')")
     @GetMapping("/counts")
-    public ResponseEntity<?> getCounts(){
+    public ResponseEntity<?> getCounts() {
 
-        return ResponseEntity.ok(service.getCounts());
+        return ResponseEntity.ok(
+                service.getCounts());
     }
-
 }
