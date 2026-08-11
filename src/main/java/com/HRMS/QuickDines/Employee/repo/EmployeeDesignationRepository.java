@@ -12,12 +12,7 @@ import java.util.List;
 @Repository
 public interface EmployeeDesignationRepository extends JpaRepository<EmployeeDesignation, Long> {
     List<EmployeeDesignation> findByEmployeeId(String employeeId);
-    @Query("""
-    SELECT e
-    FROM Employee e
-    WHERE LOWER(e.designation.designationName)
-          LIKE LOWER(CONCAT('%', :designationName, '%'))
-""")
-    List<Employee> findEmployeesByDesignationName(
-            @Param("designationName") String designationName);
+
+    @Query(" SELECT e FROM Employee e WHERE LOWER(e.designation.designationName) = LOWER(:designationName) ")
+    List<Employee> findEmployeesByDesignationName(@Param("designationName") String designationName);
 }
