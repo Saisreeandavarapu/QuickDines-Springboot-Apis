@@ -1,9 +1,9 @@
 package com.HRMS.QuickDines.Auth.model;
 
+import com.HRMS.QuickDines.Auth.Entity.LoginStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
-
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,16 +11,16 @@ import java.time.LocalTime;
 
 @Entity
 @Data
-public class LoginHistory{
+@Table(name = "login_history")
+public class LoginHistory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name="user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private Users users;
-
 
     private LocalDate loginDate;
 
@@ -34,10 +34,12 @@ public class LoginHistory{
 
     private String operatingSystem;
 
-    private String loginStatus;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private LoginStatus loginStatus;
 
     private String remarks;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
-
 }

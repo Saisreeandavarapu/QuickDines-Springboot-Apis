@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Recruitment.model;
 
+import com.HRMS.QuickDines.Recruitment.Entity.JobOpeningStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -27,7 +28,9 @@ public class JobOpening {
 
     private Integer openings;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private JobOpeningStatus status;
+
 
     @CreationTimestamp
     private LocalDateTime createdAt;

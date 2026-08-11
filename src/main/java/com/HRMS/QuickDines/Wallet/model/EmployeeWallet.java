@@ -1,6 +1,7 @@
 package com.HRMS.QuickDines.Wallet.model;
 
 import com.HRMS.QuickDines.Employee.model.Employee;
+import com.HRMS.QuickDines.Wallet.Entity.WalletStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -24,7 +25,9 @@ public class EmployeeWallet {
 
     private Integer leaveCredits;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private WalletStatus status;
 
 
     @CreationTimestamp

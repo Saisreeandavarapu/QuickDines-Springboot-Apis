@@ -27,7 +27,7 @@ public class Employee {
     private LocalDate dateOfBirth;
     private LocalDate joiningDate;
 
-    private Long departmentId;
+    private String departmentId;
 
     private Long managerId;
 

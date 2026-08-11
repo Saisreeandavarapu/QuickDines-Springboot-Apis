@@ -749,26 +749,26 @@ public class LeaveService {
 // REPORTS
 //==================================
 
-    public Object getEmployeeLeaves(
+    public LeaveRequest getEmployeeLeaves(
             String employeeId) {
 
         return leaveRequestRepository.findByEmployeeEmployeeId(employeeId);
     }
 
 
-    public Object getPendingLeaves() {
+    public List<LeaveRequest> getPendingLeaves() {
 
         return leaveRequestRepository.findByStatus("PENDING");
     }
 
 
-    public Object getApprovedLeaves() {
+    public List<LeaveRequest> getApprovedLeaves() {
 
         return leaveRequestRepository.findByStatus("APPROVED");
     }
 
 
-    public Object getRejectedLeaves() {
+    public List<LeaveRequest> getRejectedLeaves() {
 
         return leaveRequestRepository.findByStatus("REJECTED");
     }
@@ -1260,6 +1260,15 @@ public class LeaveService {
                                 policy.getStatus()))
                 .toList();
     }
+// =========================================================
+// FILTER EMPLOYEES BY LEAVE TYPE
+// =========================================================
 
+    public List<LeaveRequest> getEmployeesByLeaveType(
+            Long leaveTypeId) {
+
+        return leaveRequestRepository
+                .findByLeaveTypeId(leaveTypeId);
+    }
 
 }

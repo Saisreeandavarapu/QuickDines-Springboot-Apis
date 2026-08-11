@@ -1,5 +1,7 @@
 package com.HRMS.QuickDines.Recruitment.Controller;
 
+import com.HRMS.QuickDines.Recruitment.Entity.InterviewStatus;
+import com.HRMS.QuickDines.Recruitment.Entity.JobOpeningStatus;
 import com.HRMS.QuickDines.Recruitment.Services.RecruitmentService;
 import com.HRMS.QuickDines.Recruitment.model.*;
 import lombok.RequiredArgsConstructor;
@@ -405,4 +407,72 @@ public class RecruitmentController {
         return ResponseEntity.ok(
                 service.getCounts());
     }
+    // =========================================================
+// FILTER BY STATUS
+// =========================================================
+
+    @GetMapping("/job-openings/status")
+    @PreAuthorize("hasAuthority('JOB_OPENING_READ')")
+    public ResponseEntity<?> getJobOpeningsByStatus(
+            @RequestParam JobOpeningStatus status) {
+
+        return ResponseEntity.ok(
+                service.getJobOpeningsByStatus(status));
+    }
+    // =========================================================
+// UPDATE JOB OPENING STATUS
+// =========================================================
+
+    @PutMapping("/job-opening/{id}/status")
+    @PreAuthorize("hasAuthority('JOB_OPENING_UPDATE')")
+    public ResponseEntity<?> updateJobOpeningStatus(
+            @PathVariable Long id,
+            @RequestParam JobOpeningStatus status) {
+
+        return ResponseEntity.ok(
+                service.updateJobOpeningStatus(
+                        id,
+                        status));
+    }
+    @PostMapping("/interview/{applicationId}/{branchId}")
+    @PreAuthorize("hasAuthority('INTERVIEW_CREATE')")
+    public ResponseEntity<?> createInterview(
+            @PathVariable Long applicationId,
+            @PathVariable Long branchId,
+            @RequestBody Interview interview) {
+
+        return ResponseEntity.ok(
+                service.createInterview(
+                        applicationId,
+
+                        interview));
+    }
+    @PutMapping("/interview/{id}/select")
+    @PreAuthorize("hasAuthority('INTERVIEW_UPDATE')")
+    public ResponseEntity<?> selectCandidate(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service.selectCandidate(id));
+    }
+    @GetMapping("/filter")
+    @PreAuthorize("hasAuthority('INTERVIEW_READ')")
+    public ResponseEntity<?> filterInterviews(
+
+            @RequestParam(required = false)
+            InterviewStatus status,
+
+            @RequestParam(required = false)
+            String startDate,
+
+            @RequestParam(required = false)
+            String endDate) {
+
+        return ResponseEntity.ok(
+                service.filterInterviews(
+                        status,
+                        startDate,
+                        endDate));
+    }
+
 }

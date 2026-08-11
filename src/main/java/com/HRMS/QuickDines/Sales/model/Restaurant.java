@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Sales.model;
 
+import com.HRMS.QuickDines.Sales.Entity.RestaurantStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -25,7 +26,9 @@ public class Restaurant {
 
     private String location;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RestaurantStatus status;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

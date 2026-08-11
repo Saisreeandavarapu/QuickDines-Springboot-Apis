@@ -1,6 +1,7 @@
 package com.HRMS.QuickDines.Training.repo;
 
 import com.HRMS.QuickDines.Employee.model.Employee;
+import com.HRMS.QuickDines.Training.Entity.AssignmentStatus;
 import com.HRMS.QuickDines.Training.model.Training;
 import com.HRMS.QuickDines.Training.model.TrainingAssignment;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,4 +14,7 @@ public interface TrainingAssignmentRepository extends JpaRepository<TrainingAssi
     List<TrainingAssignment> findByEmployee(Employee employee);
 
     List<TrainingAssignment> findByTraining(Training training);
+    List<TrainingAssignment> findByAssignmentStatus(
+            AssignmentStatus assignmentStatus);
+
 }

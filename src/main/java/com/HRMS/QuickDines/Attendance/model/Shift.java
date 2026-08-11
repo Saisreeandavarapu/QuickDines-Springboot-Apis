@@ -24,6 +24,10 @@ public class Shift {
 
     @Column(unique = true)
     private String shiftCode;
+//    GENERAL
+//            MORNING
+//    EVENING
+//            NIGHT
 
     private LocalTime startTime;
 

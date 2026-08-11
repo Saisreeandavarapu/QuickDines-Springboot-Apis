@@ -1,6 +1,7 @@
 package com.HRMS.QuickDines.Task.model;
 
 import com.HRMS.QuickDines.Employee.model.Employee;
+import com.HRMS.QuickDines.Task.Entity.TaskAssignmentStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -35,7 +36,9 @@ public class TaskAssignments {
     private LocalDate assignedDate;
 
     private String remarks;
-
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TaskAssignmentStatus status;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

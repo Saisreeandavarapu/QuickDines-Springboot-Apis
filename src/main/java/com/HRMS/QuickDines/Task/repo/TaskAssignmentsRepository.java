@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Task.repo;
 
+import com.HRMS.QuickDines.Task.Entity.TaskAssignmentStatus;
 import com.HRMS.QuickDines.Task.model.TaskAssignments;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -11,5 +12,8 @@ public interface TaskAssignmentsRepository extends JpaRepository<TaskAssignments
     List<TaskAssignments> findByAssignedToEmployeeId(String employeeId);
     List<TaskAssignments> findByAssignedToEmployeeIdAndTaskStatus(String employeeId, String status);
     Long countByAssignedToEmployeeIdAndTaskStatus(String employeeId, String status);
+    List<TaskAssignments> findByStatus(
+            TaskAssignmentStatus status);
+
 
 }

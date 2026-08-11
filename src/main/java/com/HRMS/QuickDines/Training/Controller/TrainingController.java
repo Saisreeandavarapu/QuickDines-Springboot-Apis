@@ -1,5 +1,7 @@
 package com.HRMS.QuickDines.Training.Controller;
 
+import com.HRMS.QuickDines.Training.Entity.AssignmentStatus;
+import com.HRMS.QuickDines.Training.Entity.TrainingStatus;
 import com.HRMS.QuickDines.Training.Service.TrainingService;
 import com.HRMS.QuickDines.Training.model.CourseCompletion;
 import com.HRMS.QuickDines.Training.model.Training;
@@ -262,5 +264,34 @@ public class TrainingController {
 
         return ResponseEntity.ok(
                 service.deleteCertificate(id));
+    }
+    @GetMapping("/status/{status}")
+    @PreAuthorize("hasAuthority('TRAINING_READ')")
+    public ResponseEntity<?> getTrainingsByStatus(
+            @PathVariable TrainingStatus status) {
+
+        return ResponseEntity.ok(
+                service
+                        .getTrainingsByStatus(status));
+    }
+
+    @GetMapping("/filter")
+    @PreAuthorize("hasAuthority('TRAINING_READ')")
+    public ResponseEntity<?> filterTrainings(
+            @RequestParam(required = false)
+            TrainingStatus status) {
+
+        return ResponseEntity.ok(
+                service.filterTrainings(status));
+    }
+    @GetMapping("/filter")
+    @PreAuthorize("hasAuthority('TRAINING_ASSIGNMENT_READ')")
+    public ResponseEntity<?> filterAssignments(
+            @RequestParam(required = false)
+            AssignmentStatus status) {
+
+        return ResponseEntity.ok(
+                service
+                        .filterAssignments(status));
     }
 }

@@ -5,6 +5,7 @@ import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
 import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
+import com.HRMS.QuickDines.Wallet.Entity.WalletStatus;
 import com.HRMS.QuickDines.Wallet.model.EmployeeWallet;
 import com.HRMS.QuickDines.Wallet.model.WalletReports;
 import com.HRMS.QuickDines.Wallet.model.WalletTransactions;
@@ -148,7 +149,7 @@ public class WalletService {
         employeeWallet.setBonusAmount(BigDecimal.ZERO);
 
         employeeWallet.setLeaveCredits(0);
-        employeeWallet.setStatus("ACTIVE");
+        employeeWallet.setStatus(WalletStatus.valueOf("ACTIVE"));
 
         employeeWalletRepository.save(employeeWallet);
 
@@ -832,6 +833,22 @@ public class WalletService {
     public List<EmployeeWallet> getAllWallets() {
 
         return employeeWalletRepository.findAll();
+    }
+
+    // =========================================================
+// FILTER EMPLOYEE WALLETS BY STATUS
+// =========================================================
+
+    public List<EmployeeWallet> getWalletsByStatus(
+            WalletStatus status) {
+
+        if (status == null) {
+            throw new RuntimeException(
+                    "Wallet status is required");
+        }
+
+        return employeeWalletRepository
+                .findByStatus(status);
     }
 
 }

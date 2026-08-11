@@ -6,6 +6,7 @@ import com.HRMS.QuickDines.Employee.model.*;
 import com.HRMS.QuickDines.Employee.repo.*;
 import com.HRMS.QuickDines.Organization.model.Department;
 import com.HRMS.QuickDines.Organization.repo.DepartmentRepository;
+import com.HRMS.QuickDines.Organization.repo.DesignationRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ public class EmployeeService {
     private final EmployeeAddressRepository employeeAddressRepository;
     private final EmployeePromotionRepository employeePromotionRepository;
     private final EmployeeTransferRepository employeeTransferRepository;
+    private final DesignationRepository  designationRepository;
 
     private final AuditLogsService auditLogsService;
     private final ClientInfoService clientInfoService;
@@ -132,7 +134,7 @@ public class EmployeeService {
 
         // Fetch Department
         Department department = departmentRepository
-                .findById(employee.getDepartmentId())
+                .findById(Long.valueOf(employee.getDepartmentId()))
                 .orElseThrow(() ->
                         new RuntimeException("Department not found"));
 
@@ -2638,7 +2640,38 @@ public class EmployeeService {
 
         return counts;
     }
+    public List<Employee> searchEmployees(String keyword) {
 
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return employeeRepository.findAll();
+        }
+
+        return employeeRepository.searchEmployees(
+                keyword.trim()
+        );
+    }
+    public List<Employee> getEmployeesByDepartmentName(
+            String departmentName) {
+
+        Department department =
+                departmentRepository
+                        .findByDepartmentNameIgnoreCase(
+                                departmentName)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Department Not Found"));
+
+        return employeeRepository
+                .findByDepartmentId(
+                        department.getId());
+    }
+    public List<Employee> getEmployeesByDesignation(
+            String designationName) {
+
+        return employeeDesignationRepository
+                .findEmployeesByDesignationName(
+                        designationName);
+    }
 
 
 //    public Object getAttendance(Long id){

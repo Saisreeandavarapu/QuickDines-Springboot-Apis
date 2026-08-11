@@ -5,6 +5,8 @@ import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
 import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
+import com.HRMS.QuickDines.Training.Entity.AssignmentStatus;
+import com.HRMS.QuickDines.Training.Entity.TrainingStatus;
 import com.HRMS.QuickDines.Training.model.CourseCompletion;
 import com.HRMS.QuickDines.Training.model.Training;
 import com.HRMS.QuickDines.Training.model.TrainingAssignment;
@@ -526,7 +528,7 @@ public class TrainingService {
         courseCompletionRepository.save(completion);
 
         // Update assignment status automatically
-        assignment.setAssignmentStatus("COMPLETED");
+        assignment.setAssignmentStatus(AssignmentStatus.valueOf("COMPLETED"));
         trainingAssignmentRepository.save(assignment);
 
         String performedBy = getLoggedInEmployeeId();
@@ -900,4 +902,37 @@ public class TrainingService {
         return "Training Certificate Deleted Successfully";
     }
 
+    public List<Training> getTrainingsByStatus(
+            TrainingStatus status) {
+
+        return trainingRepository.findByStatus(status);
+    }
+    public List<Training> filterTrainings(
+            TrainingStatus status) {
+
+        if (status != null) {
+
+            return trainingRepository
+                    .findByStatus(status);
+        }
+
+        return trainingRepository.findAll();
+    }
+    public List<TrainingAssignment> getAssignmentsByStatus(
+            AssignmentStatus status) {
+
+        return trainingAssignmentRepository
+                .findByAssignmentStatus(status);
+    }
+    public List<TrainingAssignment> filterAssignments(
+            AssignmentStatus status) {
+
+        if (status != null) {
+
+            return trainingAssignmentRepository
+                    .findByAssignmentStatus(status);
+        }
+
+        return trainingAssignmentRepository.findAll();
+    }
 }

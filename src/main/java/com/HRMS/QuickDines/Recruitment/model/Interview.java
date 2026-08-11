@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Recruitment.model;
 
+import com.HRMS.QuickDines.Recruitment.Entity.InterviewStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -18,7 +19,8 @@ public class Interview {
 
     private String interviewerName;
 
-    private String interviewStatus;
+    @Enumerated(EnumType.STRING)
+    private InterviewStatus interviewStatus;
 
     private String remarks;
 

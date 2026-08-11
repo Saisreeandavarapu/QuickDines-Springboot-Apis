@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Attendance.model;
 
+import com.HRMS.QuickDines.Attendance.Entity.AttendanceStatus;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -22,7 +23,9 @@ public class Attendance {
     @Column(precision = 10, scale = 2)
     private BigDecimal totalHours;
 
-    private String attendanceStatus;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AttendanceStatus attendanceStatus;
     private Boolean late;
 
     private Boolean earlyLeaving;

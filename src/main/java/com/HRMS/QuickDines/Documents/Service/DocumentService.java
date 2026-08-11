@@ -5,6 +5,7 @@ import com.HRMS.QuickDines.AuditLogs.Entity.ActivityStatus;
 import com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType;
 import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
 import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
+import com.HRMS.QuickDines.Documents.Entity.VerificationStatus;
 import com.HRMS.QuickDines.Documents.model.DocumentTypes;
 import com.HRMS.QuickDines.Documents.model.DocumentVerification;
 import com.HRMS.QuickDines.Documents.model.Documents;
@@ -21,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -919,7 +921,7 @@ public class DocumentService {
             verification.setVerifiedBy(verifiedBy);
 
             verification.setVerificationStatus(
-                    "VERIFIED");
+                    VerificationStatus.valueOf("VERIFIED"));
 
             verification.setRemarks(remarks);
 
@@ -1056,7 +1058,7 @@ public class DocumentService {
             verification.setVerifiedBy(verifiedBy);
 
             verification.setVerificationStatus(
-                    "REJECTED");
+                    VerificationStatus.valueOf("REJECTED"));
 
             verification.setRemarks(remarks);
 
@@ -1448,5 +1450,39 @@ public class DocumentService {
             throw e;
         }
     }
+    // =========================================================
+// FILTER BY VERIFICATION STATUS
+// =========================================================
+
+    public List<DocumentVerification> getByVerificationStatus(
+            VerificationStatus status) {
+
+        if (status == null) {
+            throw new RuntimeException(
+                    "Verification status is required");
+        }
+
+        return documentVerificationRepository
+                .findByVerificationStatus(status);
+    }
+    // =========================================================
+// GET DOCUMENT VERIFICATION BY EMPLOYEE ID
+// =========================================================
+
+    public DocumentVerification getByEmployeeId(
+            String employeeId) {
+
+        employeeRepository.findById(employeeId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Employee Not Found"));
+
+        return documentVerificationRepository
+                .findByEmployeeEmployeeId(employeeId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Document Verification Not Found"));
+    }
+
 }
 

@@ -5,20 +5,23 @@ import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
 import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
+import com.HRMS.QuickDines.Sales.Entity.BusServiceStatus;
+import com.HRMS.QuickDines.Sales.Entity.RestaurantStatus;
 import com.HRMS.QuickDines.Sales.model.*;
 import com.HRMS.QuickDines.Sales.repo.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -51,10 +54,7 @@ public class SalesService {
 
         } catch (JsonProcessingException e) {
 
-            throw new RuntimeException(
-                    "Unable to convert data to JSON",
-                    e
-            );
+            throw new RuntimeException("Unable to convert data to JSON", e);
         }
     }
 
@@ -65,16 +65,11 @@ public class SalesService {
 
     private String getLoggedInEmployeeId() {
 
-        Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null ||
-                !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated()) {
 
-            throw new RuntimeException(
-                    "User is not authenticated");
+            throw new RuntimeException("User is not authenticated");
         }
 
         return authentication.getName();
@@ -88,9 +83,7 @@ public class SalesService {
     private String getIpAddress() {
 
         try {
-            return clientInfoService
-                    .getClientInfo()
-                    .getIpAddress();
+            return clientInfoService.getClientInfo().getIpAddress();
         } catch (Exception e) {
             return null;
         }
@@ -100,9 +93,7 @@ public class SalesService {
     private String getBrowser() {
 
         try {
-            return clientInfoService
-                    .getClientInfo()
-                    .getBrowser();
+            return clientInfoService.getClientInfo().getBrowser();
         } catch (Exception e) {
             return null;
         }
@@ -112,9 +103,7 @@ public class SalesService {
     private String getOperatingSystem() {
 
         try {
-            return clientInfoService
-                    .getClientInfo()
-                    .getOperatingSystem();
+            return clientInfoService.getClientInfo().getOperatingSystem();
         } catch (Exception e) {
             return null;
         }
@@ -125,171 +114,83 @@ public class SalesService {
 // RESTAURANTS
 //=================================
 
-    public String createRestaurant(Restaurant restaurant){
+    public String createRestaurant(Restaurant restaurant) {
 
         restaurantsRepository.save(restaurant);
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "RESTAURANT",
-                String.valueOf(restaurant.getId()),
-                performedBy,
-                restaurant.getId().toString(),
-                "Restaurant created successfully"
-        );
+        auditLogsService.logCreate("RESTAURANT", String.valueOf(restaurant.getId()), performedBy, restaurant.getId().toString(), "Restaurant created successfully");
 
-        auditLogsService.logActivity(
-                performedBy,
-                "CREATE_RESTAURANT",
-                "SALES",
-                "Restaurant created successfully",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "CREATE_RESTAURANT", "SALES", "Restaurant created successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "SALES",
-                "SalesService",
-                "Restaurant created successfully"
-        );
+        auditLogsService.logInfo("SALES", "SalesService", "Restaurant created successfully");
 
         return "Restaurant Created Successfully";
     }
 
 
-    public Object getRestaurants(){
+    public Object getRestaurants() {
 
         return restaurantsRepository.findAll();
     }
 
 
-    public Object getRestaurant(Long id){
+    public Object getRestaurant(Long id) {
 
-        return restaurantsRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Restaurant Not Found"));
+        return restaurantsRepository.findById(id).orElseThrow(() -> new RuntimeException("Restaurant Not Found"));
     }
 
 
-    public String updateRestaurant(
-            Long id,
-            Restaurant restaurant){
+    public String updateRestaurant(Long id, Restaurant restaurant) {
 
-        Restaurant data =
-                restaurantsRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Restaurant Not Found"));
+        Restaurant data = restaurantsRepository.findById(id).orElseThrow(() -> new RuntimeException("Restaurant Not Found"));
 
-        String oldValue =
-                convertToJson(data);
+        String oldValue = convertToJson(data);
 
-        data.setRestaurantName(
-                restaurant.getRestaurantName());
+        data.setRestaurantName(restaurant.getRestaurantName());
 
-        data.setOwnerName(
-                restaurant.getOwnerName());
+        data.setOwnerName(restaurant.getOwnerName());
 
-        data.setEmail(
-                restaurant.getEmail());
+        data.setEmail(restaurant.getEmail());
 
-        data.setMobile(
-                restaurant.getMobile());
+        data.setMobile(restaurant.getMobile());
 
-        data.setLocation(
-                restaurant.getLocation());
+        data.setLocation(restaurant.getLocation());
 
-        data.setStatus(
-                restaurant.getStatus());
+        data.setStatus(restaurant.getStatus());
 
         restaurantsRepository.save(data);
 
-        String newValue =
-                convertToJson(data);
+        String newValue = convertToJson(data);
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logUpdate(
-                "RESTAURANT",
-                String.valueOf(id),
-                performedBy,
-                restaurant.getId().toString(),
-                "Restaurant updated successfully",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("RESTAURANT", String.valueOf(id), performedBy, restaurant.getId().toString(), "Restaurant updated successfully", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                performedBy,
-                "UPDATE_RESTAURANT",
-                "SALES",
-                "Restaurant updated successfully",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "UPDATE_RESTAURANT", "SALES", "Restaurant updated successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "SALES",
-                "SalesService",
-                "Restaurant updated successfully"
-        );
+        auditLogsService.logInfo("SALES", "SalesService", "Restaurant updated successfully");
 
         return "Restaurant Updated Successfully";
     }
 
 
-    public String deleteRestaurant(Long id){
+    public String deleteRestaurant(Long id) {
 
-        Restaurant data =
-                restaurantsRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Restaurant Not Found"));
+        Restaurant data = restaurantsRepository.findById(id).orElseThrow(() -> new RuntimeException("Restaurant Not Found"));
 
-        String deletedValue =
-                convertToJson(data);
+        String deletedValue = convertToJson(data);
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
         restaurantsRepository.delete(data);
 
-        auditLogsService.createAuditLog(
-                "RESTAURANT",
-                String.valueOf(id),
-                com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType.DELETE,
-                performedBy,
-                data.getId().toString(),
-                "Restaurant deleted successfully",
-                deletedValue,
-                null,
-                getIpAddress(),
-                getOperatingSystem()
-        );
+        auditLogsService.createAuditLog("RESTAURANT", String.valueOf(id), com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType.DELETE, performedBy, data.getId().toString(), "Restaurant deleted successfully", deletedValue, null, getIpAddress(), getOperatingSystem());
 
-        auditLogsService.logActivity(
-                performedBy,
-                "DELETE_RESTAURANT",
-                "SALES",
-                "Restaurant deleted successfully",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "DELETE_RESTAURANT", "SALES", "Restaurant deleted successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "SALES",
-                "SalesService",
-                "Restaurant deleted successfully"
-        );
+        auditLogsService.logInfo("SALES", "SalesService", "Restaurant deleted successfully");
 
         return "Restaurant Deleted Successfully";
     }
@@ -299,174 +200,84 @@ public class SalesService {
 // BUS SERVICES
 //=================================
 
-    public String createBusService(
-            BusService busService){
+    public String createBusService(BusService busService) {
 
         busServicesRepository.save(busService);
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "BUS_SERVICE",
-                String.valueOf(busService.getId()),
-                performedBy,
-                busService.getId().toString(),
-                "Bus Service created successfully"
-        );
+        auditLogsService.logCreate("BUS_SERVICE", String.valueOf(busService.getId()), performedBy, busService.getId().toString(), "Bus Service created successfully");
 
-        auditLogsService.logActivity(
-                performedBy,
-                "CREATE_BUS_SERVICE",
-                "SALES",
-                "Bus Service created successfully",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "CREATE_BUS_SERVICE", "SALES", "Bus Service created successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "SALES",
-                "SalesService",
-                "Bus Service created successfully"
-        );
+        auditLogsService.logInfo("SALES", "SalesService", "Bus Service created successfully");
 
         return "Bus Service Created Successfully";
     }
 
 
-    public Object getBusServices(){
+    public Object getBusServices() {
 
         return busServicesRepository.findAll();
     }
 
 
-    public Object getBusService(Long id){
+    public Object getBusService(Long id) {
 
-        return busServicesRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Bus Service Not Found"));
+        return busServicesRepository.findById(id).orElseThrow(() -> new RuntimeException("Bus Service Not Found"));
     }
 
 
-    public String updateBusService(
-            Long id,
-            BusService busService){
+    public String updateBusService(Long id, BusService busService) {
 
-        BusService data =
-                busServicesRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Bus Service Not Found"));
+        BusService data = busServicesRepository.findById(id).orElseThrow(() -> new RuntimeException("Bus Service Not Found"));
 
-        String oldValue =
-                convertToJson(data);
+        String oldValue = convertToJson(data);
 
-        data.setServiceName(
-                busService.getServiceName());
+        data.setServiceName(busService.getServiceName());
 
-        data.setOwnerName(
-                busService.getOwnerName());
+        data.setOwnerName(busService.getOwnerName());
 
-        data.setMobile(
-                busService.getMobile());
+        data.setMobile(busService.getMobile());
 
-        data.setLocation(
-                busService.getLocation());
+        data.setLocation(busService.getLocation());
 
-        data.setStatus(
-                busService.getStatus());
+        data.setStatus(busService.getStatus());
 
         busServicesRepository.save(data);
 
-        String newValue =
-                convertToJson(data);
+        String newValue = convertToJson(data);
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logUpdate(
-                "BUS_SERVICE",
-                String.valueOf(id),
-                performedBy,
-                busService.getId().toString(),
-                "Bus Service updated successfully",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("BUS_SERVICE", String.valueOf(id), performedBy, busService.getId().toString(), "Bus Service updated successfully", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                performedBy,
-                "UPDATE_BUS_SERVICE",
-                "SALES",
-                "Bus Service updated successfully",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "UPDATE_BUS_SERVICE", "SALES", "Bus Service updated successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "SALES",
-                "SalesService",
-                "Bus Service updated successfully"
-        );
+        auditLogsService.logInfo("SALES", "SalesService", "Bus Service updated successfully");
 
         return "Bus Service Updated Successfully";
     }
 
 
-    public String deleteBusService(Long id){
+    public String deleteBusService(Long id) {
 
-        BusService data =
-                busServicesRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Bus Service Not Found"));
+        BusService data = busServicesRepository.findById(id).orElseThrow(() -> new RuntimeException("Bus Service Not Found"));
 
-        String deletedValue =
-                convertToJson(data);
+        String deletedValue = convertToJson(data);
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
         busServicesRepository.delete(data);
 
-        auditLogsService.createAuditLog(
-                "BUS_SERVICE",
-                String.valueOf(id),
-                com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType.DELETE,
-                performedBy,
-                data.getId().toString(),
-                "Bus Service deleted successfully",
-                deletedValue,
-                null,
-                getIpAddress(),
-                getOperatingSystem()
-        );
+        auditLogsService.createAuditLog("BUS_SERVICE", String.valueOf(id), com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType.DELETE, performedBy, data.getId().toString(), "Bus Service deleted successfully", deletedValue, null, getIpAddress(), getOperatingSystem());
 
-        auditLogsService.logActivity(
-                performedBy,
-                "DELETE_BUS_SERVICE",
-                "SALES",
-                "Bus Service deleted successfully",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "DELETE_BUS_SERVICE", "SALES", "Bus Service deleted successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "SALES",
-                "SalesService",
-                "Bus Service deleted successfully"
-        );
+        auditLogsService.logInfo("SALES", "SalesService", "Bus Service deleted successfully");
 
         return "Bus Service Deleted Successfully";
     }
-
 
 
 //=================================
@@ -475,9 +286,7 @@ public class SalesService {
 
     public String createTarget(String employeeId, SalesTarget salesTarget) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() ->
-                        new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
         salesTarget.setEmployee(employee);
 
@@ -489,8 +298,7 @@ public class SalesService {
             throw new RuntimeException("Monthly Target is Required");
         }
 
-        if (salesTarget.getAchievedTarget()
-                .compareTo(salesTarget.getMonthlyTarget()) >= 0) {
+        if (salesTarget.getAchievedTarget().compareTo(salesTarget.getMonthlyTarget()) >= 0) {
 
             salesTarget.setTargetStatus("ACHIEVED");
 
@@ -507,33 +315,11 @@ public class SalesService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "SALES_TARGET",
-                String.valueOf(salesTarget.getId()),
-                performedBy,
-                employeeId,
-                "Sales Target created successfully for employee: "
-                        + employeeId
-        );
+        auditLogsService.logCreate("SALES_TARGET", String.valueOf(salesTarget.getId()), performedBy, employeeId, "Sales Target created successfully for employee: " + employeeId);
 
-        auditLogsService.logActivity(
-                performedBy,
-                "CREATE_SALES_TARGET",
-                "SALES",
-                "Sales Target created successfully for employee: "
-                        + employeeId,
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "CREATE_SALES_TARGET", "SALES", "Sales Target created successfully for employee: " + employeeId, ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "SALES",
-                "SalesService",
-                "Sales Target created successfully for employee: "
-                        + employeeId
-        );
+        auditLogsService.logInfo("SALES", "SalesService", "Sales Target created successfully for employee: " + employeeId);
 
         return "Sales Target Created Successfully";
     }
@@ -547,22 +333,13 @@ public class SalesService {
 
     public Object getEmployeeTarget(String employeeId) {
 
-        return salesTargetsRepository
-                .findByEmployeeEmployeeId(employeeId)
-                .orElseThrow(() ->
-                        new RuntimeException("Sales Target Not Found"));
+        return salesTargetsRepository.findByEmployeeEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Sales Target Not Found"));
     }
 
 
-    public String updateTarget(
-            String employeeId,
-            SalesTarget salesTarget) {
+    public String updateTarget(String employeeId, SalesTarget salesTarget) {
 
-        SalesTarget target =
-                salesTargetsRepository
-                        .findByEmployeeEmployeeId(employeeId)
-                        .orElseThrow(() ->
-                                new RuntimeException("Sales Target Not Found"));
+        SalesTarget target = salesTargetsRepository.findByEmployeeEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Sales Target Not Found"));
 
         // Store old value before update
         String oldValue = convertToJson(target);
@@ -578,8 +355,7 @@ public class SalesService {
             throw new RuntimeException("Monthly Target is Required");
         }
 
-        if (target.getAchievedTarget()
-                .compareTo(target.getMonthlyTarget()) >= 0) {
+        if (target.getAchievedTarget().compareTo(target.getMonthlyTarget()) >= 0) {
 
             target.setTargetStatus("ACHIEVED");
 
@@ -599,34 +375,11 @@ public class SalesService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logUpdate(
-                "SALES_TARGET",
-                String.valueOf(target.getId()),
-                performedBy,
-                employeeId,
-                "Sales Target updated successfully",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("SALES_TARGET", String.valueOf(target.getId()), performedBy, employeeId, "Sales Target updated successfully", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                performedBy,
-                "UPDATE_SALES_TARGET",
-                "SALES",
-                "Sales Target updated successfully for employee: "
-                        + employeeId,
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "UPDATE_SALES_TARGET", "SALES", "Sales Target updated successfully for employee: " + employeeId, ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "SALES",
-                "SalesService",
-                "Sales Target updated successfully for employee: "
-                        + employeeId
-        );
+        auditLogsService.logInfo("SALES", "SalesService", "Sales Target updated successfully for employee: " + employeeId);
 
         return "Sales Target Updated Successfully";
     }
@@ -634,11 +387,7 @@ public class SalesService {
 
     public String deleteTarget(String employeeId) {
 
-        SalesTarget target =
-                salesTargetsRepository
-                        .findByEmployeeEmployeeId(employeeId)
-                        .orElseThrow(() ->
-                                new RuntimeException("Sales Target Not Found"));
+        SalesTarget target = salesTargetsRepository.findByEmployeeEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Sales Target Not Found"));
 
         // Store old value before delete
         String deletedValue = convertToJson(target);
@@ -651,37 +400,11 @@ public class SalesService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.createAuditLog(
-                "SALES_TARGET",
-                String.valueOf(target.getId()),
-                com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType.DELETE,
-                performedBy,
-                employeeId,
-                "Sales Target deleted successfully",
-                deletedValue,
-                null,
-                getIpAddress(),
-                getOperatingSystem()
-        );
+        auditLogsService.createAuditLog("SALES_TARGET", String.valueOf(target.getId()), com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType.DELETE, performedBy, employeeId, "Sales Target deleted successfully", deletedValue, null, getIpAddress(), getOperatingSystem());
 
-        auditLogsService.logActivity(
-                performedBy,
-                "DELETE_SALES_TARGET",
-                "SALES",
-                "Sales Target deleted successfully for employee: "
-                        + employeeId,
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "DELETE_SALES_TARGET", "SALES", "Sales Target deleted successfully for employee: " + employeeId, ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "SALES",
-                "SalesService",
-                "Sales Target deleted successfully for employee: "
-                        + employeeId
-        );
+        auditLogsService.logInfo("SALES", "SalesService", "Sales Target deleted successfully for employee: " + employeeId);
 
         return "Sales Target Deleted Successfully";
     }
@@ -691,13 +414,9 @@ public class SalesService {
 // SALES REPORTS
 //=================================
 
-    public String createReport(
-            String employeeId,
-            SalesReport report) {
+    public String createReport(String employeeId, SalesReport report) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() ->
-                        new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
         report.setEmployee(employee);
 
@@ -709,33 +428,11 @@ public class SalesService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "SALES_REPORT",
-                String.valueOf(report.getId()),
-                performedBy,
-                employeeId,
-                "Sales Report created successfully for employee: "
-                        + employeeId
-        );
+        auditLogsService.logCreate("SALES_REPORT", String.valueOf(report.getId()), performedBy, employeeId, "Sales Report created successfully for employee: " + employeeId);
 
-        auditLogsService.logActivity(
-                performedBy,
-                "CREATE_SALES_REPORT",
-                "SALES",
-                "Sales Report created successfully for employee: "
-                        + employeeId,
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "CREATE_SALES_REPORT", "SALES", "Sales Report created successfully for employee: " + employeeId, ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "SALES",
-                "SalesService",
-                "Sales Report created successfully for employee: "
-                        + employeeId
-        );
+        auditLogsService.logInfo("SALES", "SalesService", "Sales Report created successfully for employee: " + employeeId);
 
         return "Sales Report Created Successfully";
     }
@@ -747,27 +444,19 @@ public class SalesService {
     }
 
 
-    public List<SalesReport> getEmployeeReport(
-            String employeeId) {
+    public List<SalesReport> getEmployeeReport(String employeeId) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() ->
-                        new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
         return salesReportRepository.findByEmployee(employee);
     }
 
 
-    public String updateReport(
-            String employeeId,
-            SalesReport request) {
+    public String updateReport(String employeeId, SalesReport request) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() ->
-                        new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
-        List<SalesReport> reports =
-                salesReportRepository.findByEmployee(employee);
+        List<SalesReport> reports = salesReportRepository.findByEmployee(employee);
 
         if (reports == null || reports.isEmpty()) {
             throw new RuntimeException("Sales Report Not Found");
@@ -795,34 +484,11 @@ public class SalesService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logUpdate(
-                "SALES_REPORT",
-                String.valueOf(report.getId()),
-                performedBy,
-                employeeId,
-                "Sales Report updated successfully",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("SALES_REPORT", String.valueOf(report.getId()), performedBy, employeeId, "Sales Report updated successfully", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                performedBy,
-                "UPDATE_SALES_REPORT",
-                "SALES",
-                "Sales Report updated successfully for employee: "
-                        + employeeId,
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "UPDATE_SALES_REPORT", "SALES", "Sales Report updated successfully for employee: " + employeeId, ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "SALES",
-                "SalesService",
-                "Sales Report updated successfully for employee: "
-                        + employeeId
-        );
+        auditLogsService.logInfo("SALES", "SalesService", "Sales Report updated successfully for employee: " + employeeId);
 
         return "Sales Report Updated Successfully";
     }
@@ -830,12 +496,9 @@ public class SalesService {
 
     public String deleteReport(String employeeId) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() ->
-                        new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
-        List<SalesReport> reports =
-                salesReportRepository.findByEmployee(employee);
+        List<SalesReport> reports = salesReportRepository.findByEmployee(employee);
 
         if (reports == null || reports.isEmpty()) {
             throw new RuntimeException("Sales Report Not Found");
@@ -855,55 +518,23 @@ public class SalesService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.createAuditLog(
-                "SALES_REPORT",
-                String.valueOf(report.getId()),
-                com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType.DELETE,
-                performedBy,
-                employeeId,
-                "Sales Report deleted successfully",
-                deletedValue,
-                null,
-                getIpAddress(),
-                getOperatingSystem()
-        );
+        auditLogsService.createAuditLog("SALES_REPORT", String.valueOf(report.getId()), com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType.DELETE, performedBy, employeeId, "Sales Report deleted successfully", deletedValue, null, getIpAddress(), getOperatingSystem());
 
-        auditLogsService.logActivity(
-                performedBy,
-                "DELETE_SALES_REPORT",
-                "SALES",
-                "Sales Report deleted successfully for employee: "
-                        + employeeId,
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "DELETE_SALES_REPORT", "SALES", "Sales Report deleted successfully for employee: " + employeeId, ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "SALES",
-                "SalesService",
-                "Sales Report deleted successfully for employee: "
-                        + employeeId
-        );
+        auditLogsService.logInfo("SALES", "SalesService", "Sales Report deleted successfully for employee: " + employeeId);
 
         return "Sales Report Deleted Successfully";
     }
-
-
 
 
 //=================================
 // SALES INCENTIVES
 //=================================
 
-    public String createIncentive(
-            String employeeId,
-            SalesIncentive incentive) {
+    public String createIncentive(String employeeId, SalesIncentive incentive) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() ->
-                        new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
         incentive.setEmployee(employee);
 
@@ -915,32 +546,11 @@ public class SalesService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "SALES",
-                String.valueOf(incentive.getId()),
-                performedBy,
-                employeeId,
-                "Sales Incentive created successfully"
-        );
+        auditLogsService.logCreate("SALES", String.valueOf(incentive.getId()), performedBy, employeeId, "Sales Incentive created successfully");
 
-        auditLogsService.logActivity(
-                performedBy,
-                "CREATE_SALES_INCENTIVE",
-                "SALES",
-                "Sales Incentive created successfully for employee: "
-                        + employeeId,
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "CREATE_SALES_INCENTIVE", "SALES", "Sales Incentive created successfully for employee: " + employeeId, ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "SALES",
-                "SalesService",
-                "Sales Incentive created successfully for employee: "
-                        + employeeId
-        );
+        auditLogsService.logInfo("SALES", "SalesService", "Sales Incentive created successfully for employee: " + employeeId);
 
         return "Sales Incentive Created Successfully";
     }
@@ -952,15 +562,11 @@ public class SalesService {
     }
 
 
-    public List<SalesIncentive> getEmployeeIncentive(
-            String employeeId) {
+    public List<SalesIncentive> getEmployeeIncentive(String employeeId) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() ->
-                        new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
-        SalesIncentive incentive =
-                salesIncentiveRepository.findByEmployee(employee);
+        SalesIncentive incentive = salesIncentiveRepository.findByEmployee(employee);
 
         if (incentive == null) {
             throw new RuntimeException("Sales Incentive Not Found");
@@ -970,16 +576,11 @@ public class SalesService {
     }
 
 
-    public String updateIncentive(
-            String employeeId,
-            SalesIncentive request) {
+    public String updateIncentive(String employeeId, SalesIncentive request) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() ->
-                        new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
-        SalesIncentive incentive =
-                salesIncentiveRepository.findByEmployee(employee);
+        SalesIncentive incentive = salesIncentiveRepository.findByEmployee(employee);
 
         if (incentive == null) {
             throw new RuntimeException("Sales Incentive Not Found");
@@ -988,14 +589,11 @@ public class SalesService {
         // Keep old value before updating
         String oldValue = convertToJson(incentive);
 
-        incentive.setIncentiveAmount(
-                request.getIncentiveAmount());
+        incentive.setIncentiveAmount(request.getIncentiveAmount());
 
-        incentive.setTargetBonus(
-                request.getTargetBonus());
+        incentive.setTargetBonus(request.getTargetBonus());
 
-        incentive.setCreditedDate(
-                request.getCreditedDate());
+        incentive.setCreditedDate(request.getCreditedDate());
 
         salesIncentiveRepository.save(incentive);
 
@@ -1008,138 +606,79 @@ public class SalesService {
         // AUDIT LOG - UPDATE
         // ================================
 
-        auditLogsService.logUpdate(
-                "SALES",
-                String.valueOf(incentive.getId()),
-                performedBy,
-                employeeId,
-                null,
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("SALES", String.valueOf(incentive.getId()), performedBy, employeeId, null, oldValue, newValue);
 
-        auditLogsService.logActivity(
-                performedBy,
-                "UPDATE_SALES_INCENTIVE",
-                "SALES",
-                "Sales Incentive updated successfully for employee: "
-                        + employeeId,
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "UPDATE_SALES_INCENTIVE", "SALES", "Sales Incentive updated successfully for employee: " + employeeId, ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "SALES",
-                "SalesService",
-                "Sales Incentive updated successfully for employee: "
-                        + employeeId
-        );
+        auditLogsService.logInfo("SALES", "SalesService", "Sales Incentive updated successfully for employee: " + employeeId);
 
         return "Sales Incentive Updated Successfully";
     }
 
 
-    public String deleteIncentive(
-            String employeeId) {
+    public String deleteIncentive(String employeeId) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() ->
-                        new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
-        SalesIncentive incentive =
-                salesIncentiveRepository.findByEmployee(employee);
+        SalesIncentive incentive = salesIncentiveRepository.findByEmployee(employee);
 
         if (incentive == null) {
-            throw new RuntimeException(
-                    "Sales Incentive Not Found");
+            throw new RuntimeException("Sales Incentive Not Found");
         }
 
         // Keep deleted data for audit
-        String deletedValue =
-                convertToJson(incentive);
+        String deletedValue = convertToJson(incentive);
 
         Long incentiveId = incentive.getId();
 
         salesIncentiveRepository.delete(incentive);
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
         // ================================
         // AUDIT LOG - DELETE
         // ================================
 
-        auditLogsService.createAuditLog(
-                "SALES",
-                String.valueOf(incentiveId),
-                com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType.DELETE,
-                performedBy,
-                employeeId,
-                "Sales Incentive deleted successfully",
-                deletedValue,
-                null,
-                getIpAddress(),
-                getOperatingSystem()
-        );
+        auditLogsService.createAuditLog("SALES", String.valueOf(incentiveId), com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType.DELETE, performedBy, employeeId, "Sales Incentive deleted successfully", deletedValue, null, getIpAddress(), getOperatingSystem());
 
-        auditLogsService.logActivity(
-                performedBy,
-                "DELETE_SALES_INCENTIVE",
-                "SALES",
-                "Sales Incentive deleted successfully for employee: "
-                        + employeeId,
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "DELETE_SALES_INCENTIVE", "SALES", "Sales Incentive deleted successfully for employee: " + employeeId, ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "SALES",
-                "SalesService",
-                "Sales Incentive deleted successfully for employee: "
-                        + employeeId
-        );
+        auditLogsService.logInfo("SALES", "SalesService", "Sales Incentive deleted successfully for employee: " + employeeId);
 
         return "Sales Incentive Deleted Successfully";
     }
-
 
 
     //=================================
 // REPORTS
 //=================================
 
-    public List<SalesTarget> completedTargets(){
+    public List<SalesTarget> completedTargets() {
 
         return salesTargetsRepository.findByTargetStatus("ACHIEVED");
     }
 
-    public List<SalesTarget> pendingTargets(){
+    public List<SalesTarget> pendingTargets() {
 
-        return salesTargetsRepository
-                .findByTargetStatus("PENDING");
+        return salesTargetsRepository.findByTargetStatus("PENDING");
     }
 
-    public List<Restaurant> activeRestaurants(){
+    public List<Restaurant> activeRestaurants() {
 
         return restaurantsRepository.findByStatus("ACTIVE");
     }
 
-    public List<Restaurant> inactiveRestaurants(){
+    public List<Restaurant> inactiveRestaurants() {
 
-        return restaurantsRepository
-                .findByStatus("INACTIVE");
+        return restaurantsRepository.findByStatus("INACTIVE");
     }
 
-    public List<BusService> activeBusServices(){
+    public List<BusService> activeBusServices() {
 
         return busServicesRepository.findByStatus("ACTIVE");
     }
 
-    public List<BusService> inactiveBusServices(){
+    public List<BusService> inactiveBusServices() {
 
         return busServicesRepository.findByStatus("INACTIVE");
     }
@@ -1149,44 +688,209 @@ public class SalesService {
 // DASHBOARD COUNTS
 //=================================
 
-    public Object getCounts(){
+    public Object getCounts() {
 
         Map<String, Object> counts = new HashMap<>();
 
-        counts.put("totalRestaurants",
-                restaurantsRepository.count());
+        counts.put("totalRestaurants", restaurantsRepository.count());
 
-        counts.put("activeRestaurants",
-                restaurantsRepository.countByStatus("ACTIVE"));
+        counts.put("activeRestaurants", restaurantsRepository.countByStatus("ACTIVE"));
 
-        counts.put("inactiveRestaurants",
-                restaurantsRepository.countByStatus("INACTIVE"));
+        counts.put("inactiveRestaurants", restaurantsRepository.countByStatus("INACTIVE"));
 
-        counts.put("totalBusServices",
-                busServicesRepository.count());
+        counts.put("totalBusServices", busServicesRepository.count());
 
-        counts.put("activeBusServices",
-                busServicesRepository.countByStatus("ACTIVE"));
+        counts.put("activeBusServices", busServicesRepository.countByStatus("ACTIVE"));
 
-        counts.put("inactiveBusServices",
-                busServicesRepository.countByStatus("INACTIVE"));
+        counts.put("inactiveBusServices", busServicesRepository.countByStatus("INACTIVE"));
 
-        counts.put("totalSalesTargets",
-                salesTargetsRepository.count());
+        counts.put("totalSalesTargets", salesTargetsRepository.count());
 
-        counts.put("completedTargets",
-                salesTargetsRepository.countByTargetStatus("ACHIEVED"));
+        counts.put("completedTargets", salesTargetsRepository.countByTargetStatus("ACHIEVED"));
 
-        counts.put("pendingTargets",
-                salesTargetsRepository.countByTargetStatus("PENDING"));
+        counts.put("pendingTargets", salesTargetsRepository.countByTargetStatus("PENDING"));
 
-        counts.put("totalSalesReports",
-                salesReportRepository.count());
+        counts.put("totalSalesReports", salesReportRepository.count());
 
-        counts.put("totalIncentives",
-                salesIncentiveRepository.count());
+        counts.put("totalIncentives", salesIncentiveRepository.count());
 
         return counts;
+    }
+// =========================================================
+// BUS SERVICE STATUS FILTER
+// =========================================================
+
+    public List<BusService> getBusServicesByStatus(BusServiceStatus status) {
+
+        if (status == null) {
+            throw new RuntimeException("Bus Service status is required");
+        }
+
+        return busServicesRepository.findByStatus(status);
+    }
+    // =========================================================
+// RESTAURANT STATUS FILTER
+// =========================================================
+
+    public List<Restaurant> getRestaurantsByStatus(RestaurantStatus status) {
+
+        if (status == null) {
+            throw new RuntimeException("Restaurant status is required");
+        }
+
+        return restaurantsRepository.findByStatus(status);
+    }
+
+    public String importExcel(MultipartFile file) {
+
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Please upload an Excel file");
+        }
+
+        List<BusService> busServices = new ArrayList<>();
+
+        try (Workbook workbook = WorkbookFactory.create(file.getInputStream())) {
+
+            Sheet sheet = workbook.getSheetAt(0);
+
+            // Skip header row
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+
+                Row row = sheet.getRow(i);
+
+                if (row == null) {
+                    continue;
+                }
+
+                BusService busService = new BusService();
+
+                busService.setServiceName(getCellValue(row.getCell(0)));
+
+                busService.setOwnerName(getCellValue(row.getCell(1)));
+
+                busService.setMobile(getCellValue(row.getCell(2)));
+
+                busService.setLocation(getCellValue(row.getCell(3)));
+
+                String status = getCellValue(row.getCell(4));
+
+                if (status == null || status.isBlank()) {
+
+                    busService.setStatus(BusServiceStatus.ACTIVE);
+
+                } else {
+
+                    try {
+
+                        busService.setStatus(BusServiceStatus.valueOf(status.trim().toUpperCase()));
+
+                    } catch (IllegalArgumentException e) {
+
+                        throw new RuntimeException("Invalid status at Excel row " + (i + 1) + ": " + status);
+                    }
+                }
+
+                busServices.add(busService);
+            }
+
+            busServicesRepository.saveAll(busServices);
+
+            return busServices.size() + " Bus Services Imported Successfully";
+
+        } catch (Exception e) {
+
+            throw new RuntimeException("Excel import failed: " + e.getMessage(), e);
+        }
+    }
+
+
+    private String getCellValue(Cell cell) {
+
+        if (cell == null) {
+            return "";
+        }
+
+        DataFormatter formatter = new DataFormatter();
+
+        return formatter.formatCellValue(cell).trim();
+    }
+
+    public String importRestaurantsFromExcel(MultipartFile file) {
+
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Excel file is empty");
+        }
+
+        try (InputStream inputStream = file.getInputStream(); Workbook workbook = WorkbookFactory.create(inputStream)) {
+
+            Sheet sheet = workbook.getSheetAt(0);
+
+            List<Restaurant> restaurants = new ArrayList<>();
+
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+
+                Row row = sheet.getRow(i);
+
+                if (row == null) {
+                    continue;
+                }
+
+                // Skip completely empty rows
+                if (row.getCell(0) == null || row.getCell(0).toString().isBlank()) {
+                    continue;
+                }
+
+                Restaurant restaurant = new Restaurant();
+
+                // Column 0 - Restaurant Name
+                restaurant.setRestaurantName(getCellValue(row.getCell(0)));
+
+                // Column 1 - Owner Name
+                restaurant.setOwnerName(getCellValue(row.getCell(1)));
+
+                // Column 2 - Email
+                restaurant.setEmail(getCellValue(row.getCell(2)));
+
+                // Column 3 - Mobile
+                restaurant.setMobile(getCellValue(row.getCell(3)));
+
+                // Column 4 - Location
+                restaurant.setLocation(getCellValue(row.getCell(4)));
+
+                // Column 5 - Status
+                String status = getCellValue(row.getCell(5));
+
+                if (status == null || status.isBlank()) {
+
+                    restaurant.setStatus(RestaurantStatus.ACTIVE);
+
+                } else {
+
+                    try {
+
+                        restaurant.setStatus(RestaurantStatus.valueOf(status.trim().toUpperCase()));
+
+                    } catch (IllegalArgumentException e) {
+
+                        throw new RuntimeException("Invalid restaurant status at row " + (i + 1) + ": " + status);
+                    }
+                }
+
+                restaurants.add(restaurant);
+            }
+
+            restaurantsRepository.saveAll(restaurants);
+
+            return restaurants.size() + " Restaurants Imported Successfully";
+
+        } catch (IOException e) {
+
+            throw new RuntimeException("Failed to read Excel file", e);
+
+        } catch (Exception e) {
+
+            throw new RuntimeException("Failed to import restaurants: " + e.getMessage(), e);
+        }
     }
 
 }

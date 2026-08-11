@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Documents.Controller;
 
+import com.HRMS.QuickDines.Documents.Entity.VerificationStatus;
 import com.HRMS.QuickDines.Documents.Service.DocumentService;
 import com.HRMS.QuickDines.Documents.model.DocumentTypes;
 import lombok.RequiredArgsConstructor;
@@ -299,4 +300,31 @@ public class DocumentController {
                 service.getTotalDocumentsCount()
         );
     }
+    // =========================================================
+// VERIFICATION STATUS FILTER
+// =========================================================
+
+    @GetMapping("/filter/status")
+    @PreAuthorize("hasAuthority('DOCUMENT_READ')")
+    public ResponseEntity<?> getByVerificationStatus(
+            @RequestParam VerificationStatus status) {
+
+        return ResponseEntity.ok(
+                service
+                        .getByVerificationStatus(status));
+    }
+    // =========================================================
+// EMPLOYEE ID DOCUMENT VERIFICATION
+// =========================================================
+
+    @GetMapping("/employee/{employeeId}")
+    @PreAuthorize("hasAuthority('DOCUMENT_READ')")
+    public ResponseEntity<?> getByEmployeeId(
+            @PathVariable String employeeId) {
+
+        return ResponseEntity.ok(
+                service
+                        .getByEmployeeId(employeeId));
+    }
+
 }

@@ -827,4 +827,18 @@ public class FinanceController {
         return ResponseEntity.ok(
                 service.getInvoicesByVendor(vendorId));
     }
+
+    // =========================================================
+// GENERATE INVOICE PDF AND SEND EMAIL
+// =========================================================
+
+    @PostMapping("/invoice/{id}/send")
+    @PreAuthorize("hasAuthority('INVOICE_SEND')")
+    public ResponseEntity<?> sendInvoice(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                service
+                        .generateAndSendInvoice(id));
+    }
 }

@@ -1,6 +1,7 @@
 package com.HRMS.QuickDines.Attendance.model;
 
 
+import com.HRMS.QuickDines.Attendance.Entity.OvertimeStatus;
 import com.HRMS.QuickDines.Auth.model.Users;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import jakarta.persistence.*;
@@ -40,7 +41,9 @@ public class OvertimeRequest {
     @Column(columnDefinition = "TEXT")
     private String reason;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OvertimeStatus status;
 
     @ManyToOne
     @JoinColumn(name="approved_by")

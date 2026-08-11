@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Wallet.Controller;
 
+import com.HRMS.QuickDines.Wallet.Entity.WalletStatus;
 import com.HRMS.QuickDines.Wallet.Service.WalletService;
 import com.HRMS.QuickDines.Wallet.model.EmployeeWallet;
 import com.HRMS.QuickDines.Wallet.model.WalletTransactions;
@@ -170,5 +171,17 @@ public class WalletController {
 
         return ResponseEntity.ok(
                 service.getAllWallets());
+    }
+    // =========================================================
+// WALLET STATUS FILTER
+// =========================================================
+
+    @GetMapping("/filter/status")
+    @PreAuthorize("hasAuthority('WALLET_READ')")
+    public ResponseEntity<?> getWalletsByStatus(
+            @RequestParam WalletStatus status) {
+
+        return ResponseEntity.ok(
+                service.getWalletsByStatus(status));
     }
 }

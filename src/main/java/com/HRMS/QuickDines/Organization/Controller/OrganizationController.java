@@ -192,4 +192,5 @@ public class OrganizationController {
         return ResponseEntity.ok(
                 service.deleteHierarchy(id));
     }
+
 }

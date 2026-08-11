@@ -1,6 +1,7 @@
 package com.HRMS.QuickDines.Training.model;
 
 import com.HRMS.QuickDines.Employee.model.Employee;
+import com.HRMS.QuickDines.Training.Entity.AssignmentStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -62,8 +63,9 @@ public class TrainingAssignment {
      * IN_PROGRESS
      * COMPLETED
      */
+    @Enumerated(EnumType.STRING)
     @Column(length = 20)
-    private String assignmentStatus;
+    private AssignmentStatus assignmentStatus;
 
 
     @Column(columnDefinition = "TEXT")

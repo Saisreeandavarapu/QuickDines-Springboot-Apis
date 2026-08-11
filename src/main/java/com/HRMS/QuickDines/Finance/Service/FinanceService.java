@@ -1,8 +1,10 @@
 package com.HRMS.QuickDines.Finance.Service;
 
+import com.HRMS.QuickDines.AdvanceServices.EmailService;
 import com.HRMS.QuickDines.AuditLogs.Entity.ActivityStatus;
 import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
 import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
+import com.HRMS.QuickDines.Employee.Service.EmployeeService;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
 import com.HRMS.QuickDines.Finance.model.*;
@@ -23,7 +25,8 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class FinanceService {
-
+    private final InvoicePdfService invoicePdfService;
+    private final EmailService emailService;
     private final EmployeeRepository employeeRepository;
     private final ExpensesRepository expensesRepository;
     private final SettlementsRepository settlementsRepository;
@@ -1337,6 +1340,61 @@ public class FinanceService {
     public Object getInvoicesByVendor(Long vendorId) {
 
         return invoiceManagementRepository.findByVendorId(vendorId);
+    }
+
+    // =========================================================
+    // GENERATE PDF AND SEND TO CUSTOMER
+    // =========================================================
+
+    public String generateAndSendInvoice(
+            Long invoiceId) {
+
+        InvoiceManagement invoice =
+                invoiceManagementRepository
+                        .findById(invoiceId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Invoice Not Found"));
+
+        if (invoice.getCustomer() == null) {
+
+            throw new RuntimeException(
+                    "Customer is not assigned to invoice");
+        }
+
+        /*
+         * Replace getEmail() with the actual
+         * email getter from your Customer entity.
+         */
+
+        String customerEmail =
+                invoice.getCustomer().getEmail();
+
+        if (customerEmail == null ||
+                customerEmail.isBlank()) {
+
+            throw new RuntimeException(
+                    "Customer email not found");
+        }
+
+        // =====================================================
+        // GENERATE PDF
+        // =====================================================
+
+        byte[] pdf =
+                invoicePdfService
+                        .generateInvoicePdf(invoice);
+
+        // =====================================================
+        // SEND EMAIL
+        // =====================================================
+
+        emailService.sendInvoiceEmail(
+                customerEmail,
+                invoice.getInvoiceNumber(),
+                pdf);
+
+        return "Invoice PDF generated and sent successfully";
     }
 }
 

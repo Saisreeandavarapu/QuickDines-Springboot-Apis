@@ -7,6 +7,8 @@ import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
 import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
 import com.HRMS.QuickDines.Auth.Config.JwtService;
 import com.HRMS.QuickDines.Auth.DTO.*;
+import com.HRMS.QuickDines.Auth.Entity.LoginStatus;
+import com.HRMS.QuickDines.Auth.Entity.UserStatus;
 import com.HRMS.QuickDines.Auth.model.*;
 import com.HRMS.QuickDines.Auth.repo.*;
 import com.HRMS.QuickDines.AdvanceServices.EmailService;
@@ -433,7 +435,7 @@ public class AuthenticationService {
         history.setIpAddress(ipAddress);
         history.setBrowserName(browserName);
         history.setOperatingSystem(operatingSystem);
-        history.setLoginStatus("SUCCESS");
+        history.setLoginStatus(LoginStatus.valueOf("SUCCESS"));
         history.setRemarks("Login Successful");
         history.setCreatedAt(LocalDateTime.now());
 
@@ -3150,6 +3152,102 @@ public class AuthenticationService {
         return permissions;
     }
 
+// =========================================================
+    // GET USERS BY STATUS
+    // =========================================================
+
+    public List<Users> getUsersByStatus(
+            UserStatus status) {
+
+        return userRepository.findByStatus(status);
+    }
+
+
+    // =========================================================
+    // GET USERS BY ROLE
+    // =========================================================
+
+    public List<Users> getUsersByRole(
+            String role) {
+
+        return userRepository
+                .findByRole(role);
+    }
+
+
+    // =========================================================
+    // GET USERS BY STATUS + ROLE
+    // =========================================================
+
+    public List<Users> getUsersByStatusAndRole(
+            UserStatus status,
+            String role) {
+
+        return userRepository.findByStatusAndRole(status, role);
+    }
+    // =========================================================
+    // GET BY LOGIN STATUS
+    // =========================================================
+
+    public List<LoginHistory> getByLoginStatus(
+            LoginStatus status) {
+
+        return historyRepository
+                .findByLoginStatus(status);
+    }
+
+
+    // =========================================================
+    // GET USER LOGIN HISTORY
+    // =========================================================
+
+    public List<LoginHistory> getUserLoginHistory(
+            Long userId) {
+
+        return historyRepository
+                .findByUsersId(userId);
+    }
+
+
+    // =========================================================
+    // USER + LOGIN STATUS
+    // =========================================================
+
+    public List<LoginHistory> getUserLoginHistoryByStatus(
+            Long userId,
+            LoginStatus status) {
+
+        return historyRepository
+                .findByUsersIdAndLoginStatus(
+                        userId,
+                        status);
+    }
+
+
+    // =========================================================
+    // LOGIN HISTORY BY DATE RANGE
+    // =========================================================
+
+    public List<LoginHistory> getLoginHistoryByDateRange(
+            LocalDate fromDate,
+            LocalDate toDate) {
+
+        return historyRepository
+                .findByLoginDateBetween(
+                        fromDate,
+                        toDate);
+    }
+
+    public List<LoginHistory> searchLoginHistory(
+            String search) {
+
+        if (search == null || search.trim().isEmpty()) {
+            return historyRepository.findAll();
+        }
+
+        return historyRepository
+                .searchLoginHistory(search.trim());
+    }
 
 
 }

@@ -1,6 +1,8 @@
 package com.HRMS.QuickDines.Attendance.Service;
 
 import com.HRMS.QuickDines.Attendance.DTO.AttendanceDashboardDTO;
+import com.HRMS.QuickDines.Attendance.Entity.AttendanceStatus;
+import com.HRMS.QuickDines.Attendance.Entity.OvertimeStatus;
 import com.HRMS.QuickDines.Attendance.model.*;
 import com.HRMS.QuickDines.Attendance.repo.*;
 import com.HRMS.QuickDines.AuditLogs.Entity.ActivityStatus;
@@ -14,15 +16,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.YearMonth;
+import java.time.*;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,16 +55,11 @@ public class AttendanceService {
 
     private String getLoggedInEmployeeId() {
 
-        Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null ||
-                !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated()) {
 
-            throw new RuntimeException(
-                    "User is not authenticated");
+            throw new RuntimeException("User is not authenticated");
         }
 
         return authentication.getName();
@@ -67,7 +69,7 @@ public class AttendanceService {
 // EMPLOYEE ATTENDANCE
 //---------------------------------
 
-    public String checkIn(String employeeId ) {
+    public String checkIn(String employeeId) {
 
         com.HRMS.QuickDines.AuditLogs.model.ClientInfoDTO clientInfo = clientInfoService.getClientInfo();
 
@@ -79,24 +81,11 @@ public class AttendanceService {
         Optional<Attendance> attendanceExists = attendanceRepository.findByEmployeeIdAndCreatedAtBetween(employeeId, start, end);
 
 
-
         if (attendanceExists.isPresent()) {
             // Activity log
-            auditLogsService.logActivity(
-                    employee.getEmployeeId(),
-                    "CHECK_IN",
-                    "ATTENDANCE",
-                    "Employee attempted to check in, but attendance was already marked",
-                    ActivityStatus.FAILED,
-                    clientInfo.getIpAddress(),
-                    clientInfo.getBrowser(),
-                    clientInfo.getOperatingSystem() );
+            auditLogsService.logActivity(employee.getEmployeeId(), "CHECK_IN", "ATTENDANCE", "Employee attempted to check in, but attendance was already marked", ActivityStatus.FAILED, clientInfo.getIpAddress(), clientInfo.getBrowser(), clientInfo.getOperatingSystem());
             // System log
-            auditLogsService.logWarning(
-                    "ATTENDANCE",
-                    "AttendanceService",
-                    "Check-in failed: Attendance already marked for employee "
-                            + employeeId );
+            auditLogsService.logWarning("ATTENDANCE", "AttendanceService", "Check-in failed: Attendance already marked for employee " + employeeId);
             return "Attendance Already Marked Today";
         }
 
@@ -104,43 +93,25 @@ public class AttendanceService {
 
         attendance.setEmployee(employee);
         attendance.setLoginTime(LocalDateTime.now());
-        attendance.setAttendanceStatus("PRESENT");
+        attendance.setAttendanceStatus(AttendanceStatus.valueOf("PRESENT"));
         attendance.setRemarks("Checked In");
 
         attendanceRepository.save(attendance);
         // =====================================================
         // AUDIT LOG
         // =====================================================
-        auditLogsService.logCreate(
-                "ATTENDANCE",
-                attendance.getEmployee().getEmployeeId(),
-                employee.getEmployeeId(),
-                employee.getEmployeeId(),
-                "Employee checked in successfully" );
+        auditLogsService.logCreate("ATTENDANCE", attendance.getEmployee().getEmployeeId(), employee.getEmployeeId(), employee.getEmployeeId(), "Employee checked in successfully");
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
-        auditLogsService.logActivity(
-                employee.getEmployeeId(),
-                "CHECK_IN",
-                "ATTENDANCE",
-                "Employee checked in successfully",
-                ActivityStatus.SUCCESS,
-                clientInfo.getIpAddress(),
-                clientInfo.getBrowser(),
-                clientInfo.getOperatingSystem() );
+        auditLogsService.logActivity(employee.getEmployeeId(), "CHECK_IN", "ATTENDANCE", "Employee checked in successfully", ActivityStatus.SUCCESS, clientInfo.getIpAddress(), clientInfo.getBrowser(), clientInfo.getOperatingSystem());
         // =====================================================
         // SYSTEM LOG
         // =====================================================
-        auditLogsService.logInfo(
-                "ATTENDANCE",
-                "AttendanceService",
-                "Employee check-in completed successfully." +
-                        " Employee ID: " + employeeId );
+        auditLogsService.logInfo("ATTENDANCE", "AttendanceService", "Employee check-in completed successfully." + " Employee ID: " + employeeId);
 
         return "Check In Successful";
     }
-
 
 
     public String checkOut(String employeeId) {
@@ -148,20 +119,9 @@ public class AttendanceService {
         Attendance attendance = attendanceRepository.findTopByEmployeeIdOrderByIdDesc(employeeId).orElseThrow(() -> new RuntimeException("Attendance Record Not Found"));
         com.HRMS.QuickDines.AuditLogs.model.ClientInfoDTO clientInfo = clientInfoService.getClientInfo();
         if (attendance.getLogoutTime() != null) {
-            auditLogsService.logActivity(
-                    employee.getEmployeeId(),
-                    "CHECK_OUT",
-                    "ATTENDANCE",
-                    "Employee attempted to check out, but was already checked out",
-                    ActivityStatus.FAILED, clientInfo.getIpAddress()
-                    , clientInfo.getBrowser(),
-                    clientInfo.getOperatingSystem());
+            auditLogsService.logActivity(employee.getEmployeeId(), "CHECK_OUT", "ATTENDANCE", "Employee attempted to check out, but was already checked out", ActivityStatus.FAILED, clientInfo.getIpAddress(), clientInfo.getBrowser(), clientInfo.getOperatingSystem());
             // System log
-            auditLogsService.logWarning(
-                    "ATTENDANCE",
-                    "AttendanceService",
-                    "Check-out failed: Employee already checked out. " +
-                            "Employee ID: " + employeeId);
+            auditLogsService.logWarning("ATTENDANCE", "AttendanceService", "Check-out failed: Employee already checked out. " + "Employee ID: " + employeeId);
             return "Already Checked Out Today";
         }
 // =====================================================
@@ -172,37 +132,21 @@ public class AttendanceService {
 
         try {
 
-            oldValue = objectMapper.writeValueAsString(
-                    Map.of(
-                            "id", attendance.getId(),
-                            "employeeId",
-                            attendance.getEmployee() != null
-                                    ? attendance.getEmployee().getEmployeeId()
-                                    : null,
+            oldValue = objectMapper.writeValueAsString(Map.of("id", attendance.getId(), "employeeId", attendance.getEmployee() != null ? attendance.getEmployee().getEmployeeId() : null,
 
-                            "loginTime",
-                            attendance.getLoginTime(),
+                    "loginTime", attendance.getLoginTime(),
 
-                            "logoutTime",
-                            attendance.getLogoutTime(),
+                    "logoutTime", attendance.getLogoutTime(),
 
-                            "attendanceStatus",
-                            attendance.getAttendanceStatus(),
+                    "attendanceStatus", attendance.getAttendanceStatus(),
 
-                            "totalHours",
-                            attendance.getTotalHours(),
+                    "totalHours", attendance.getTotalHours(),
 
-                            "remarks",
-                            attendance.getRemarks()
-                    )
-            );
+                    "remarks", attendance.getRemarks()));
 
         } catch (JsonProcessingException e) {
 
-            throw new RuntimeException(
-                    "Unable to create old attendance JSON",
-                    e
-            );
+            throw new RuntimeException("Unable to create old attendance JSON", e);
         }
 
 // =====================================================
@@ -210,15 +154,8 @@ public class AttendanceService {
 // =====================================================
 
 
-
-
-
-
         attendance.setLogoutTime(LocalDateTime.now());
-        double totalHours = Duration.between(
-                        attendance.getLoginTime(),
-                        attendance.getLogoutTime())
-                .toMinutes() / 60.0;
+        double totalHours = Duration.between(attendance.getLoginTime(), attendance.getLogoutTime()).toMinutes() / 60.0;
 
         attendance.setTotalHours(BigDecimal.valueOf(totalHours));
         attendance.setRemarks("Checked Out");
@@ -227,68 +164,35 @@ public class AttendanceService {
 
         try {
 
-            newValue = objectMapper.writeValueAsString(
-                    Map.of(
-                            "id", attendance.getId(),
-                            "employeeId",
-                            attendance.getEmployee() != null
-                                    ? attendance.getEmployee().getEmployeeId()
-                                    : null,
+            newValue = objectMapper.writeValueAsString(Map.of("id", attendance.getId(), "employeeId", attendance.getEmployee() != null ? attendance.getEmployee().getEmployeeId() : null,
 
-                            "loginTime",
-                            attendance.getLoginTime(),
+                    "loginTime", attendance.getLoginTime(),
 
-                            "logoutTime",
-                            attendance.getLogoutTime(),
+                    "logoutTime", attendance.getLogoutTime(),
 
-                            "attendanceStatus",
-                            attendance.getAttendanceStatus(),
+                    "attendanceStatus", attendance.getAttendanceStatus(),
 
-                            "totalHours",
-                            attendance.getTotalHours(),
+                    "totalHours", attendance.getTotalHours(),
 
-                            "remarks",
-                            attendance.getRemarks()
-                    )
-            );
+                    "remarks", attendance.getRemarks()));
 
         } catch (JsonProcessingException e) {
 
-            throw new RuntimeException(
-                    "Unable to create new attendance JSON",
-                    e
-            );
+            throw new RuntimeException("Unable to create new attendance JSON", e);
         }
 
         // =====================================================
         // AUDIT LOG
         // =====================================================
-        auditLogsService.logUpdate(
-                "ATTENDANCE",
-                String.valueOf(attendance.getId()),
-                employee.getEmployeeId(),
-                employee.getEmployeeId(),
-                "Employee checked out successfully",
-                oldValue,
-                newValue );
+        auditLogsService.logUpdate("ATTENDANCE", String.valueOf(attendance.getId()), employee.getEmployeeId(), employee.getEmployeeId(), "Employee checked out successfully", oldValue, newValue);
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
-        auditLogsService.logActivity(
-                employee.getEmployeeId(),
-                "CHECK_OUT",
-                "ATTENDANCE",
-                "Employee checked out successfully. " +
-                        "Total hours: " + totalHours, ActivityStatus.SUCCESS,
-                clientInfo.getIpAddress(), clientInfo.getBrowser(), clientInfo.getOperatingSystem() );
+        auditLogsService.logActivity(employee.getEmployeeId(), "CHECK_OUT", "ATTENDANCE", "Employee checked out successfully. " + "Total hours: " + totalHours, ActivityStatus.SUCCESS, clientInfo.getIpAddress(), clientInfo.getBrowser(), clientInfo.getOperatingSystem());
         // =====================================================
         // SYSTEM LOG
         // =====================================================
-        auditLogsService.logInfo(
-                "ATTENDANCE",
-                "AttendanceService",
-                "Employee check-out completed successfully." +
-                        " Employee ID: " + employeeId + ", Total hours: " + totalHours );
+        auditLogsService.logInfo("ATTENDANCE", "AttendanceService", "Employee check-out completed successfully." + " Employee ID: " + employeeId + ", Total hours: " + totalHours);
 
         return "Check Out Successful";
     }
@@ -296,43 +200,24 @@ public class AttendanceService {
 
     public List<Attendance> getAttendance(String employeeId) {
         com.HRMS.QuickDines.AuditLogs.model.ClientInfoDTO clientInfo = clientInfoService.getClientInfo();
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() ->
-                        new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
-        List<Attendance> attendanceList =
-                attendanceRepository.findByEmployeeId(employeeId);
+        List<Attendance> attendanceList = attendanceRepository.findByEmployeeId(employeeId);
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                employee.getEmployeeId(),
-                "VIEW_ATTENDANCE",
-                "ATTENDANCE",
-                "Employee attendance records viewed",
-                ActivityStatus.SUCCESS,
-                clientInfo.getIpAddress(),
-                clientInfo.getBrowser(),
-                clientInfo.getOperatingSystem()
-        );
+        auditLogsService.logActivity(employee.getEmployeeId(), "VIEW_ATTENDANCE", "ATTENDANCE", "Employee attendance records viewed", ActivityStatus.SUCCESS, clientInfo.getIpAddress(), clientInfo.getBrowser(), clientInfo.getOperatingSystem());
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "ATTENDANCE",
-                "AttendanceService",
-                "Attendance records retrieved successfully. Employee ID: "
-                        + employeeId
-        );
+        auditLogsService.logInfo("ATTENDANCE", "AttendanceService", "Attendance records retrieved successfully. Employee ID: " + employeeId);
 
         return attendanceList;
     }
-
-
 
 
 //---------------------------------
@@ -344,33 +229,19 @@ public class AttendanceService {
 
     public List<Attendance> getAllAttendance() {
         String performedBy = getLoggedInEmployeeId();
-        List<Attendance> attendanceList =
-                attendanceRepository.findAll();
+        List<Attendance> attendanceList = attendanceRepository.findAll();
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                performedBy,
-                "VIEW_ALL_ATTENDANCE",
-                "ATTENDANCE",
-                "All attendance records viewed",
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "VIEW_ALL_ATTENDANCE", "ATTENDANCE", "All attendance records viewed", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "ATTENDANCE",
-                "AttendanceService",
-                "All attendance records retrieved successfully"
-        );
+        auditLogsService.logInfo("ATTENDANCE", "AttendanceService", "All attendance records retrieved successfully");
 
         return attendanceList;
     }
@@ -380,41 +251,25 @@ public class AttendanceService {
 // UPDATE ATTENDANCE
 // =========================================================
 
-    public String updateAttendance(
-            Long attendanceId,
-            Attendance attendance) {
+    public String updateAttendance(Long attendanceId, Attendance attendance) {
 
-        Attendance existingAttendance =
-                attendanceRepository.findById(attendanceId)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Attendance Not Found"));
+        Attendance existingAttendance = attendanceRepository.findById(attendanceId).orElseThrow(() -> new RuntimeException("Attendance Not Found"));
 
-        existingAttendance.setLoginTime(
-                attendance.getLoginTime());
+        existingAttendance.setLoginTime(attendance.getLoginTime());
 
-        existingAttendance.setLogoutTime(
-                attendance.getLogoutTime());
+        existingAttendance.setLogoutTime(attendance.getLogoutTime());
 
-        existingAttendance.setAttendanceStatus(
-                attendance.getAttendanceStatus());
+        existingAttendance.setAttendanceStatus(attendance.getAttendanceStatus());
 
-        existingAttendance.setRemarks(
-                attendance.getRemarks());
+        existingAttendance.setRemarks(attendance.getRemarks());
 
         // Calculate Total Working Hours
 
-        if (attendance.getLoginTime() != null &&
-                attendance.getLogoutTime() != null) {
+        if (attendance.getLoginTime() != null && attendance.getLogoutTime() != null) {
 
-            double totalHours =
-                    Duration.between(
-                                    attendance.getLoginTime(),
-                                    attendance.getLogoutTime())
-                            .toMinutes() / 60.0;
+            double totalHours = Duration.between(attendance.getLoginTime(), attendance.getLogoutTime()).toMinutes() / 60.0;
 
-            existingAttendance.setTotalHours(
-                    BigDecimal.valueOf(totalHours));
+            existingAttendance.setTotalHours(BigDecimal.valueOf(totalHours));
         }
 
         attendanceRepository.save(existingAttendance);
@@ -431,36 +286,21 @@ public class AttendanceService {
 
         try {
 
-            oldValue = objectMapper.writeValueAsString(
-                    Map.of(
-                            "id", existingAttendance.getId(),
-                            "employeeId",
-                            existingAttendance.getEmployee() != null
-                                    ? existingAttendance.getEmployee().getEmployeeId()
-                                    : null,
+            oldValue = objectMapper.writeValueAsString(Map.of("id", existingAttendance.getId(), "employeeId", existingAttendance.getEmployee() != null ? existingAttendance.getEmployee().getEmployeeId() : null,
 
-                            "loginTime",
-                            existingAttendance.getLoginTime(),
+                    "loginTime", existingAttendance.getLoginTime(),
 
-                            "logoutTime",
-                            existingAttendance.getLogoutTime(),
+                    "logoutTime", existingAttendance.getLogoutTime(),
 
-                            "attendanceStatus",
-                            existingAttendance.getAttendanceStatus(),
+                    "attendanceStatus", existingAttendance.getAttendanceStatus(),
 
-                            "totalHours",
-                            existingAttendance.getTotalHours(),
+                    "totalHours", existingAttendance.getTotalHours(),
 
-                            "remarks",
-                            existingAttendance.getRemarks()
-                    )
-            );
+                    "remarks", existingAttendance.getRemarks()));
 
         } catch (JsonProcessingException e) {
 
-            throw new RuntimeException(
-                    "Unable to create old attendance JSON", e
-            );
+            throw new RuntimeException("Unable to create old attendance JSON", e);
         }
 // =====================================================
 // NEW ATTENDANCE DATA
@@ -470,78 +310,39 @@ public class AttendanceService {
 
         try {
 
-            newValue = objectMapper.writeValueAsString(
-                    Map.of(
-                            "id", existingAttendance.getId(),
-                            "employeeId",
-                            existingAttendance.getEmployee() != null
-                                    ? existingAttendance.getEmployee().getEmployeeId()
-                                    : null,
+            newValue = objectMapper.writeValueAsString(Map.of("id", existingAttendance.getId(), "employeeId", existingAttendance.getEmployee() != null ? existingAttendance.getEmployee().getEmployeeId() : null,
 
-                            "loginTime",
-                            existingAttendance.getLoginTime(),
+                    "loginTime", existingAttendance.getLoginTime(),
 
-                            "logoutTime",
-                            existingAttendance.getLogoutTime(),
+                    "logoutTime", existingAttendance.getLogoutTime(),
 
-                            "attendanceStatus",
-                            existingAttendance.getAttendanceStatus(),
+                    "attendanceStatus", existingAttendance.getAttendanceStatus(),
 
-                            "totalHours",
-                            existingAttendance.getTotalHours(),
+                    "totalHours", existingAttendance.getTotalHours(),
 
-                            "remarks",
-                            existingAttendance.getRemarks()
-                    )
-            );
+                    "remarks", existingAttendance.getRemarks()));
 
         } catch (JsonProcessingException e) {
 
-            throw new RuntimeException(
-                    "Unable to create new attendance JSON",
-                    e
-            );
+            throw new RuntimeException("Unable to create new attendance JSON", e);
         }
 
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logUpdate(
-                "ATTENDANCE",
-                existingAttendance.getId().toString(),
-                performedBy,
-                attendance.getEmployee().getEmployeeId(),
-                "Attendance updated successfully",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("ATTENDANCE", existingAttendance.getId().toString(), performedBy, attendance.getEmployee().getEmployeeId(), "Attendance updated successfully", oldValue, newValue);
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                attendance.getEmployee().getEmployeeId(),
-                "UPDATE_ATTENDANCE",
-                "ATTENDANCE",
-                "Attendance record updated successfully. Attendance ID: "
-                        + attendanceId,
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(attendance.getEmployee().getEmployeeId(), "UPDATE_ATTENDANCE", "ATTENDANCE", "Attendance record updated successfully. Attendance ID: " + attendanceId, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "ATTENDANCE",
-                "AttendanceService",
-                "Attendance updated successfully. Attendance ID: "
-                        + attendanceId
-        );
+        auditLogsService.logInfo("ATTENDANCE", "AttendanceService", "Attendance updated successfully. Attendance ID: " + attendanceId);
 
         return "Attendance Updated Successfully";
     }
@@ -551,66 +352,35 @@ public class AttendanceService {
 // DELETE ATTENDANCE
 // =========================================================
 
-    public String deleteAttendance(
-            Long attendanceId) {
+    public String deleteAttendance(Long attendanceId) {
 
-        Attendance attendance =
-                attendanceRepository.findById(attendanceId)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Attendance Not Found"));
+        Attendance attendance = attendanceRepository.findById(attendanceId).orElseThrow(() -> new RuntimeException("Attendance Not Found"));
 
         attendanceRepository.delete(attendance);
-
-
-
 
 
         // =====================================================
         // AUDIT LOG
         // =====================================================
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logDelete(
-                "ATTENDANCE",
-                attendance.getId().toString(),
-                performedBy,
-                attendance.getEmployee().getEmployeeId(),
-                "Attendance deleted successfully"
-        );
+        auditLogsService.logDelete("ATTENDANCE", attendance.getId().toString(), performedBy, attendance.getEmployee().getEmployeeId(), "Attendance deleted successfully");
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                attendance.getEmployee().getEmployeeId(),
-                "DELETE_ATTENDANCE",
-                "ATTENDANCE",
-                "Attendance record deleted successfully. Attendance ID: "
-                        + attendanceId,
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(attendance.getEmployee().getEmployeeId(), "DELETE_ATTENDANCE", "ATTENDANCE", "Attendance record deleted successfully. Attendance ID: " + attendanceId, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "ATTENDANCE",
-                "AttendanceService",
-                "Attendance deleted successfully. Attendance ID: "
-                        + attendanceId
-        );
+        auditLogsService.logInfo("ATTENDANCE", "AttendanceService", "Attendance deleted successfully. Attendance ID: " + attendanceId);
 
         return "Attendance Deleted Successfully";
     }
-
-
 
 
 //---------------------------------
@@ -646,12 +416,11 @@ public class AttendanceService {
 
     public String markLeave(String employeeId) {
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() ->
-                        new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
         Attendance attendance = new Attendance();
         attendance.setEmployee(employee);
-        attendance.setAttendanceStatus("LEAVE");
+        attendance.setAttendanceStatus(AttendanceStatus.valueOf("LEAVE"));
         attendance.setRemarks("Approved Leave");
         attendance.setTotalHours(BigDecimal.valueOf(0.0));
 
@@ -659,7 +428,6 @@ public class AttendanceService {
 
         return "Leave Marked Successfully";
     }
-
 
 
     //---------------------------------
@@ -675,56 +443,28 @@ public class AttendanceService {
 
         try {
 
-            Object report = attendanceReportsRepository
-                            .findByEmployeeId(employeeId);
+            Object report = attendanceReportsRepository.findByEmployeeId(employeeId);
 
 
             // =====================================================
             // AUDIT LOG
             // =====================================================
 
-            auditLogsService.createAuditLog(
-                    "ATTENDANCE",
-                    null,
-                    AuditActionType.LOGIN,
-                    performedBy,
-                    employeeId,
-                    "Attendance report viewed successfully",
-                    null,
-                    null,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser()
-                            + " | "
-                            + clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.createAuditLog("ATTENDANCE", null, AuditActionType.LOGIN, performedBy, employeeId, "Attendance report viewed successfully", null, null, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser() + " | " + clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // ACTIVITY LOG
             // =====================================================
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "VIEW_ATTENDANCE_REPORT",
-                    "ATTENDANCE",
-                    "Employee attendance report viewed successfully",
-                    ActivityStatus.SUCCESS,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "VIEW_ATTENDANCE_REPORT", "ATTENDANCE", "Employee attendance report viewed successfully", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // SYSTEM LOG
             // =====================================================
 
-            auditLogsService.logInfo(
-                    "ATTENDANCE",
-                    "AttendanceReportsService",
-                    "Attendance report viewed successfully. Employee ID: "
-                            + employeeId
-            );
+            auditLogsService.logInfo("ATTENDANCE", "AttendanceReportsService", "Attendance report viewed successfully. Employee ID: " + employeeId);
 
 
             return report;
@@ -735,32 +475,14 @@ public class AttendanceService {
             // ACTIVITY FAILED LOG
             // =====================================================
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "VIEW_ATTENDANCE_REPORT",
-                    "ATTENDANCE",
-                    "Failed to retrieve attendance report. Employee ID: "
-                            + employeeId
-                            + ". Error: "
-                            + e.getMessage(),
-                    ActivityStatus.FAILED,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "VIEW_ATTENDANCE_REPORT", "ATTENDANCE", "Failed to retrieve attendance report. Employee ID: " + employeeId + ". Error: " + e.getMessage(), ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // SYSTEM ERROR LOG
             // =====================================================
 
-            auditLogsService.logError(
-                    "ATTENDANCE",
-                    "AttendanceReportsService",
-                    "Failed to retrieve attendance report. Employee ID: "
-                            + employeeId,
-                    e.toString()
-            );
+            auditLogsService.logError("ATTENDANCE", "AttendanceReportsService", "Failed to retrieve attendance report. Employee ID: " + employeeId, e.toString());
 
             throw e;
         }
@@ -775,70 +497,32 @@ public class AttendanceService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        String currentMonth =
-                YearMonth.now().toString();
+        String currentMonth = YearMonth.now().toString();
 
         try {
 
-            Object report =
-                    attendanceReportsRepository
-                            .findByEmployeeIdAndMonth(
-                                    employeeId,
-                                    currentMonth
-                            );
+            Object report = attendanceReportsRepository.findByEmployeeIdAndMonth(employeeId, currentMonth);
 
 
             // =====================================================
             // AUDIT LOG
             // =====================================================
 
-            auditLogsService.createAuditLog(
-                    "ATTENDANCE",
-                    null,
-                    AuditActionType.LOGIN,
-                    performedBy,
-                    employeeId,
-                    "Monthly attendance report viewed successfully. Month: "
-                            + currentMonth,
-                    null,
-                    null,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser()
-                            + " | "
-                            + clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.createAuditLog("ATTENDANCE", null, AuditActionType.LOGIN, performedBy, employeeId, "Monthly attendance report viewed successfully. Month: " + currentMonth, null, null, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser() + " | " + clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // ACTIVITY LOG
             // =====================================================
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "VIEW_MONTHLY_ATTENDANCE_REPORT",
-                    "ATTENDANCE",
-                    "Monthly attendance report viewed successfully. Month: "
-                            + currentMonth,
-                    ActivityStatus.SUCCESS,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "VIEW_MONTHLY_ATTENDANCE_REPORT", "ATTENDANCE", "Monthly attendance report viewed successfully. Month: " + currentMonth, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // SYSTEM LOG
             // =====================================================
 
-            auditLogsService.logInfo(
-                    "ATTENDANCE",
-                    "AttendanceReportsService",
-                    "Monthly attendance report viewed successfully. "
-                            + "Employee ID: "
-                            + employeeId
-                            + ", Month: "
-                            + currentMonth
-            );
+            auditLogsService.logInfo("ATTENDANCE", "AttendanceReportsService", "Monthly attendance report viewed successfully. " + "Employee ID: " + employeeId + ", Month: " + currentMonth);
 
 
             return report;
@@ -849,44 +533,18 @@ public class AttendanceService {
             // ACTIVITY FAILED LOG
             // =====================================================
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "VIEW_MONTHLY_ATTENDANCE_REPORT",
-                    "ATTENDANCE",
-                    "Failed to retrieve monthly attendance report. "
-                            + "Employee ID: "
-                            + employeeId
-                            + ", Month: "
-                            + currentMonth
-                            + ", Error: "
-                            + e.getMessage(),
-                    ActivityStatus.FAILED,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "VIEW_MONTHLY_ATTENDANCE_REPORT", "ATTENDANCE", "Failed to retrieve monthly attendance report. " + "Employee ID: " + employeeId + ", Month: " + currentMonth + ", Error: " + e.getMessage(), ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // SYSTEM ERROR LOG
             // =====================================================
 
-            auditLogsService.logError(
-                    "ATTENDANCE",
-                    "AttendanceReportsService",
-                    "Failed to retrieve monthly attendance report. "
-                            + "Employee ID: "
-                            + employeeId
-                            + ", Month: "
-                            + currentMonth,
-                    e.toString()
-            );
+            auditLogsService.logError("ATTENDANCE", "AttendanceReportsService", "Failed to retrieve monthly attendance report. " + "Employee ID: " + employeeId + ", Month: " + currentMonth, e.toString());
 
             throw e;
         }
     }
-
-
 
 
 //---------------------------------
@@ -899,101 +557,50 @@ public class AttendanceService {
 
         try {
 
-            Object workingHours =
-                    workingHoursRepository.findByEmployeeId(employeeId);
+            Object workingHours = workingHoursRepository.findByEmployeeId(employeeId);
 
 
             // =====================================================
             // AUDIT LOG
             // =====================================================
 
-            auditLogsService.createAuditLog(
-                    "WORKING_HOURS",
-                    null,
-                    AuditActionType.VIEW,
-                    performedBy,
-                    employeeId,
-                    "Working hours viewed successfully",
-                    null,
-                    null,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser()
-                            + " | "
-                            + clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.createAuditLog("WORKING_HOURS", null, AuditActionType.VIEW, performedBy, employeeId, "Working hours viewed successfully", null, null, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser() + " | " + clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // ACTIVITY LOG
             // =====================================================
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "VIEW_WORKING_HOURS",
-                    "WORKING_HOURS",
-                    "Working hours viewed successfully",
-                    ActivityStatus.SUCCESS,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "VIEW_WORKING_HOURS", "WORKING_HOURS", "Working hours viewed successfully", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // SYSTEM LOG
             // =====================================================
 
-            auditLogsService.logInfo(
-                    "WORKING_HOURS",
-                    "AttendanceService",
-                    "Working hours viewed successfully. Employee ID: "
-                            + employeeId
-            );
+            auditLogsService.logInfo("WORKING_HOURS", "AttendanceService", "Working hours viewed successfully. Employee ID: " + employeeId);
 
 
             return workingHours;
 
         } catch (Exception e) {
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "VIEW_WORKING_HOURS",
-                    "WORKING_HOURS",
-                    "Failed to retrieve working hours. Employee ID: "
-                            + employeeId
-                            + ". Error: "
-                            + e.getMessage(),
-                    ActivityStatus.FAILED,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "VIEW_WORKING_HOURS", "WORKING_HOURS", "Failed to retrieve working hours. Employee ID: " + employeeId + ". Error: " + e.getMessage(), ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-            auditLogsService.logError(
-                    "WORKING_HOURS",
-                    "AttendanceService",
-                    "Failed to retrieve working hours. Employee ID: "
-                            + employeeId,
-                    e.toString()
-            );
+            auditLogsService.logError("WORKING_HOURS", "AttendanceService", "Failed to retrieve working hours. Employee ID: " + employeeId, e.toString());
 
             throw e;
         }
     }
 
 
-    public String updateWorkingHours(
-            String employeeId,
-            WorkingHours workingHours) {
+    public String updateWorkingHours(String employeeId, WorkingHours workingHours) {
 
         String performedBy = getLoggedInEmployeeId();
 
         try {
 
-            WorkingHours existingWorkingHours =
-                    (WorkingHours)
-                            workingHoursRepository
-                                    .findByEmployeeId(employeeId);
+            WorkingHours existingWorkingHours = (WorkingHours) workingHoursRepository.findByEmployeeId(employeeId);
 
 
             // =====================================================
@@ -1004,53 +611,34 @@ public class AttendanceService {
 
             try {
 
-                oldValue = objectMapper.writeValueAsString(
-                        Map.of(
-                                "employeeId", employeeId,
-                                "expectedHours",
-                                existingWorkingHours.getExpectedHours(),
+                oldValue = objectMapper.writeValueAsString(Map.of("employeeId", employeeId, "expectedHours", existingWorkingHours.getExpectedHours(),
 
-                                "completedHours",
-                                existingWorkingHours.getCompletedHours(),
+                        "completedHours", existingWorkingHours.getCompletedHours(),
 
-                                "overtimeHours",
-                                existingWorkingHours.getOvertimeHours(),
+                        "overtimeHours", existingWorkingHours.getOvertimeHours(),
 
-                                "breakHours",
-                                existingWorkingHours.getBreakHours(),
+                        "breakHours", existingWorkingHours.getBreakHours(),
 
-                                "status",
-                                existingWorkingHours.getStatus()
-                        )
-                );
+                        "status", existingWorkingHours.getStatus()));
 
             } catch (JsonProcessingException e) {
 
-                throw new RuntimeException(
-                        "Unable to create old working hours JSON",
-                        e
-                );
+                throw new RuntimeException("Unable to create old working hours JSON", e);
             }
 
 
-            existingWorkingHours.setExpectedHours(
-                    workingHours.getExpectedHours());
+            existingWorkingHours.setExpectedHours(workingHours.getExpectedHours());
 
-            existingWorkingHours.setCompletedHours(
-                    workingHours.getCompletedHours());
+            existingWorkingHours.setCompletedHours(workingHours.getCompletedHours());
 
-            existingWorkingHours.setOvertimeHours(
-                    workingHours.getOvertimeHours());
+            existingWorkingHours.setOvertimeHours(workingHours.getOvertimeHours());
 
-            existingWorkingHours.setBreakHours(
-                    workingHours.getBreakHours());
+            existingWorkingHours.setBreakHours(workingHours.getBreakHours());
 
-            existingWorkingHours.setStatus(
-                    workingHours.getStatus());
+            existingWorkingHours.setStatus(workingHours.getStatus());
 
 
-            workingHoursRepository.save(
-                    existingWorkingHours);
+            workingHoursRepository.save(existingWorkingHours);
 
 
             // =====================================================
@@ -1061,32 +649,19 @@ public class AttendanceService {
 
             try {
 
-                newValue = objectMapper.writeValueAsString(
-                        Map.of(
-                                "employeeId", employeeId,
-                                "expectedHours",
-                                existingWorkingHours.getExpectedHours(),
+                newValue = objectMapper.writeValueAsString(Map.of("employeeId", employeeId, "expectedHours", existingWorkingHours.getExpectedHours(),
 
-                                "completedHours",
-                                existingWorkingHours.getCompletedHours(),
+                        "completedHours", existingWorkingHours.getCompletedHours(),
 
-                                "overtimeHours",
-                                existingWorkingHours.getOvertimeHours(),
+                        "overtimeHours", existingWorkingHours.getOvertimeHours(),
 
-                                "breakHours",
-                                existingWorkingHours.getBreakHours(),
+                        "breakHours", existingWorkingHours.getBreakHours(),
 
-                                "status",
-                                existingWorkingHours.getStatus()
-                        )
-                );
+                        "status", existingWorkingHours.getStatus()));
 
             } catch (JsonProcessingException e) {
 
-                throw new RuntimeException(
-                        "Unable to create new working hours JSON",
-                        e
-                );
+                throw new RuntimeException("Unable to create new working hours JSON", e);
             }
 
 
@@ -1094,70 +669,30 @@ public class AttendanceService {
             // AUDIT LOG
             // =====================================================
 
-            auditLogsService.logUpdate(
-                    "WORKING_HOURS",
-                    String.valueOf(existingWorkingHours.getId()),
-                    performedBy,
-                    employeeId,
-                    "Working hours updated successfully",
-                    oldValue,
-                    newValue
-            );
+            auditLogsService.logUpdate("WORKING_HOURS", String.valueOf(existingWorkingHours.getId()), performedBy, employeeId, "Working hours updated successfully", oldValue, newValue);
 
 
             // =====================================================
             // ACTIVITY LOG
             // =====================================================
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "UPDATE_WORKING_HOURS",
-                    "WORKING_HOURS",
-                    "Working hours updated successfully",
-                    ActivityStatus.SUCCESS,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "UPDATE_WORKING_HOURS", "WORKING_HOURS", "Working hours updated successfully", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // SYSTEM LOG
             // =====================================================
 
-            auditLogsService.logInfo(
-                    "WORKING_HOURS",
-                    "AttendanceService",
-                    "Working hours updated successfully. Employee ID: "
-                            + employeeId
-            );
+            auditLogsService.logInfo("WORKING_HOURS", "AttendanceService", "Working hours updated successfully. Employee ID: " + employeeId);
 
 
             return "Working Hours Updated Successfully";
 
         } catch (Exception e) {
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "UPDATE_WORKING_HOURS",
-                    "WORKING_HOURS",
-                    "Failed to update working hours. Employee ID: "
-                            + employeeId
-                            + ". Error: "
-                            + e.getMessage(),
-                    ActivityStatus.FAILED,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "UPDATE_WORKING_HOURS", "WORKING_HOURS", "Failed to update working hours. Employee ID: " + employeeId + ". Error: " + e.getMessage(), ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-            auditLogsService.logError(
-                    "WORKING_HOURS",
-                    "AttendanceService",
-                    "Failed to update working hours. Employee ID: "
-                            + employeeId,
-                    e.toString()
-            );
+            auditLogsService.logError("WORKING_HOURS", "AttendanceService", "Failed to update working hours. Employee ID: " + employeeId, e.toString());
 
             throw e;
         }
@@ -1168,404 +703,200 @@ public class AttendanceService {
 // GPS TRACKING
 //---------------------------------
 
-    public String gpsLogin(
-            String employeeId,
-            GpsTracking gpsTracking) {
+    public String gpsLogin(String employeeId, GpsTracking gpsTracking) {
 
         String performedBy = getLoggedInEmployeeId();
 
         try {
 
-            Employee employee =
-                    employeeRepository.findById(employeeId)
-                            .orElseThrow(() ->
-                                    new RuntimeException(
-                                            "Employee Not Found"));
+            Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
 
             gpsTracking.setEmployee(employee);
 
-            gpsTracking.setTrackingStatus(
-                    "ACTIVE");
+            gpsTracking.setTrackingStatus("ACTIVE");
 
-            gpsTrackingRepository.save(
-                    gpsTracking);
+            gpsTrackingRepository.save(gpsTracking);
 
 
             // =====================================================
             // AUDIT LOG
             // =====================================================
 
-            auditLogsService.createAuditLog(
-                    "GPS_TRACKING",
-                    String.valueOf(gpsTracking.getId()),
-                    AuditActionType.CREATE,
-                    performedBy,
-                    employeeId,
-                    "GPS login tracking started successfully",
-                    null,
-                    null,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser()
-                            + " | "
-                            + clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.createAuditLog("GPS_TRACKING", String.valueOf(gpsTracking.getId()), AuditActionType.CREATE, performedBy, employeeId, "GPS login tracking started successfully", null, null, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser() + " | " + clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // ACTIVITY LOG
             // =====================================================
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "GPS_LOGIN",
-                    "GPS_TRACKING",
-                    "GPS tracking started successfully",
-                    ActivityStatus.SUCCESS,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "GPS_LOGIN", "GPS_TRACKING", "GPS tracking started successfully", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // SYSTEM LOG
             // =====================================================
 
-            auditLogsService.logInfo(
-                    "GPS_TRACKING",
-                    "AttendanceService",
-                    "GPS login successful. Employee ID: "
-                            + employeeId
-            );
+            auditLogsService.logInfo("GPS_TRACKING", "AttendanceService", "GPS login successful. Employee ID: " + employeeId);
 
 
             return "GPS Login Successful";
 
         } catch (Exception e) {
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "GPS_LOGIN",
-                    "GPS_TRACKING",
-                    "GPS login failed. Employee ID: "
-                            + employeeId
-                            + ". Error: "
-                            + e.getMessage(),
-                    ActivityStatus.FAILED,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "GPS_LOGIN", "GPS_TRACKING", "GPS login failed. Employee ID: " + employeeId + ". Error: " + e.getMessage(), ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-            auditLogsService.logError(
-                    "GPS_TRACKING",
-                    "AttendanceService",
-                    "GPS login failed. Employee ID: "
-                            + employeeId,
-                    e.toString()
-            );
+            auditLogsService.logError("GPS_TRACKING", "AttendanceService", "GPS login failed. Employee ID: " + employeeId, e.toString());
 
             throw e;
         }
     }
 
 
-    public String gpsLogout(
-            String employeeId,
-            GpsTracking gpsTracking) {
+    public String gpsLogout(String employeeId, GpsTracking gpsTracking) {
 
         String performedBy = getLoggedInEmployeeId();
 
         try {
 
-            GpsTracking existingGps =
-                    gpsTrackingRepository
-                            .findTopByEmployeeIdOrderByIdDesc(
-                                    Long.valueOf(employeeId))
-                            .orElseThrow(() ->
-                                    new RuntimeException(
-                                            "GPS Record Not Found"));
+            GpsTracking existingGps = gpsTrackingRepository.findTopByEmployeeIdOrderByIdDesc(Long.valueOf(employeeId)).orElseThrow(() -> new RuntimeException("GPS Record Not Found"));
 
 
-            existingGps.setLogoutLocation(
-                    gpsTracking.getLogoutLocation());
+            existingGps.setLogoutLocation(gpsTracking.getLogoutLocation());
 
-            existingGps.setLatitude(
-                    gpsTracking.getLatitude());
+            existingGps.setLatitude(gpsTracking.getLatitude());
 
-            existingGps.setLongitude(
-                    gpsTracking.getLongitude());
+            existingGps.setLongitude(gpsTracking.getLongitude());
 
-            existingGps.setTrackingStatus(
-                    "INACTIVE");
+            existingGps.setTrackingStatus("INACTIVE");
 
 
-            gpsTrackingRepository.save(
-                    existingGps);
+            gpsTrackingRepository.save(existingGps);
 
 
             // =====================================================
             // AUDIT LOG
             // =====================================================
 
-            auditLogsService.logUpdate(
-                    "GPS_TRACKING",
-                    String.valueOf(existingGps.getId()),
-                    performedBy,
-                    employeeId,
-                    "GPS logout completed successfully",
-                    null,
-                    null
-            );
+            auditLogsService.logUpdate("GPS_TRACKING", String.valueOf(existingGps.getId()), performedBy, employeeId, "GPS logout completed successfully", null, null);
 
 
             // =====================================================
             // ACTIVITY LOG
             // =====================================================
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "GPS_LOGOUT",
-                    "GPS_TRACKING",
-                    "GPS tracking stopped successfully",
-                    ActivityStatus.SUCCESS,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "GPS_LOGOUT", "GPS_TRACKING", "GPS tracking stopped successfully", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // SYSTEM LOG
             // =====================================================
 
-            auditLogsService.logInfo(
-                    "GPS_TRACKING",
-                    "AttendanceService",
-                    "GPS logout successful. Employee ID: "
-                            + employeeId
-            );
+            auditLogsService.logInfo("GPS_TRACKING", "AttendanceService", "GPS logout successful. Employee ID: " + employeeId);
 
 
             return "GPS Logout Successful";
 
         } catch (Exception e) {
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "GPS_LOGOUT",
-                    "GPS_TRACKING",
-                    "GPS logout failed. Employee ID: "
-                            + employeeId
-                            + ". Error: "
-                            + e.getMessage(),
-                    ActivityStatus.FAILED,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "GPS_LOGOUT", "GPS_TRACKING", "GPS logout failed. Employee ID: " + employeeId + ". Error: " + e.getMessage(), ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-            auditLogsService.logError(
-                    "GPS_TRACKING",
-                    "AttendanceService",
-                    "GPS logout failed. Employee ID: "
-                            + employeeId,
-                    e.toString()
-            );
+            auditLogsService.logError("GPS_TRACKING", "AttendanceService", "GPS logout failed. Employee ID: " + employeeId, e.toString());
 
             throw e;
         }
     }
 
 
-    public Object getGps(
-            String employeeId) {
+    public Object getGps(String employeeId) {
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
         try {
 
-            Object gps =
-                    gpsTrackingRepository
-                            .findByEmployeeId(employeeId);
+            Object gps = gpsTrackingRepository.findByEmployeeId(employeeId);
 
 
             // =====================================================
             // AUDIT LOG
             // =====================================================
 
-            auditLogsService.createAuditLog(
-                    "GPS_TRACKING",
-                    null,
-                    AuditActionType.VIEW,
-                    performedBy,
-                    employeeId,
-                    "GPS tracking records viewed successfully",
-                    null,
-                    null,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser()
-                            + " | "
-                            + clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.createAuditLog("GPS_TRACKING", null, AuditActionType.VIEW, performedBy, employeeId, "GPS tracking records viewed successfully", null, null, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser() + " | " + clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // ACTIVITY LOG
             // =====================================================
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "VIEW_GPS",
-                    "GPS_TRACKING",
-                    "GPS tracking records viewed successfully",
-                    ActivityStatus.SUCCESS,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "VIEW_GPS", "GPS_TRACKING", "GPS tracking records viewed successfully", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // SYSTEM LOG
             // =====================================================
 
-            auditLogsService.logInfo(
-                    "GPS_TRACKING",
-                    "AttendanceService",
-                    "GPS tracking records viewed successfully. Employee ID: "
-                            + employeeId
-            );
+            auditLogsService.logInfo("GPS_TRACKING", "AttendanceService", "GPS tracking records viewed successfully. Employee ID: " + employeeId);
 
 
             return gps;
 
         } catch (Exception e) {
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "VIEW_GPS",
-                    "GPS_TRACKING",
-                    "Failed to retrieve GPS tracking records. Employee ID: "
-                            + employeeId,
-                    ActivityStatus.FAILED,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "VIEW_GPS", "GPS_TRACKING", "Failed to retrieve GPS tracking records. Employee ID: " + employeeId, ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-            auditLogsService.logError(
-                    "GPS_TRACKING",
-                    "AttendanceService",
-                    "Failed to retrieve GPS tracking records. Employee ID: "
-                            + employeeId,
-                    e.toString()
-            );
+            auditLogsService.logError("GPS_TRACKING", "AttendanceService", "Failed to retrieve GPS tracking records. Employee ID: " + employeeId, e.toString());
 
             throw e;
         }
     }
 
 
-    public Object liveLocation(
-            String employeeId) {
+    public Object liveLocation(String employeeId) {
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
         try {
 
-            Object location =
-                    gpsTrackingRepository
-                            .findTopByEmployeeIdOrderByIdDesc(
-                                    Long.valueOf(employeeId));
+            Object location = gpsTrackingRepository.findTopByEmployeeIdOrderByIdDesc(Long.valueOf(employeeId));
 
 
             // =====================================================
             // AUDIT LOG
             // =====================================================
 
-            auditLogsService.createAuditLog(
-                    "GPS_TRACKING",
-                    null,
-                    AuditActionType.VIEW,
-                    performedBy,
-                    employeeId,
-                    "Live GPS location viewed successfully",
-                    null,
-                    null,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser()
-                            + " | "
-                            + clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.createAuditLog("GPS_TRACKING", null, AuditActionType.VIEW, performedBy, employeeId, "Live GPS location viewed successfully", null, null, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser() + " | " + clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // ACTIVITY LOG
             // =====================================================
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "VIEW_LIVE_LOCATION",
-                    "GPS_TRACKING",
-                    "Live GPS location viewed successfully",
-                    ActivityStatus.SUCCESS,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "VIEW_LIVE_LOCATION", "GPS_TRACKING", "Live GPS location viewed successfully", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             // =====================================================
             // SYSTEM LOG
             // =====================================================
 
-            auditLogsService.logInfo(
-                    "GPS_TRACKING",
-                    "AttendanceService",
-                    "Live GPS location viewed successfully. Employee ID: "
-                            + employeeId
-            );
+            auditLogsService.logInfo("GPS_TRACKING", "AttendanceService", "Live GPS location viewed successfully. Employee ID: " + employeeId);
 
 
             return location;
 
         } catch (Exception e) {
 
-            auditLogsService.logActivity(
-                    employeeId,
-                    "VIEW_LIVE_LOCATION",
-                    "GPS_TRACKING",
-                    "Failed to retrieve live GPS location. Employee ID: "
-                            + employeeId,
-                    ActivityStatus.FAILED,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(employeeId, "VIEW_LIVE_LOCATION", "GPS_TRACKING", "Failed to retrieve live GPS location. Employee ID: " + employeeId, ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-            auditLogsService.logError(
-                    "GPS_TRACKING",
-                    "AttendanceService",
-                    "Failed to retrieve live GPS location. Employee ID: "
-                            + employeeId,
-                    e.toString()
-            );
+            auditLogsService.logError("GPS_TRACKING", "AttendanceService", "Failed to retrieve live GPS location. Employee ID: " + employeeId, e.toString());
 
             throw e;
         }
     }
 
 
-
     //=========================================
 // SHIFT MANAGEMENT
 //=========================================
-
-
 
 
 //=========================================
@@ -1574,8 +905,7 @@ public class AttendanceService {
 
     public String createShift(Shift shift) {
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
         try {
 
@@ -1586,66 +916,30 @@ public class AttendanceService {
             // AUDIT LOG
             //=========================================
 
-            auditLogsService.logCreate(
-                    "SHIFT",
-                    String.valueOf(shift.getId()),
-                    performedBy,
-                    null,
-                    "Shift created successfully"
-            );
+            auditLogsService.logCreate("SHIFT", String.valueOf(shift.getId()), performedBy, null, "Shift created successfully");
 
 
             //=========================================
             // ACTIVITY LOG
             //=========================================
 
-            auditLogsService.logActivity(
-                    performedBy,
-                    "CREATE_SHIFT",
-                    "SHIFT",
-                    "Shift created successfully. Shift ID: "
-                            + shift.getId(),
-                    ActivityStatus.SUCCESS,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(performedBy, "CREATE_SHIFT", "SHIFT", "Shift created successfully. Shift ID: " + shift.getId(), ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             //=========================================
             // SYSTEM LOG
             //=========================================
 
-            auditLogsService.logInfo(
-                    "SHIFT",
-                    "ShiftService",
-                    "Shift created successfully. Shift ID: "
-                            + shift.getId()
-            );
+            auditLogsService.logInfo("SHIFT", "ShiftService", "Shift created successfully. Shift ID: " + shift.getId());
 
 
             return "Shift Created Successfully";
 
         } catch (Exception e) {
 
-            auditLogsService.logActivity(
-                    performedBy,
-                    "CREATE_SHIFT",
-                    "SHIFT",
-                    "Failed to create shift. Error: "
-                            + e.getMessage(),
-                    ActivityStatus.FAILED,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(performedBy, "CREATE_SHIFT", "SHIFT", "Failed to create shift. Error: " + e.getMessage(), ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-            auditLogsService.logError(
-                    "SHIFT",
-                    "ShiftService",
-                    "Failed to create shift",
-                    e.toString()
-            );
+            auditLogsService.logError("SHIFT", "ShiftService", "Failed to create shift", e.toString());
 
             throw e;
         }
@@ -1658,84 +952,41 @@ public class AttendanceService {
 
     public List<Shift> getShifts() {
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
         try {
 
-            List<Shift> shifts =
-                    shiftRepository.findAll();
+            List<Shift> shifts = shiftRepository.findAll();
 
 
             //=========================================
             // AUDIT LOG
             //=========================================
 
-            auditLogsService.createAuditLog(
-                    "SHIFT",
-                    null,
-                    AuditActionType.VIEW,
-                    performedBy,
-                    performedBy,
-                    "All shifts viewed successfully",
-                    null,
-                    null,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser()
-                            + " | "
-                            + clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.createAuditLog("SHIFT", null, AuditActionType.VIEW, performedBy, performedBy, "All shifts viewed successfully", null, null, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser() + " | " + clientInfoService.getClientInfo().getOperatingSystem());
 
 
             //=========================================
             // ACTIVITY LOG
             //=========================================
 
-            auditLogsService.logActivity(
-                    performedBy,
-                    "VIEW_SHIFTS",
-                    "SHIFT",
-                    "All shifts viewed successfully",
-                    ActivityStatus.SUCCESS,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(performedBy, "VIEW_SHIFTS", "SHIFT", "All shifts viewed successfully", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             //=========================================
             // SYSTEM LOG
             //=========================================
 
-            auditLogsService.logInfo(
-                    "SHIFT",
-                    "ShiftService",
-                    "All shifts retrieved successfully"
-            );
+            auditLogsService.logInfo("SHIFT", "ShiftService", "All shifts retrieved successfully");
 
 
             return shifts;
 
         } catch (Exception e) {
 
-            auditLogsService.logActivity(
-                    performedBy,
-                    "VIEW_SHIFTS",
-                    "SHIFT",
-                    "Failed to retrieve shifts. Error: "
-                            + e.getMessage(),
-                    ActivityStatus.FAILED,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(performedBy, "VIEW_SHIFTS", "SHIFT", "Failed to retrieve shifts. Error: " + e.getMessage(), ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-            auditLogsService.logError(
-                    "SHIFT",
-                    "ShiftService",
-                    "Failed to retrieve shifts",
-                    e.toString()
-            );
+            auditLogsService.logError("SHIFT", "ShiftService", "Failed to retrieve shifts", e.toString());
 
             throw e;
         }
@@ -1748,93 +999,41 @@ public class AttendanceService {
 
     public Shift getShift(Long id) {
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
         try {
 
-            Shift shift =
-                    shiftRepository.findById(id)
-                            .orElseThrow(() ->
-                                    new RuntimeException(
-                                            "Shift Not Found"));
+            Shift shift = shiftRepository.findById(id).orElseThrow(() -> new RuntimeException("Shift Not Found"));
 
 
             //=========================================
             // AUDIT LOG
             //=========================================
 
-            auditLogsService.createAuditLog(
-                    "SHIFT",
-                    String.valueOf(shift.getId()),
-                    AuditActionType.VIEW,
-                    performedBy,
-                    null,
-                    "Shift viewed successfully. Shift ID: "
-                            + id,
-                    null,
-                    null,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser()
-                            + " | "
-                            + clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.createAuditLog("SHIFT", String.valueOf(shift.getId()), AuditActionType.VIEW, performedBy, null, "Shift viewed successfully. Shift ID: " + id, null, null, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser() + " | " + clientInfoService.getClientInfo().getOperatingSystem());
 
 
             //=========================================
             // ACTIVITY LOG
             //=========================================
 
-            auditLogsService.logActivity(
-                    performedBy,
-                    "VIEW_SHIFT",
-                    "SHIFT",
-                    "Shift viewed successfully. Shift ID: "
-                            + id,
-                    ActivityStatus.SUCCESS,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(performedBy, "VIEW_SHIFT", "SHIFT", "Shift viewed successfully. Shift ID: " + id, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             //=========================================
             // SYSTEM LOG
             //=========================================
 
-            auditLogsService.logInfo(
-                    "SHIFT",
-                    "ShiftService",
-                    "Shift retrieved successfully. Shift ID: "
-                            + id
-            );
+            auditLogsService.logInfo("SHIFT", "ShiftService", "Shift retrieved successfully. Shift ID: " + id);
 
 
             return shift;
 
         } catch (Exception e) {
 
-            auditLogsService.logActivity(
-                    performedBy,
-                    "VIEW_SHIFT",
-                    "SHIFT",
-                    "Failed to retrieve shift. Shift ID: "
-                            + id
-                            + ". Error: "
-                            + e.getMessage(),
-                    ActivityStatus.FAILED,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(performedBy, "VIEW_SHIFT", "SHIFT", "Failed to retrieve shift. Shift ID: " + id + ". Error: " + e.getMessage(), ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-            auditLogsService.logError(
-                    "SHIFT",
-                    "ShiftService",
-                    "Failed to retrieve shift. Shift ID: "
-                            + id,
-                    e.toString()
-            );
+            auditLogsService.logError("SHIFT", "ShiftService", "Failed to retrieve shift. Shift ID: " + id, e.toString());
 
             throw e;
         }
@@ -1845,57 +1044,39 @@ public class AttendanceService {
 // UPDATE SHIFT
 //=========================================
 
-    public String updateShift(
-            Long id,
-            Shift shift) throws JsonProcessingException {
+    public String updateShift(Long id, Shift shift) throws JsonProcessingException {
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
         try {
 
-            Shift existingShift =
-                    shiftRepository.findById(id)
-                            .orElseThrow(() ->
-                                    new RuntimeException(
-                                            "Shift Not Found"));
+            Shift existingShift = shiftRepository.findById(id).orElseThrow(() -> new RuntimeException("Shift Not Found"));
 
 
             //=========================================
             // OLD VALUE
             //=========================================
 
-            String oldValue =
-                    objectMapper.writeValueAsString(
-                            existingShift);
+            String oldValue = objectMapper.writeValueAsString(existingShift);
 
 
-            existingShift.setShiftName(
-                    shift.getShiftName());
+            existingShift.setShiftName(shift.getShiftName());
 
-            existingShift.setShiftCode(
-                    shift.getShiftCode());
+            existingShift.setShiftCode(shift.getShiftCode());
 
-            existingShift.setStartTime(
-                    shift.getStartTime());
+            existingShift.setStartTime(shift.getStartTime());
 
-            existingShift.setEndTime(
-                    shift.getEndTime());
+            existingShift.setEndTime(shift.getEndTime());
 
-            existingShift.setBreakStart(
-                    shift.getBreakStart());
+            existingShift.setBreakStart(shift.getBreakStart());
 
-            existingShift.setBreakEnd(
-                    shift.getBreakEnd());
+            existingShift.setBreakEnd(shift.getBreakEnd());
 
-            existingShift.setGraceTime(
-                    shift.getGraceTime());
+            existingShift.setGraceTime(shift.getGraceTime());
 
-            existingShift.setWorkingHours(
-                    shift.getWorkingHours());
+            existingShift.setWorkingHours(shift.getWorkingHours());
 
-            existingShift.setStatus(
-                    shift.getStatus());
+            existingShift.setStatus(shift.getStatus());
 
 
             shiftRepository.save(existingShift);
@@ -1905,85 +1086,41 @@ public class AttendanceService {
             // NEW VALUE
             //=========================================
 
-            String newValue =
-                    objectMapper.writeValueAsString(
-                            existingShift);
+            String newValue = objectMapper.writeValueAsString(existingShift);
 
 
             //=========================================
             // AUDIT LOG
             //=========================================
 
-            auditLogsService.logUpdate(
-                    "SHIFT",
-                    String.valueOf(existingShift.getId()),
-                    performedBy,
-                    null,
-                    "Shift updated successfully",
-                    oldValue,
-                    newValue
-            );
+            auditLogsService.logUpdate("SHIFT", String.valueOf(existingShift.getId()), performedBy, null, "Shift updated successfully", oldValue, newValue);
 
 
             //=========================================
             // ACTIVITY LOG
             //=========================================
 
-            auditLogsService.logActivity(
-                    performedBy,
-                    "UPDATE_SHIFT",
-                    "SHIFT",
-                    "Shift updated successfully. Shift ID: "
-                            + id,
-                    ActivityStatus.SUCCESS,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(performedBy, "UPDATE_SHIFT", "SHIFT", "Shift updated successfully. Shift ID: " + id, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             //=========================================
             // SYSTEM LOG
             //=========================================
 
-            auditLogsService.logInfo(
-                    "SHIFT",
-                    "ShiftService",
-                    "Shift updated successfully. Shift ID: "
-                            + id
-            );
+            auditLogsService.logInfo("SHIFT", "ShiftService", "Shift updated successfully. Shift ID: " + id);
 
 
             return "Shift Updated Successfully";
 
         } catch (Exception e) {
 
-            auditLogsService.logActivity(
-                    performedBy,
-                    "UPDATE_SHIFT",
-                    "SHIFT",
-                    "Failed to update shift. Shift ID: "
-                            + id
-                            + ". Error: "
-                            + e.getMessage(),
-                    ActivityStatus.FAILED,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(performedBy, "UPDATE_SHIFT", "SHIFT", "Failed to update shift. Shift ID: " + id + ". Error: " + e.getMessage(), ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-            auditLogsService.logError(
-                    "SHIFT",
-                    "ShiftService",
-                    "Failed to update shift. Shift ID: "
-                            + id,
-                    e.toString()
-            );
+            auditLogsService.logError("SHIFT", "ShiftService", "Failed to update shift. Shift ID: " + id, e.toString());
 
             throw e;
         }
     }
-
 
 
 //=========================================
@@ -1992,25 +1129,18 @@ public class AttendanceService {
 
     public String deleteShift(Long id) throws JsonProcessingException {
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
         try {
 
-            Shift existingShift =
-                    shiftRepository.findById(id)
-                            .orElseThrow(() ->
-                                    new RuntimeException(
-                                            "Shift Not Found"));
+            Shift existingShift = shiftRepository.findById(id).orElseThrow(() -> new RuntimeException("Shift Not Found"));
 
 
             //=========================================
             // OLD VALUE BEFORE DELETE
             //=========================================
 
-            String oldValue =
-                    objectMapper.writeValueAsString(
-                            existingShift);
+            String oldValue = objectMapper.writeValueAsString(existingShift);
 
 
             shiftRepository.delete(existingShift);
@@ -2020,81 +1150,34 @@ public class AttendanceService {
             // AUDIT LOG
             //=========================================
 
-            auditLogsService.createAuditLog(
-                    "SHIFT",
-                    String.valueOf(existingShift.getId()),
-                    AuditActionType.DELETE,
-                    performedBy,
-                    null,
-                    "Shift deleted successfully",
-                    oldValue,
-                    null,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser()
-                            + " | "
-                            + clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.createAuditLog("SHIFT", String.valueOf(existingShift.getId()), AuditActionType.DELETE, performedBy, null, "Shift deleted successfully", oldValue, null, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser() + " | " + clientInfoService.getClientInfo().getOperatingSystem());
 
 
             //=========================================
             // ACTIVITY LOG
             //=========================================
 
-            auditLogsService.logActivity(
-                    null,
-                    "DELETE_SHIFT",
-                    "SHIFT",
-                    "Shift deleted successfully. Shift ID: "
-                            + id,
-                    ActivityStatus.SUCCESS,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(null, "DELETE_SHIFT", "SHIFT", "Shift deleted successfully. Shift ID: " + id, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             //=========================================
             // SYSTEM LOG
             //=========================================
 
-            auditLogsService.logInfo(
-                    "SHIFT",
-                    "ShiftService",
-                    "Shift deleted successfully. Shift ID: "
-                            + id
-            );
+            auditLogsService.logInfo("SHIFT", "ShiftService", "Shift deleted successfully. Shift ID: " + id);
 
 
             return "Shift Deleted Successfully";
 
         } catch (Exception e) {
 
-            auditLogsService.logActivity(
-                    null,
-                    "DELETE_SHIFT",
-                    "SHIFT",
-                    "Failed to delete shift. Shift ID: "
-                            + id
-                            + ". Error: "
-                            + e.getMessage(),
-                    ActivityStatus.FAILED,
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
+            auditLogsService.logActivity(null, "DELETE_SHIFT", "SHIFT", "Failed to delete shift. Shift ID: " + id + ". Error: " + e.getMessage(), ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-            auditLogsService.logError(
-                    "SHIFT",
-                    "ShiftService",
-                    "Failed to delete shift. Shift ID: "
-                            + id,
-                    e.toString()
-            );
+            auditLogsService.logError("SHIFT", "ShiftService", "Failed to delete shift. Shift ID: " + id, e.toString());
 
             throw e;
         }
     }
-
 
 
     //=========================================
@@ -2102,15 +1185,11 @@ public class AttendanceService {
 // EMPLOYEE SHIFT
 //=========================================
 
-    public String assignShift(String employeeId,
-                              EmployeeShift employeeShift) {
+    public String assignShift(String employeeId, EmployeeShift employeeShift) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
-        Shift shift = shiftRepository.findById(
-                        employeeShift.getShift().getId())
-                .orElseThrow(() -> new RuntimeException("Shift Not Found"));
+        Shift shift = shiftRepository.findById(employeeShift.getShift().getId()).orElseThrow(() -> new RuntimeException("Shift Not Found"));
 
         employeeShift.setEmployee(employee);
         employeeShift.setShift(shift);
@@ -2129,49 +1208,21 @@ public class AttendanceService {
         // AUDIT LOG
         // =====================================================
 
-        auditLogsService.logCreate(
-                "EMPLOYEE_SHIFT",
-                employeeShift.getEmployee().getEmployeeId(),
-                performedBy,
-                employeeId,
-                "Shift assigned successfully. Employee ID: "
-                        + employeeId
-                        + ", Shift ID: "
-                        + shift.getId()
-        );
+        auditLogsService.logCreate("EMPLOYEE_SHIFT", employeeShift.getEmployee().getEmployeeId(), performedBy, employeeId, "Shift assigned successfully. Employee ID: " + employeeId + ", Shift ID: " + shift.getId());
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                performedBy,
-                "ASSIGN_SHIFT",
-                "EMPLOYEE_SHIFT",
-                "Shift assigned successfully. Employee ID: "
-                        + employeeId
-                        + ", Shift ID: "
-                        + shift.getId(),
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "ASSIGN_SHIFT", "EMPLOYEE_SHIFT", "Shift assigned successfully. Employee ID: " + employeeId + ", Shift ID: " + shift.getId(), ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_SHIFT",
-                "EmployeeShiftService",
-                "Shift assigned successfully. Employee ID: "
-                        + employeeId
-                        + ", Shift ID: "
-                        + shift.getId()
-        );
+        auditLogsService.logInfo("EMPLOYEE_SHIFT", "EmployeeShiftService", "Shift assigned successfully. Employee ID: " + employeeId + ", Shift ID: " + shift.getId());
 
         return "Shift Assigned Successfully";
     }
@@ -2183,19 +1234,14 @@ public class AttendanceService {
 
     public List<EmployeeShift> getEmployeeShifts() {
 
-        List<EmployeeShift> employeeShifts =
-                employeeShiftRepository.findAll();
+        List<EmployeeShift> employeeShifts = employeeShiftRepository.findAll();
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_SHIFT",
-                "EmployeeShiftService",
-                "All employee shifts retrieved successfully"
-        );
+        auditLogsService.logInfo("EMPLOYEE_SHIFT", "EmployeeShiftService", "All employee shifts retrieved successfully");
 
         return employeeShifts;
     }
@@ -2207,23 +1253,14 @@ public class AttendanceService {
 
     public EmployeeShift getEmployeeShift(Long id) {
 
-        EmployeeShift employeeShift =
-                employeeShiftRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Employee Shift Not Found"));
+        EmployeeShift employeeShift = employeeShiftRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Shift Not Found"));
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_SHIFT",
-                "EmployeeShiftService",
-                "Employee shift retrieved successfully. ID: "
-                        + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_SHIFT", "EmployeeShiftService", "Employee shift retrieved successfully. ID: " + id);
 
         return employeeShift;
     }
@@ -2233,50 +1270,25 @@ public class AttendanceService {
 // UPDATE EMPLOYEE SHIFT
 //=========================================
 
-    public String updateEmployeeShift(Long id,
-                                      EmployeeShift employeeShift) {
+    public String updateEmployeeShift(Long id, EmployeeShift employeeShift) {
 
-        EmployeeShift existingShift =
-                employeeShiftRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Employee Shift Not Found"));
+        EmployeeShift existingShift = employeeShiftRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Shift Not Found"));
 
-        Shift shift = shiftRepository.findById(
-                        employeeShift.getShift().getId())
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Shift Not Found"));
+        Shift shift = shiftRepository.findById(employeeShift.getShift().getId()).orElseThrow(() -> new RuntimeException("Shift Not Found"));
 
 
         // =====================================================
         // OLD VALUE
         // =====================================================
 
-        String oldValue =
-                "Shift ID: "
-                        + (existingShift.getShift() != null
-                        ? existingShift.getShift().getId()
-                        : null)
-                        + ", Effective From: "
-                        + existingShift.getEffectiveFrom()
-                        + ", Effective To: "
-                        + existingShift.getEffectiveTo()
-                        + ", Is Current: "
-                        + existingShift.getIsCurrent()
-                        + ", Assigned By: "
-                        + existingShift.getAssignedBy();
+        String oldValue = "Shift ID: " + (existingShift.getShift() != null ? existingShift.getShift().getId() : null) + ", Effective From: " + existingShift.getEffectiveFrom() + ", Effective To: " + existingShift.getEffectiveTo() + ", Is Current: " + existingShift.getIsCurrent() + ", Assigned By: " + existingShift.getAssignedBy();
 
 
         existingShift.setShift(shift);
-        existingShift.setEffectiveFrom(
-                employeeShift.getEffectiveFrom());
-        existingShift.setEffectiveTo(
-                employeeShift.getEffectiveTo());
-        existingShift.setIsCurrent(
-                employeeShift.getIsCurrent());
-        existingShift.setAssignedBy(
-                employeeShift.getAssignedBy());
+        existingShift.setEffectiveFrom(employeeShift.getEffectiveFrom());
+        existingShift.setEffectiveTo(employeeShift.getEffectiveTo());
+        existingShift.setIsCurrent(employeeShift.getIsCurrent());
+        existingShift.setAssignedBy(employeeShift.getAssignedBy());
 
         employeeShiftRepository.save(existingShift);
 
@@ -2285,17 +1297,7 @@ public class AttendanceService {
         // NEW VALUE
         // =====================================================
 
-        String newValue =
-                "Shift ID: "
-                        + shift.getId()
-                        + ", Effective From: "
-                        + employeeShift.getEffectiveFrom()
-                        + ", Effective To: "
-                        + employeeShift.getEffectiveTo()
-                        + ", Is Current: "
-                        + employeeShift.getIsCurrent()
-                        + ", Assigned By: "
-                        + employeeShift.getAssignedBy();
+        String newValue = "Shift ID: " + shift.getId() + ", Effective From: " + employeeShift.getEffectiveFrom() + ", Effective To: " + employeeShift.getEffectiveTo() + ", Is Current: " + employeeShift.getIsCurrent() + ", Assigned By: " + employeeShift.getAssignedBy();
 
 
         // =====================================================
@@ -2309,44 +1311,21 @@ public class AttendanceService {
         // AUDIT LOG
         // =====================================================
 
-        auditLogsService.logUpdate(
-                "EMPLOYEE_SHIFT",
-                String.valueOf(existingShift.getId()),
-                performedBy,
-                existingShift.getEmployee().getEmployeeId(),
-                "Employee shift updated successfully",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("EMPLOYEE_SHIFT", String.valueOf(existingShift.getId()), performedBy, existingShift.getEmployee().getEmployeeId(), "Employee shift updated successfully", oldValue, newValue);
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                performedBy,
-                "UPDATE_EMPLOYEE_SHIFT",
-                "EMPLOYEE_SHIFT",
-                "Employee shift updated successfully. Employee Shift ID: "
-                        + id,
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "UPDATE_EMPLOYEE_SHIFT", "EMPLOYEE_SHIFT", "Employee shift updated successfully. Employee Shift ID: " + id, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_SHIFT",
-                "EmployeeShiftService",
-                "Employee shift updated successfully. ID: "
-                        + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_SHIFT", "EmployeeShiftService", "Employee shift updated successfully. ID: " + id);
 
         return "Employee Shift Updated Successfully";
     }
@@ -2358,39 +1337,17 @@ public class AttendanceService {
 
     public String deleteEmployeeShift(Long id) {
 
-        EmployeeShift existingShift =
-                employeeShiftRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Employee Shift Not Found"));
+        EmployeeShift existingShift = employeeShiftRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Shift Not Found"));
 
 
         // =====================================================
         // SAVE INFORMATION BEFORE DELETE
         // =====================================================
 
-        String oldValue =
-                "Employee ID: "
-                        + (existingShift.getEmployee() != null
-                        ? existingShift.getEmployee().getEmployeeId()
-                        : null)
-                        + ", Shift ID: "
-                        + (existingShift.getShift() != null
-                        ? existingShift.getShift().getId()
-                        : null)
-                        + ", Effective From: "
-                        + existingShift.getEffectiveFrom()
-                        + ", Effective To: "
-                        + existingShift.getEffectiveTo()
-                        + ", Is Current: "
-                        + existingShift.getIsCurrent()
-                        + ", Assigned By: "
-                        + existingShift.getAssignedBy();
+        String oldValue = "Employee ID: " + (existingShift.getEmployee() != null ? existingShift.getEmployee().getEmployeeId() : null) + ", Shift ID: " + (existingShift.getShift() != null ? existingShift.getShift().getId() : null) + ", Effective From: " + existingShift.getEffectiveFrom() + ", Effective To: " + existingShift.getEffectiveTo() + ", Is Current: " + existingShift.getIsCurrent() + ", Assigned By: " + existingShift.getAssignedBy();
 
 
-        String employeeId =
-                existingShift.getEmployee()
-                        .getEmployeeId();
+        String employeeId = existingShift.getEmployee().getEmployeeId();
 
 
         employeeShiftRepository.delete(existingShift);
@@ -2407,45 +1364,21 @@ public class AttendanceService {
         // AUDIT LOG
         // =====================================================
 
-        auditLogsService.logDelete(
-                "EMPLOYEE_SHIFT",
-                String.valueOf(existingShift.getId()),
-                performedBy,
-                employeeId,
-                "Employee shift deleted successfully. "
-                        + "Employee Shift ID: "
-                        + id
-        );
+        auditLogsService.logDelete("EMPLOYEE_SHIFT", String.valueOf(existingShift.getId()), performedBy, employeeId, "Employee shift deleted successfully. " + "Employee Shift ID: " + id);
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                performedBy,
-                "DELETE_EMPLOYEE_SHIFT",
-                "EMPLOYEE_SHIFT",
-                "Employee shift deleted successfully. "
-                        + "Employee Shift ID: "
-                        + id,
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "DELETE_EMPLOYEE_SHIFT", "EMPLOYEE_SHIFT", "Employee shift deleted successfully. " + "Employee Shift ID: " + id, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_SHIFT",
-                "EmployeeShiftService",
-                "Employee shift deleted successfully. ID: "
-                        + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_SHIFT", "EmployeeShiftService", "Employee shift deleted successfully. ID: " + id);
 
         return "Employee Shift Deleted Successfully";
     }
@@ -2471,47 +1404,21 @@ public class AttendanceService {
         // AUDIT LOG
         // =====================================================
 
-        auditLogsService.logCreate(
-                "HOLIDAY",
-                String.valueOf(holiday.getId()),
-                performedBy,
-                null,
-                "Holiday created successfully. Holiday ID: "
-                        + holiday.getId()
-                        + ", Holiday Name: "
-                        + holiday.getHolidayName()
-        );
+        auditLogsService.logCreate("HOLIDAY", String.valueOf(holiday.getId()), performedBy, null, "Holiday created successfully. Holiday ID: " + holiday.getId() + ", Holiday Name: " + holiday.getHolidayName());
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                  performedBy,
-                "CREATE_HOLIDAY",
-                "HOLIDAY",
-                "Holiday created successfully. Holiday ID: "
-                        + holiday.getId()
-                        + ", Holiday Name: "
-                        + holiday.getHolidayName(),
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "CREATE_HOLIDAY", "HOLIDAY", "Holiday created successfully. Holiday ID: " + holiday.getId() + ", Holiday Name: " + holiday.getHolidayName(), ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "HOLIDAY",
-                "HolidayService",
-                "Holiday created successfully. Holiday ID: "
-                        + holiday.getId()
-        );
+        auditLogsService.logInfo("HOLIDAY", "HolidayService", "Holiday created successfully. Holiday ID: " + holiday.getId());
 
         return "Holiday Created Successfully";
     }
@@ -2523,19 +1430,14 @@ public class AttendanceService {
 
     public List<Holiday> getHolidays() {
 
-        List<Holiday> holidays =
-                holidayRepository.findAll();
+        List<Holiday> holidays = holidayRepository.findAll();
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "HOLIDAY",
-                "HolidayService",
-                "All holidays retrieved successfully"
-        );
+        auditLogsService.logInfo("HOLIDAY", "HolidayService", "All holidays retrieved successfully");
 
         return holidays;
     }
@@ -2547,23 +1449,14 @@ public class AttendanceService {
 
     public Holiday getHoliday(Long id) {
 
-        Holiday holiday =
-                holidayRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Holiday Not Found"));
+        Holiday holiday = holidayRepository.findById(id).orElseThrow(() -> new RuntimeException("Holiday Not Found"));
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "HOLIDAY",
-                "HolidayService",
-                "Holiday retrieved successfully. Holiday ID: "
-                        + id
-        );
+        auditLogsService.logInfo("HOLIDAY", "HolidayService", "Holiday retrieved successfully. Holiday ID: " + id);
 
         return holiday;
     }
@@ -2575,54 +1468,29 @@ public class AttendanceService {
 
     public String updateHoliday(Long id, Holiday holiday) {
 
-        Holiday existingHoliday =
-                holidayRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Holiday Not Found"));
+        Holiday existingHoliday = holidayRepository.findById(id).orElseThrow(() -> new RuntimeException("Holiday Not Found"));
 
 
         // =====================================================
         // OLD VALUE
         // =====================================================
 
-        String oldValue =
-                "Holiday Name: "
-                        + existingHoliday.getHolidayName()
-                        + ", Holiday Date: "
-                        + existingHoliday.getHolidayDate()
-                        + ", Holiday Type: "
-                        + existingHoliday.getHolidayType()
-                        + ", Company: "
-                        + existingHoliday.getCompany()
-                        + ", Branch: "
-                        + existingHoliday.getBranch()
-                        + ", Description: "
-                        + existingHoliday.getDescription()
-                        + ", Status: "
-                        + existingHoliday.getStatus();
+        String oldValue = "Holiday Name: " + existingHoliday.getHolidayName() + ", Holiday Date: " + existingHoliday.getHolidayDate() + ", Holiday Type: " + existingHoliday.getHolidayType() + ", Company: " + existingHoliday.getCompany() + ", Branch: " + existingHoliday.getBranch() + ", Description: " + existingHoliday.getDescription() + ", Status: " + existingHoliday.getStatus();
 
 
-        existingHoliday.setHolidayName(
-                holiday.getHolidayName());
+        existingHoliday.setHolidayName(holiday.getHolidayName());
 
-        existingHoliday.setHolidayDate(
-                holiday.getHolidayDate());
+        existingHoliday.setHolidayDate(holiday.getHolidayDate());
 
-        existingHoliday.setHolidayType(
-                holiday.getHolidayType());
+        existingHoliday.setHolidayType(holiday.getHolidayType());
 
-        existingHoliday.setCompany(
-                holiday.getCompany());
+        existingHoliday.setCompany(holiday.getCompany());
 
-        existingHoliday.setBranch(
-                holiday.getBranch());
+        existingHoliday.setBranch(holiday.getBranch());
 
-        existingHoliday.setDescription(
-                holiday.getDescription());
+        existingHoliday.setDescription(holiday.getDescription());
 
-        existingHoliday.setStatus(
-                holiday.getStatus());
+        existingHoliday.setStatus(holiday.getStatus());
 
         holidayRepository.save(existingHoliday);
 
@@ -2631,21 +1499,7 @@ public class AttendanceService {
         // NEW VALUE
         // =====================================================
 
-        String newValue =
-                "Holiday Name: "
-                        + holiday.getHolidayName()
-                        + ", Holiday Date: "
-                        + holiday.getHolidayDate()
-                        + ", Holiday Type: "
-                        + holiday.getHolidayType()
-                        + ", Company: "
-                        + holiday.getCompany()
-                        + ", Branch: "
-                        + holiday.getBranch()
-                        + ", Description: "
-                        + holiday.getDescription()
-                        + ", Status: "
-                        + holiday.getStatus();
+        String newValue = "Holiday Name: " + holiday.getHolidayName() + ", Holiday Date: " + holiday.getHolidayDate() + ", Holiday Type: " + holiday.getHolidayType() + ", Company: " + holiday.getCompany() + ", Branch: " + holiday.getBranch() + ", Description: " + holiday.getDescription() + ", Status: " + holiday.getStatus();
 
 
         // =====================================================
@@ -2659,45 +1513,21 @@ public class AttendanceService {
         // AUDIT LOG
         // =====================================================
 
-        auditLogsService.logUpdate(
-                "HOLIDAY",
-                String.valueOf(existingHoliday.getId()),
-                performedBy,
-                null,
-                "Holiday updated successfully. Holiday ID: "
-                        + id,
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("HOLIDAY", String.valueOf(existingHoliday.getId()), performedBy, null, "Holiday updated successfully. Holiday ID: " + id, oldValue, newValue);
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-               performedBy,
-                "UPDATE_HOLIDAY",
-                "HOLIDAY",
-                "Holiday updated successfully. Holiday ID: "
-                        + id,
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "UPDATE_HOLIDAY", "HOLIDAY", "Holiday updated successfully. Holiday ID: " + id, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "HOLIDAY",
-                "HolidayService",
-                "Holiday updated successfully. Holiday ID: "
-                        + id
-        );
+        auditLogsService.logInfo("HOLIDAY", "HolidayService", "Holiday updated successfully. Holiday ID: " + id);
 
         return "Holiday Updated Successfully";
     }
@@ -2709,32 +1539,14 @@ public class AttendanceService {
 
     public String deleteHoliday(Long id) {
 
-        Holiday existingHoliday =
-                holidayRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Holiday Not Found"));
+        Holiday existingHoliday = holidayRepository.findById(id).orElseThrow(() -> new RuntimeException("Holiday Not Found"));
 
 
         // =====================================================
         // SAVE OLD INFORMATION BEFORE DELETE
         // =====================================================
 
-        String oldValue =
-                "Holiday Name: "
-                        + existingHoliday.getHolidayName()
-                        + ", Holiday Date: "
-                        + existingHoliday.getHolidayDate()
-                        + ", Holiday Type: "
-                        + existingHoliday.getHolidayType()
-                        + ", Company: "
-                        + existingHoliday.getCompany()
-                        + ", Branch: "
-                        + existingHoliday.getBranch()
-                        + ", Description: "
-                        + existingHoliday.getDescription()
-                        + ", Status: "
-                        + existingHoliday.getStatus();
+        String oldValue = "Holiday Name: " + existingHoliday.getHolidayName() + ", Holiday Date: " + existingHoliday.getHolidayDate() + ", Holiday Type: " + existingHoliday.getHolidayType() + ", Company: " + existingHoliday.getCompany() + ", Branch: " + existingHoliday.getBranch() + ", Description: " + existingHoliday.getDescription() + ", Status: " + existingHoliday.getStatus();
 
 
         holidayRepository.delete(existingHoliday);
@@ -2751,43 +1563,21 @@ public class AttendanceService {
         // AUDIT LOG
         // =====================================================
 
-        auditLogsService.logDelete(
-                "HOLIDAY",
-                String.valueOf(existingHoliday.getId()),
-                performedBy,
-                null,
-                "Holiday deleted successfully. Holiday ID: "
-                        + id
-        );
+        auditLogsService.logDelete("HOLIDAY", String.valueOf(existingHoliday.getId()), performedBy, null, "Holiday deleted successfully. Holiday ID: " + id);
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                performedBy,
-                "DELETE_HOLIDAY",
-                "HOLIDAY",
-                "Holiday deleted successfully. Holiday ID: "
-                        + id,
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "DELETE_HOLIDAY", "HOLIDAY", "Holiday deleted successfully. Holiday ID: " + id, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "HOLIDAY",
-                "HolidayService",
-                "Holiday deleted successfully. Holiday ID: "
-                        + id
-        );
+        auditLogsService.logInfo("HOLIDAY", "HolidayService", "Holiday deleted successfully. Holiday ID: " + id);
 
         return "Holiday Deleted Successfully";
     }
@@ -2797,62 +1587,37 @@ public class AttendanceService {
 // WEEKEND CONFIGURATION
 //=========================================
 
-    public String createWeekend(
-            WeekendConfiguration weekendConfiguration) {
+    public String createWeekend(WeekendConfiguration weekendConfiguration) {
 
-        weekendConfigurationRepository.save(
-                weekendConfiguration);
+        weekendConfigurationRepository.save(weekendConfiguration);
 
 
         // =====================================================
         // GET LOGGED-IN EMPLOYEE
         // =====================================================
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
 
         // =====================================================
         // AUDIT LOG
         // =====================================================
 
-        auditLogsService.logCreate(
-                "WEEKEND_CONFIGURATION",
-                String.valueOf(weekendConfiguration.getId()),
-                performedBy,
-                performedBy,
-                "Weekend configuration created successfully. ID: "
-                        + weekendConfiguration.getId()
-        );
+        auditLogsService.logCreate("WEEKEND_CONFIGURATION", String.valueOf(weekendConfiguration.getId()), performedBy, performedBy, "Weekend configuration created successfully. ID: " + weekendConfiguration.getId());
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                performedBy,
-                "CREATE_WEEKEND_CONFIGURATION",
-                "WEEKEND_CONFIGURATION",
-                "Weekend configuration created successfully. ID: "
-                        + weekendConfiguration.getId(),
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "CREATE_WEEKEND_CONFIGURATION", "WEEKEND_CONFIGURATION", "Weekend configuration created successfully. ID: " + weekendConfiguration.getId(), ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "WEEKEND_CONFIGURATION",
-                "WeekendConfigurationService",
-                "Weekend configuration created successfully. ID: "
-                        + weekendConfiguration.getId()
-        );
+        auditLogsService.logInfo("WEEKEND_CONFIGURATION", "WeekendConfigurationService", "Weekend configuration created successfully. ID: " + weekendConfiguration.getId());
 
 
         return "Weekend Configuration Created Successfully";
@@ -2865,19 +1630,14 @@ public class AttendanceService {
 
     public List<WeekendConfiguration> getWeekends() {
 
-        List<WeekendConfiguration> weekends =
-                weekendConfigurationRepository.findAll();
+        List<WeekendConfiguration> weekends = weekendConfigurationRepository.findAll();
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "WEEKEND_CONFIGURATION",
-                "WeekendConfigurationService",
-                "All weekend configurations retrieved successfully"
-        );
+        auditLogsService.logInfo("WEEKEND_CONFIGURATION", "WeekendConfigurationService", "All weekend configurations retrieved successfully");
 
 
         return weekends;
@@ -2890,23 +1650,14 @@ public class AttendanceService {
 
     public WeekendConfiguration getWeekend(Long id) {
 
-        WeekendConfiguration weekend =
-                weekendConfigurationRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Weekend Configuration Not Found"));
+        WeekendConfiguration weekend = weekendConfigurationRepository.findById(id).orElseThrow(() -> new RuntimeException("Weekend Configuration Not Found"));
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "WEEKEND_CONFIGURATION",
-                "WeekendConfigurationService",
-                "Weekend configuration retrieved successfully. ID: "
-                        + id
-        );
+        auditLogsService.logInfo("WEEKEND_CONFIGURATION", "WeekendConfigurationService", "Weekend configuration retrieved successfully. ID: " + id);
 
 
         return weekend;
@@ -2917,122 +1668,65 @@ public class AttendanceService {
 // UPDATE WEEKEND
 //=========================================
 
-    public String updateWeekend(
-            Long id,
-            WeekendConfiguration weekendConfiguration) {
+    public String updateWeekend(Long id, WeekendConfiguration weekendConfiguration) {
 
-        WeekendConfiguration existingWeekend =
-                weekendConfigurationRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Weekend Configuration Not Found"));
+        WeekendConfiguration existingWeekend = weekendConfigurationRepository.findById(id).orElseThrow(() -> new RuntimeException("Weekend Configuration Not Found"));
 
 
         // =====================================================
         // OLD VALUE
         // =====================================================
 
-        String oldValue =
-                "Company: "
-                        + existingWeekend.getCompany()
-                        + ", Branch: "
-                        + existingWeekend.getBranch()
-                        + ", Week Number: "
-                        + existingWeekend.getWeekNumber()
-                        + ", Day Name: "
-                        + existingWeekend.getDayName()
-                        + ", Is Weekend: "
-                        + existingWeekend.getIsWeekend();
+        String oldValue = "Company: " + existingWeekend.getCompany() + ", Branch: " + existingWeekend.getBranch() + ", Week Number: " + existingWeekend.getWeekNumber() + ", Day Name: " + existingWeekend.getDayName() + ", Is Weekend: " + existingWeekend.getIsWeekend();
 
 
-        existingWeekend.setCompany(
-                weekendConfiguration.getCompany());
+        existingWeekend.setCompany(weekendConfiguration.getCompany());
 
-        existingWeekend.setBranch(
-                weekendConfiguration.getBranch());
+        existingWeekend.setBranch(weekendConfiguration.getBranch());
 
-        existingWeekend.setWeekNumber(
-                weekendConfiguration.getWeekNumber());
+        existingWeekend.setWeekNumber(weekendConfiguration.getWeekNumber());
 
-        existingWeekend.setDayName(
-                weekendConfiguration.getDayName());
+        existingWeekend.setDayName(weekendConfiguration.getDayName());
 
-        existingWeekend.setIsWeekend(
-                weekendConfiguration.getIsWeekend());
+        existingWeekend.setIsWeekend(weekendConfiguration.getIsWeekend());
 
 
-        weekendConfigurationRepository.save(
-                existingWeekend);
+        weekendConfigurationRepository.save(existingWeekend);
 
 
         // =====================================================
         // NEW VALUE
         // =====================================================
 
-        String newValue =
-                "Company: "
-                        + weekendConfiguration.getCompany()
-                        + ", Branch: "
-                        + weekendConfiguration.getBranch()
-                        + ", Week Number: "
-                        + weekendConfiguration.getWeekNumber()
-                        + ", Day Name: "
-                        + weekendConfiguration.getDayName()
-                        + ", Is Weekend: "
-                        + weekendConfiguration.getIsWeekend();
+        String newValue = "Company: " + weekendConfiguration.getCompany() + ", Branch: " + weekendConfiguration.getBranch() + ", Week Number: " + weekendConfiguration.getWeekNumber() + ", Day Name: " + weekendConfiguration.getDayName() + ", Is Weekend: " + weekendConfiguration.getIsWeekend();
 
 
         // =====================================================
         // GET LOGGED-IN EMPLOYEE
         // =====================================================
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
 
         // =====================================================
         // AUDIT LOG
         // =====================================================
 
-        auditLogsService.logUpdate(
-                "WEEKEND_CONFIGURATION",
-                String.valueOf(existingWeekend.getId()),
-                performedBy,
-                null,
-                "Weekend configuration updated successfully. ID: "
-                        + id,
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("WEEKEND_CONFIGURATION", String.valueOf(existingWeekend.getId()), performedBy, null, "Weekend configuration updated successfully. ID: " + id, oldValue, newValue);
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                performedBy,
-                "UPDATE_WEEKEND_CONFIGURATION",
-                "WEEKEND_CONFIGURATION",
-                "Weekend configuration updated successfully. ID: "
-                        + id,
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "UPDATE_WEEKEND_CONFIGURATION", "WEEKEND_CONFIGURATION", "Weekend configuration updated successfully. ID: " + id, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "WEEKEND_CONFIGURATION",
-                "WeekendConfigurationService",
-                "Weekend configuration updated successfully. ID: "
-                        + id
-        );
+        auditLogsService.logInfo("WEEKEND_CONFIGURATION", "WeekendConfigurationService", "Weekend configuration updated successfully. ID: " + id);
 
 
         return "Weekend Configuration Updated Successfully";
@@ -3045,83 +1739,45 @@ public class AttendanceService {
 
     public String deleteWeekend(Long id) {
 
-        WeekendConfiguration existingWeekend =
-                weekendConfigurationRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Weekend Configuration Not Found"));
+        WeekendConfiguration existingWeekend = weekendConfigurationRepository.findById(id).orElseThrow(() -> new RuntimeException("Weekend Configuration Not Found"));
 
 
         // =====================================================
         // OLD VALUE BEFORE DELETE
         // =====================================================
 
-        String oldValue =
-                "Company: "
-                        + existingWeekend.getCompany()
-                        + ", Branch: "
-                        + existingWeekend.getBranch()
-                        + ", Week Number: "
-                        + existingWeekend.getWeekNumber()
-                        + ", Day Name: "
-                        + existingWeekend.getDayName()
-                        + ", Is Weekend: "
-                        + existingWeekend.getIsWeekend();
+        String oldValue = "Company: " + existingWeekend.getCompany() + ", Branch: " + existingWeekend.getBranch() + ", Week Number: " + existingWeekend.getWeekNumber() + ", Day Name: " + existingWeekend.getDayName() + ", Is Weekend: " + existingWeekend.getIsWeekend();
 
 
-        weekendConfigurationRepository.delete(
-                existingWeekend);
+        weekendConfigurationRepository.delete(existingWeekend);
 
 
         // =====================================================
         // GET LOGGED-IN EMPLOYEE
         // =====================================================
 
-        String performedBy =
-                getLoggedInEmployeeId();
+        String performedBy = getLoggedInEmployeeId();
 
 
         // =====================================================
         // AUDIT LOG
         // =====================================================
 
-        auditLogsService.logDelete(
-                "WEEKEND_CONFIGURATION",
-                String.valueOf(existingWeekend.getId()),
-                performedBy,
-                performedBy,
-                "Weekend configuration deleted successfully. ID: "
-                        + id
-        );
+        auditLogsService.logDelete("WEEKEND_CONFIGURATION", String.valueOf(existingWeekend.getId()), performedBy, performedBy, "Weekend configuration deleted successfully. ID: " + id);
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                performedBy,
-                "DELETE_WEEKEND_CONFIGURATION",
-                "WEEKEND_CONFIGURATION",
-                "Weekend configuration deleted successfully. ID: "
-                        + id,
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "DELETE_WEEKEND_CONFIGURATION", "WEEKEND_CONFIGURATION", "Weekend configuration deleted successfully. ID: " + id, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "WEEKEND_CONFIGURATION",
-                "WeekendConfigurationService",
-                "Weekend configuration deleted successfully. ID: "
-                        + id
-        );
+        auditLogsService.logInfo("WEEKEND_CONFIGURATION", "WeekendConfigurationService", "Weekend configuration deleted successfully. ID: " + id);
 
 
         return "Weekend Configuration Deleted Successfully";
@@ -3132,11 +1788,9 @@ public class AttendanceService {
 // ATTENDANCE REGULARIZATION
 //=========================================
 
-    public String createRegularization(Long attendanceId,
-                                       AttendanceRegularization regularization) {
+    public String createRegularization(Long attendanceId, AttendanceRegularization regularization) {
 
-        Attendance attendance = attendanceRepository.findById(attendanceId)
-                .orElseThrow(() -> new RuntimeException("Attendance Not Found"));
+        Attendance attendance = attendanceRepository.findById(attendanceId).orElseThrow(() -> new RuntimeException("Attendance Not Found"));
 
         regularization.setAttendance(attendance);
         regularization.setEmployee(attendance.getEmployee());
@@ -3152,42 +1806,21 @@ public class AttendanceService {
         // AUDIT LOG
         // =====================================================
 
-        auditLogsService.logCreate(
-                "ATTENDANCE_REGULARIZATION",
-                String.valueOf(regularization.getId()),
-                performedBy,
-                attendance.getEmployee().getEmployeeId(),
-                "Attendance regularization request created successfully"
-        );
+        auditLogsService.logCreate("ATTENDANCE_REGULARIZATION", String.valueOf(regularization.getId()), performedBy, attendance.getEmployee().getEmployeeId(), "Attendance regularization request created successfully");
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                attendance.getEmployee().getEmployeeId(),
-                "CREATE_REGULARIZATION",
-                "ATTENDANCE_REGULARIZATION",
-                "Attendance regularization request created. Attendance ID: "
-                        + attendanceId,
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(attendance.getEmployee().getEmployeeId(), "CREATE_REGULARIZATION", "ATTENDANCE_REGULARIZATION", "Attendance regularization request created. Attendance ID: " + attendanceId, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "ATTENDANCE_REGULARIZATION",
-                "AttendanceService",
-                "Attendance regularization request created successfully. ID: "
-                        + regularization.getId()
-        );
+        auditLogsService.logInfo("ATTENDANCE_REGULARIZATION", "AttendanceService", "Attendance regularization request created successfully. ID: " + regularization.getId());
 
 
         return "Attendance Regularization Request Created Successfully";
@@ -3196,19 +1829,14 @@ public class AttendanceService {
 
     public List<AttendanceRegularization> getRegularizations() {
 
-        List<AttendanceRegularization> regularizations =
-                attendanceRegularizationRepository.findAll();
+        List<AttendanceRegularization> regularizations = attendanceRegularizationRepository.findAll();
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "ATTENDANCE_REGULARIZATION",
-                "AttendanceService",
-                "All attendance regularization requests retrieved successfully"
-        );
+        auditLogsService.logInfo("ATTENDANCE_REGULARIZATION", "AttendanceService", "All attendance regularization requests retrieved successfully");
 
 
         return regularizations;
@@ -3217,83 +1845,45 @@ public class AttendanceService {
 
     public AttendanceRegularization getRegularization(Long id) {
 
-        AttendanceRegularization regularization =
-                attendanceRegularizationRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Attendance Regularization Not Found"));
+        AttendanceRegularization regularization = attendanceRegularizationRepository.findById(id).orElseThrow(() -> new RuntimeException("Attendance Regularization Not Found"));
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "ATTENDANCE_REGULARIZATION",
-                "AttendanceService",
-                "Attendance regularization retrieved successfully. ID: "
-                        + id
-        );
+        auditLogsService.logInfo("ATTENDANCE_REGULARIZATION", "AttendanceService", "Attendance regularization retrieved successfully. ID: " + id);
 
 
         return regularization;
     }
 
 
-    public String updateRegularization(Long id,
-                                       AttendanceRegularization regularization) {
+    public String updateRegularization(Long id, AttendanceRegularization regularization) {
 
-        AttendanceRegularization existingRegularization =
-                attendanceRegularizationRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Attendance Regularization Not Found"));
+        AttendanceRegularization existingRegularization = attendanceRegularizationRepository.findById(id).orElseThrow(() -> new RuntimeException("Attendance Regularization Not Found"));
 
 
         // =====================================================
         // OLD VALUE
         // =====================================================
 
-        String oldValue =
-                "{"
-                        + "\"requestedLoginTime\":\""
-                        + existingRegularization.getRequestedLoginTime()
-                        + "\","
-                        + "\"requestedLogoutTime\":\""
-                        + existingRegularization.getRequestedLogoutTime()
-                        + "\","
-                        + "\"reason\":\""
-                        + existingRegularization.getReason()
-                        + "\","
-                        + "\"status\":\""
-                        + existingRegularization.getStatus()
-                        + "\","
-                        + "\"remarks\":\""
-                        + existingRegularization.getRemarks()
-                        + "\""
-                        + "}";
+        String oldValue = "{" + "\"requestedLoginTime\":\"" + existingRegularization.getRequestedLoginTime() + "\"," + "\"requestedLogoutTime\":\"" + existingRegularization.getRequestedLogoutTime() + "\"," + "\"reason\":\"" + existingRegularization.getReason() + "\"," + "\"status\":\"" + existingRegularization.getStatus() + "\"," + "\"remarks\":\"" + existingRegularization.getRemarks() + "\"" + "}";
 
 
-        existingRegularization.setRequestedLoginTime(
-                regularization.getRequestedLoginTime());
+        existingRegularization.setRequestedLoginTime(regularization.getRequestedLoginTime());
 
-        existingRegularization.setRequestedLogoutTime(
-                regularization.getRequestedLogoutTime());
+        existingRegularization.setRequestedLogoutTime(regularization.getRequestedLogoutTime());
 
-        existingRegularization.setReason(
-                regularization.getReason());
+        existingRegularization.setReason(regularization.getReason());
 
-        existingRegularization.setStatus(
-                regularization.getStatus());
+        existingRegularization.setStatus(regularization.getStatus());
 
-        existingRegularization.setApprovedBy(
-                regularization.getApprovedBy());
+        existingRegularization.setApprovedBy(regularization.getApprovedBy());
 
-        existingRegularization.setApprovedDate(
-                regularization.getApprovedDate());
+        existingRegularization.setApprovedDate(regularization.getApprovedDate());
 
-        existingRegularization.setRemarks(
-                regularization.getRemarks());
+        existingRegularization.setRemarks(regularization.getRemarks());
 
         attendanceRegularizationRepository.save(existingRegularization);
 
@@ -3302,74 +1892,28 @@ public class AttendanceService {
         // NEW VALUE
         // =====================================================
 
-        String newValue =
-                "{"
-                        + "\"requestedLoginTime\":\""
-                        + existingRegularization.getRequestedLoginTime()
-                        + "\","
-                        + "\"requestedLogoutTime\":\""
-                        + existingRegularization.getRequestedLogoutTime()
-                        + "\","
-                        + "\"reason\":\""
-                        + existingRegularization.getReason()
-                        + "\","
-                        + "\"status\":\""
-                        + existingRegularization.getStatus()
-                        + "\","
-                        + "\"approvedBy\":\""
-                        + existingRegularization.getApprovedBy()
-                        + "\","
-                        + "\"approvedDate\":\""
-                        + existingRegularization.getApprovedDate()
-                        + "\","
-                        + "\"remarks\":\""
-                        + existingRegularization.getRemarks()
-                        + "\""
-                        + "}";
+        String newValue = "{" + "\"requestedLoginTime\":\"" + existingRegularization.getRequestedLoginTime() + "\"," + "\"requestedLogoutTime\":\"" + existingRegularization.getRequestedLogoutTime() + "\"," + "\"reason\":\"" + existingRegularization.getReason() + "\"," + "\"status\":\"" + existingRegularization.getStatus() + "\"," + "\"approvedBy\":\"" + existingRegularization.getApprovedBy() + "\"," + "\"approvedDate\":\"" + existingRegularization.getApprovedDate() + "\"," + "\"remarks\":\"" + existingRegularization.getRemarks() + "\"" + "}";
 
 
         // =====================================================
         // AUDIT LOG
         // =====================================================
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logUpdate(
-                "ATTENDANCE_REGULARIZATION",
-                String.valueOf(existingRegularization.getId()),
-                performedBy,
-                existingRegularization.getEmployee().getEmployeeId(),
-                "Attendance regularization updated successfully",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("ATTENDANCE_REGULARIZATION", String.valueOf(existingRegularization.getId()), performedBy, existingRegularization.getEmployee().getEmployeeId(), "Attendance regularization updated successfully", oldValue, newValue);
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                existingRegularization.getEmployee().getEmployeeId(),
-                "UPDATE_REGULARIZATION",
-                "ATTENDANCE_REGULARIZATION",
-                "Attendance regularization updated successfully. ID: "
-                        + id,
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(existingRegularization.getEmployee().getEmployeeId(), "UPDATE_REGULARIZATION", "ATTENDANCE_REGULARIZATION", "Attendance regularization updated successfully. ID: " + id, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "ATTENDANCE_REGULARIZATION",
-                "AttendanceService",
-                "Attendance regularization updated successfully. ID: "
-                        + id
-        );
+        auditLogsService.logInfo("ATTENDANCE_REGULARIZATION", "AttendanceService", "Attendance regularization updated successfully. ID: " + id);
 
 
         return "Attendance Regularization Updated Successfully";
@@ -3378,16 +1922,10 @@ public class AttendanceService {
 
     public String deleteRegularization(Long id) {
 
-        AttendanceRegularization existingRegularization =
-                attendanceRegularizationRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Attendance Regularization Not Found"));
+        AttendanceRegularization existingRegularization = attendanceRegularizationRepository.findById(id).orElseThrow(() -> new RuntimeException("Attendance Regularization Not Found"));
 
 
-        String employeeId =
-                existingRegularization.getEmployee()
-                        .getEmployeeId();
+        String employeeId = existingRegularization.getEmployee().getEmployeeId();
 
 
         attendanceRegularizationRepository.delete(existingRegularization);
@@ -3397,42 +1935,21 @@ public class AttendanceService {
         // AUDIT LOG
         // =====================================================
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logDelete(
-                "ATTENDANCE_REGULARIZATION",
-                String.valueOf(existingRegularization.getId()),
-                performedBy,
-                employeeId,
-                "Attendance regularization deleted successfully"
-        );
+        auditLogsService.logDelete("ATTENDANCE_REGULARIZATION", String.valueOf(existingRegularization.getId()), performedBy, employeeId, "Attendance regularization deleted successfully");
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                employeeId,
-                "DELETE_REGULARIZATION",
-                "ATTENDANCE_REGULARIZATION",
-                "Attendance regularization deleted successfully. ID: "
-                        + id,
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "DELETE_REGULARIZATION", "ATTENDANCE_REGULARIZATION", "Attendance regularization deleted successfully. ID: " + id, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "ATTENDANCE_REGULARIZATION",
-                "AttendanceService",
-                "Attendance regularization deleted successfully. ID: "
-                        + id
-        );
+        auditLogsService.logInfo("ATTENDANCE_REGULARIZATION", "AttendanceService", "Attendance regularization deleted successfully. ID: " + id);
 
 
         return "Attendance Regularization Deleted Successfully";
@@ -3442,12 +1959,9 @@ public class AttendanceService {
 // OVERTIME REQUESTS
 //=========================================
 
-    public String createOvertime(Long attendanceId,
-                                 OvertimeRequest overtimeRequest) {
+    public String createOvertime(Long attendanceId, OvertimeRequest overtimeRequest) {
 
-        Attendance attendance = attendanceRepository.findById(attendanceId)
-                .orElseThrow(() ->
-                        new RuntimeException("Attendance Not Found"));
+        Attendance attendance = attendanceRepository.findById(attendanceId).orElseThrow(() -> new RuntimeException("Attendance Not Found"));
 
         // Set Attendance
         overtimeRequest.setAttendance(attendance);
@@ -3457,7 +1971,7 @@ public class AttendanceService {
 
         // Default status
         if (overtimeRequest.getStatus() == null) {
-            overtimeRequest.setStatus("PENDING");
+            overtimeRequest.setStatus(OvertimeStatus.valueOf("PENDING"));
         }
 
         overtimeRequestRepository.save(overtimeRequest);
@@ -3467,43 +1981,21 @@ public class AttendanceService {
         // AUDIT LOG
         // =====================================================
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logCreate(
-                "OVERTIME_REQUEST",
-                String.valueOf(overtimeRequest.getId()),
-                performedBy,
-                attendance.getEmployee().getEmployeeId(),
-                "Overtime request created successfully. Overtime ID: "
-                        + overtimeRequest.getId()
-        );
+        auditLogsService.logCreate("OVERTIME_REQUEST", String.valueOf(overtimeRequest.getId()), performedBy, attendance.getEmployee().getEmployeeId(), "Overtime request created successfully. Overtime ID: " + overtimeRequest.getId());
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                attendance.getEmployee().getEmployeeId(),
-                "CREATE_OVERTIME_REQUEST",
-                "OVERTIME",
-                "Overtime request created successfully. Attendance ID: "
-                        + attendanceId,
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(attendance.getEmployee().getEmployeeId(), "CREATE_OVERTIME_REQUEST", "OVERTIME", "Overtime request created successfully. Attendance ID: " + attendanceId, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "OVERTIME",
-                "AttendanceService",
-                "Overtime request created successfully. Overtime ID: "
-                        + overtimeRequest.getId()
-        );
+        auditLogsService.logInfo("OVERTIME", "AttendanceService", "Overtime request created successfully. Overtime ID: " + overtimeRequest.getId());
 
 
         return "Overtime Request Created Successfully";
@@ -3516,19 +2008,14 @@ public class AttendanceService {
 
     public List<OvertimeRequest> getOvertimes() {
 
-        List<OvertimeRequest> overtimes =
-                overtimeRequestRepository.findAll();
+        List<OvertimeRequest> overtimes = overtimeRequestRepository.findAll();
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "OVERTIME",
-                "AttendanceService",
-                "All overtime requests retrieved successfully"
-        );
+        auditLogsService.logInfo("OVERTIME", "AttendanceService", "All overtime requests retrieved successfully");
 
 
         return overtimes;
@@ -3541,23 +2028,14 @@ public class AttendanceService {
 
     public OvertimeRequest getOvertime(Long id) {
 
-        OvertimeRequest overtime =
-                overtimeRequestRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Overtime Request Not Found"));
+        OvertimeRequest overtime = overtimeRequestRepository.findById(id).orElseThrow(() -> new RuntimeException("Overtime Request Not Found"));
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "OVERTIME",
-                "AttendanceService",
-                "Overtime request retrieved successfully. ID: "
-                        + id
-        );
+        auditLogsService.logInfo("OVERTIME", "AttendanceService", "Overtime request retrieved successfully. ID: " + id);
 
 
         return overtime;
@@ -3568,66 +2046,31 @@ public class AttendanceService {
 // UPDATE OVERTIME REQUEST
 //=========================================
 
-    public String updateOvertime(Long id,
-                                 OvertimeRequest overtimeRequest) {
+    public String updateOvertime(Long id, OvertimeRequest overtimeRequest) {
 
-        OvertimeRequest existingOvertime =
-                overtimeRequestRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Overtime Request Not Found"));
+        OvertimeRequest existingOvertime = overtimeRequestRepository.findById(id).orElseThrow(() -> new RuntimeException("Overtime Request Not Found"));
 
 
         // =====================================================
         // OLD VALUE
         // =====================================================
 
-        String oldValue =
-                "{"
-                        + "\"requestDate\":\""
-                        + existingOvertime.getRequestDate()
-                        + "\","
-                        + "\"requestedHours\":\""
-                        + existingOvertime.getRequestedHours()
-                        + "\","
-                        + "\"approvedHours\":\""
-                        + existingOvertime.getApprovedHours()
-                        + "\","
-                        + "\"reason\":\""
-                        + existingOvertime.getReason()
-                        + "\","
-                        + "\"status\":\""
-                        + existingOvertime.getStatus()
-                        + "\","
-                        + "\"approvedBy\":\""
-                        + existingOvertime.getApprovedBy()
-                        + "\","
-                        + "\"approvedAt\":\""
-                        + existingOvertime.getApprovedAt()
-                        + "\""
-                        + "}";
+        String oldValue = "{" + "\"requestDate\":\"" + existingOvertime.getRequestDate() + "\"," + "\"requestedHours\":\"" + existingOvertime.getRequestedHours() + "\"," + "\"approvedHours\":\"" + existingOvertime.getApprovedHours() + "\"," + "\"reason\":\"" + existingOvertime.getReason() + "\"," + "\"status\":\"" + existingOvertime.getStatus() + "\"," + "\"approvedBy\":\"" + existingOvertime.getApprovedBy() + "\"," + "\"approvedAt\":\"" + existingOvertime.getApprovedAt() + "\"" + "}";
 
 
-        existingOvertime.setRequestDate(
-                overtimeRequest.getRequestDate());
+        existingOvertime.setRequestDate(overtimeRequest.getRequestDate());
 
-        existingOvertime.setRequestedHours(
-                overtimeRequest.getRequestedHours());
+        existingOvertime.setRequestedHours(overtimeRequest.getRequestedHours());
 
-        existingOvertime.setApprovedHours(
-                overtimeRequest.getApprovedHours());
+        existingOvertime.setApprovedHours(overtimeRequest.getApprovedHours());
 
-        existingOvertime.setReason(
-                overtimeRequest.getReason());
+        existingOvertime.setReason(overtimeRequest.getReason());
 
-        existingOvertime.setStatus(
-                overtimeRequest.getStatus());
+        existingOvertime.setStatus(overtimeRequest.getStatus());
 
-        existingOvertime.setApprovedBy(
-                overtimeRequest.getApprovedBy());
+        existingOvertime.setApprovedBy(overtimeRequest.getApprovedBy());
 
-        existingOvertime.setApprovedAt(
-                overtimeRequest.getApprovedAt());
+        existingOvertime.setApprovedAt(overtimeRequest.getApprovedAt());
 
         overtimeRequestRepository.save(existingOvertime);
 
@@ -3636,74 +2079,28 @@ public class AttendanceService {
         // NEW VALUE
         // =====================================================
 
-        String newValue =
-                "{"
-                        + "\"requestDate\":\""
-                        + existingOvertime.getRequestDate()
-                        + "\","
-                        + "\"requestedHours\":\""
-                        + existingOvertime.getRequestedHours()
-                        + "\","
-                        + "\"approvedHours\":\""
-                        + existingOvertime.getApprovedHours()
-                        + "\","
-                        + "\"reason\":\""
-                        + existingOvertime.getReason()
-                        + "\","
-                        + "\"status\":\""
-                        + existingOvertime.getStatus()
-                        + "\","
-                        + "\"approvedBy\":\""
-                        + existingOvertime.getApprovedBy()
-                        + "\","
-                        + "\"approvedAt\":\""
-                        + existingOvertime.getApprovedAt()
-                        + "\""
-                        + "}";
+        String newValue = "{" + "\"requestDate\":\"" + existingOvertime.getRequestDate() + "\"," + "\"requestedHours\":\"" + existingOvertime.getRequestedHours() + "\"," + "\"approvedHours\":\"" + existingOvertime.getApprovedHours() + "\"," + "\"reason\":\"" + existingOvertime.getReason() + "\"," + "\"status\":\"" + existingOvertime.getStatus() + "\"," + "\"approvedBy\":\"" + existingOvertime.getApprovedBy() + "\"," + "\"approvedAt\":\"" + existingOvertime.getApprovedAt() + "\"" + "}";
 
 
         // =====================================================
         // AUDIT LOG
         // =====================================================
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logUpdate(
-                "OVERTIME_REQUEST",
-                String.valueOf(existingOvertime.getId()),
-                performedBy,
-                existingOvertime.getEmployee().getEmployeeId(),
-                "Overtime request updated successfully",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("OVERTIME_REQUEST", String.valueOf(existingOvertime.getId()), performedBy, existingOvertime.getEmployee().getEmployeeId(), "Overtime request updated successfully", oldValue, newValue);
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                existingOvertime.getEmployee().getEmployeeId(),
-                "UPDATE_OVERTIME_REQUEST",
-                "OVERTIME",
-                "Overtime request updated successfully. ID: "
-                        + id,
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(existingOvertime.getEmployee().getEmployeeId(), "UPDATE_OVERTIME_REQUEST", "OVERTIME", "Overtime request updated successfully. ID: " + id, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "OVERTIME",
-                "AttendanceService",
-                "Overtime request updated successfully. ID: "
-                        + id
-        );
+        auditLogsService.logInfo("OVERTIME", "AttendanceService", "Overtime request updated successfully. ID: " + id);
 
 
         return "Overtime Request Updated Successfully";
@@ -3716,62 +2113,34 @@ public class AttendanceService {
 
     public String deleteOvertime(Long id) {
 
-        OvertimeRequest existingOvertime =
-                overtimeRequestRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Overtime Request Not Found"));
+        OvertimeRequest existingOvertime = overtimeRequestRepository.findById(id).orElseThrow(() -> new RuntimeException("Overtime Request Not Found"));
 
 
-        String employeeId =
-                existingOvertime.getEmployee()
-                        .getEmployeeId();
+        String employeeId = existingOvertime.getEmployee().getEmployeeId();
 
 
-        overtimeRequestRepository.delete(
-                existingOvertime);
+        overtimeRequestRepository.delete(existingOvertime);
 
 
         // =====================================================
         // AUDIT LOG
         // =====================================================
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logDelete(
-                "OVERTIME_REQUEST",
-                String.valueOf(existingOvertime.getId()),
-                performedBy,
-                employeeId,
-                "Overtime request deleted successfully"
-        );
+        auditLogsService.logDelete("OVERTIME_REQUEST", String.valueOf(existingOvertime.getId()), performedBy, employeeId, "Overtime request deleted successfully");
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                employeeId,
-                "DELETE_OVERTIME_REQUEST",
-                "OVERTIME",
-                "Overtime request deleted successfully. ID: "
-                        + id,
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "DELETE_OVERTIME_REQUEST", "OVERTIME", "Overtime request deleted successfully. ID: " + id, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "OVERTIME",
-                "AttendanceService",
-                "Overtime request deleted successfully. ID: "
-                        + id
-        );
+        auditLogsService.logInfo("OVERTIME", "AttendanceService", "Overtime request deleted successfully. ID: " + id);
 
 
         return "Overtime Request Deleted Successfully";
@@ -3782,7 +2151,7 @@ public class AttendanceService {
     // ATTENDANCE
     //=========================================
 
-//    public String checkIn(String employeeId,
+    //    public String checkIn(String employeeId,
 //                          Attendance attendance) {
 //    }
 //
@@ -3794,12 +2163,10 @@ public class AttendanceService {
 //
 //    public Object getAttendance() {
 //    }
-public Attendance getAttendance(Long id) {
+    public Attendance getAttendance(Long id) {
 
-    return attendanceRepository.findById(id)
-            .orElseThrow(() ->
-                    new RuntimeException("Attendance Not Found"));
-}
+        return attendanceRepository.findById(id).orElseThrow(() -> new RuntimeException("Attendance Not Found"));
+    }
 
 
 //    public String deleteAttendance(Long id) {
@@ -3819,234 +2186,88 @@ public Attendance getAttendance(Long id) {
 
     public List<Attendance> presentEmployees() {
 
-        List<Attendance> result = attendanceRepository.findAll()
-                .stream()
-                .filter(attendance ->
-                        "PRESENT".equalsIgnoreCase(
-                                attendance.getAttendanceStatus()))
-                .toList();
+        List<Attendance> result = attendanceRepository.findAll().stream().filter(attendance -> "PRESENT".equalsIgnoreCase(String.valueOf(attendance.getAttendanceStatus()))).toList();
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logActivity(
-                performedBy,
-                "VIEW_PRESENT_EMPLOYEES",
-                "ATTENDANCE_REPORTS",
-                "Present employee attendance report viewed",
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "VIEW_PRESENT_EMPLOYEES", "ATTENDANCE_REPORTS", "Present employee attendance report viewed", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "ATTENDANCE_REPORTS",
-                "AttendanceService",
-                "Present employees report retrieved successfully"
-        );
+        auditLogsService.logInfo("ATTENDANCE_REPORTS", "AttendanceService", "Present employees report retrieved successfully");
 
         return result;
     }
+
     public List<Attendance> absentEmployees() {
 
-        List<Attendance> result = attendanceRepository.findAll()
-                .stream()
-                .filter(attendance ->
-                        "ABSENT".equalsIgnoreCase(
-                                attendance.getAttendanceStatus()))
-                .toList();
+        List<Attendance> result = attendanceRepository.findAll().stream().filter(attendance -> "ABSENT".equalsIgnoreCase(String.valueOf(attendance.getAttendanceStatus()))).toList();
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logActivity(
-                performedBy,
-                "VIEW_ABSENT_EMPLOYEES",
-                "ATTENDANCE_REPORTS",
-                "Absent employee attendance report viewed",
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "VIEW_ABSENT_EMPLOYEES", "ATTENDANCE_REPORTS", "Absent employee attendance report viewed", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "ATTENDANCE_REPORTS",
-                "AttendanceService",
-                "Absent employees report retrieved successfully"
-        );
+        auditLogsService.logInfo("ATTENDANCE_REPORTS", "AttendanceService", "Absent employees report retrieved successfully");
 
         return result;
     }
 
     public List<Attendance> lateEmployees() {
 
-        List<Attendance> result = attendanceRepository.findAll()
-                .stream()
-                .filter(attendance ->
-                        Boolean.TRUE.equals(
-                                attendance.getLate()))
-                .toList();
+        List<Attendance> result = attendanceRepository.findAll().stream().filter(attendance -> Boolean.TRUE.equals(attendance.getLate())).toList();
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logActivity(
-                performedBy,
-                "VIEW_LATE_EMPLOYEES",
-                "ATTENDANCE_REPORTS",
-                "Late employee attendance report viewed",
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "VIEW_LATE_EMPLOYEES", "ATTENDANCE_REPORTS", "Late employee attendance report viewed", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "ATTENDANCE_REPORTS",
-                "AttendanceService",
-                "Late employees report retrieved successfully"
-        );
+        auditLogsService.logInfo("ATTENDANCE_REPORTS", "AttendanceService", "Late employees report retrieved successfully");
 
         return result;
     }
 
     public List<Attendance> earlyLeavingEmployees() {
 
-        List<Attendance> result = attendanceRepository.findAll()
-                .stream()
-                .filter(attendance ->
-                        Boolean.TRUE.equals(
-                                attendance.getEarlyLeaving()))
-                .toList();
+        List<Attendance> result = attendanceRepository.findAll().stream().filter(attendance -> Boolean.TRUE.equals(attendance.getEarlyLeaving())).toList();
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logActivity(
-                performedBy,
-                "VIEW_EARLY_LEAVING_EMPLOYEES",
-                "ATTENDANCE_REPORTS",
-                "Early leaving employee report viewed",
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "VIEW_EARLY_LEAVING_EMPLOYEES", "ATTENDANCE_REPORTS", "Early leaving employee report viewed", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "ATTENDANCE_REPORTS",
-                "AttendanceService",
-                "Early leaving employees report retrieved successfully"
-        );
+        auditLogsService.logInfo("ATTENDANCE_REPORTS", "AttendanceService", "Early leaving employees report retrieved successfully");
 
         return result;
     }
+
     public List<OvertimeRequest> approvedOvertime() {
 
-        List<OvertimeRequest> result =
-                overtimeRequestRepository.findAll()
-                        .stream()
-                        .filter(overtime ->
-                                "APPROVED".equalsIgnoreCase(
-                                        overtime.getStatus()))
-                        .toList();
+        List<OvertimeRequest> result = overtimeRequestRepository.findAll().stream().filter(overtime -> "APPROVED".equalsIgnoreCase(String.valueOf(overtime.getStatus()))).toList();
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logActivity(
-                performedBy,
-                "VIEW_APPROVED_OVERTIME",
-                "OVERTIME_REPORTS",
-                "Approved overtime report viewed",
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "VIEW_APPROVED_OVERTIME", "OVERTIME_REPORTS", "Approved overtime report viewed", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "OVERTIME_REPORTS",
-                "AttendanceService",
-                "Approved overtime report retrieved successfully"
-        );
+        auditLogsService.logInfo("OVERTIME_REPORTS", "AttendanceService", "Approved overtime report retrieved successfully");
 
         return result;
     }
 
     public List<OvertimeRequest> pendingOvertime() {
 
-        List<OvertimeRequest> result =
-                overtimeRequestRepository.findAll()
-                        .stream()
-                        .filter(overtime ->
-                                "PENDING".equalsIgnoreCase(
-                                        overtime.getStatus()))
-                        .toList();
+        List<OvertimeRequest> result = overtimeRequestRepository.findAll().stream().filter(overtime -> "PENDING".equalsIgnoreCase(String.valueOf(overtime.getStatus()))).toList();
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logActivity(
-                performedBy,
-                "VIEW_PENDING_OVERTIME",
-                "OVERTIME_REPORTS",
-                "Pending overtime report viewed",
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "VIEW_PENDING_OVERTIME", "OVERTIME_REPORTS", "Pending overtime report viewed", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "OVERTIME_REPORTS",
-                "AttendanceService",
-                "Pending overtime report retrieved successfully"
-        );
+        auditLogsService.logInfo("OVERTIME_REPORTS", "AttendanceService", "Pending overtime report retrieved successfully");
 
         return result;
     }
 
     public List<AttendanceRegularization> pendingRegularization() {
 
-        List<AttendanceRegularization> result =
-                attendanceRegularizationRepository.findAll()
-                        .stream()
-                        .filter(regularization ->
-                                "PENDING".equalsIgnoreCase(
-                                        regularization.getStatus()))
-                        .toList();
+        List<AttendanceRegularization> result = attendanceRegularizationRepository.findAll().stream().filter(regularization -> "PENDING".equalsIgnoreCase(regularization.getStatus())).toList();
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logActivity(
-                performedBy,
-                "VIEW_PENDING_REGULARIZATION",
-                "ATTENDANCE_REGULARIZATION",
-                "Pending attendance regularization report viewed",
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "VIEW_PENDING_REGULARIZATION", "ATTENDANCE_REGULARIZATION", "Pending attendance regularization report viewed", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "ATTENDANCE_REGULARIZATION",
-                "AttendanceService",
-                "Pending regularization report retrieved successfully"
-        );
+        auditLogsService.logInfo("ATTENDANCE_REGULARIZATION", "AttendanceService", "Pending regularization report retrieved successfully");
 
         return result;
     }
 
     public List<AttendanceRegularization> approvedRegularization() {
 
-        List<AttendanceRegularization> result =
-                attendanceRegularizationRepository.findAll()
-                        .stream()
-                        .filter(regularization ->
-                                "APPROVED".equalsIgnoreCase(
-                                        regularization.getStatus()))
-                        .toList();
+        List<AttendanceRegularization> result = attendanceRegularizationRepository.findAll().stream().filter(regularization -> "APPROVED".equalsIgnoreCase(regularization.getStatus())).toList();
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logActivity(
-                performedBy,
-                "VIEW_APPROVED_REGULARIZATION",
-                "ATTENDANCE_REGULARIZATION",
-                "Approved attendance regularization report viewed",
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "VIEW_APPROVED_REGULARIZATION", "ATTENDANCE_REGULARIZATION", "Approved attendance regularization report viewed", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "ATTENDANCE_REGULARIZATION",
-                "AttendanceService",
-                "Approved regularization report retrieved successfully"
-        );
+        auditLogsService.logInfo("ATTENDANCE_REGULARIZATION", "AttendanceService", "Approved regularization report retrieved successfully");
 
         return result;
     }
@@ -4055,105 +2276,42 @@ public Attendance getAttendance(Long id) {
 
         LocalDate today = LocalDate.now();
 
-        List<Attendance> result = attendanceRepository.findAll()
-                .stream()
-                .filter(attendance -> {
+        List<Attendance> result = attendanceRepository.findAll().stream().filter(attendance -> {
 
-                    if (attendance.getLoginTime() == null) {
-                        return false;
-                    }
+            if (attendance.getLoginTime() == null) {
+                return false;
+            }
 
-                    return attendance.getLoginTime()
-                            .toLocalDate()
-                            .equals(today);
-                })
-                .toList();
+            return attendance.getLoginTime().toLocalDate().equals(today);
+        }).toList();
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logActivity(
-                performedBy,
-                "VIEW_TODAY_ATTENDANCE",
-                "ATTENDANCE_REPORTS",
-                "Today's attendance report viewed",
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "VIEW_TODAY_ATTENDANCE", "ATTENDANCE_REPORTS", "Today's attendance report viewed", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "ATTENDANCE_REPORTS",
-                "AttendanceService",
-                "Today's attendance report retrieved successfully"
-        );
+        auditLogsService.logInfo("ATTENDANCE_REPORTS", "AttendanceService", "Today's attendance report retrieved successfully");
 
         return result;
     }
 
     public List<GpsTracking> liveTracking() {
 
-        List<GpsTracking> result = gpsTrackingRepository.findAll()
-                .stream()
-                .filter(gps ->
-                        "ACTIVE".equalsIgnoreCase(
-                                gps.getTrackingStatus())
-                                &&
-                                gps.getLogoutLocation() == null)
-                .toList();
+        List<GpsTracking> result = gpsTrackingRepository.findAll().stream().filter(gps -> "ACTIVE".equalsIgnoreCase(gps.getTrackingStatus()) && gps.getLogoutLocation() == null).toList();
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logActivity(
-                performedBy,
-                "VIEW_LIVE_GPS",
-                "GPS_TRACKING",
-                "Live employee GPS tracking viewed",
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(performedBy, "VIEW_LIVE_GPS", "GPS_TRACKING", "Live employee GPS tracking viewed", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "GPS_TRACKING",
-                "AttendanceService",
-                "Live GPS tracking retrieved successfully"
-        );
+        auditLogsService.logInfo("GPS_TRACKING", "AttendanceService", "Live GPS tracking retrieved successfully");
 
         return result;
     }
 
     public List<GpsTracking> gpsHistory(String employeeId) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() ->
-                        new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
-        List<GpsTracking> result = gpsTrackingRepository.findAll()
-                .stream()
-                .filter(gps ->
-                        gps.getEmployee() != null
-                                &&
-                                gps.getEmployee()
-                                        .getEmployeeId()
-                                        .equals(employee.getEmployeeId()))
-                .toList();
+        List<GpsTracking> result = gpsTrackingRepository.findAll().stream().filter(gps -> gps.getEmployee() != null && gps.getEmployee().getEmployeeId().equals(employee.getEmployeeId())).toList();
 
-        auditLogsService.logActivity(
-                employeeId,
-                "VIEW_GPS_HISTORY",
-                "GPS_TRACKING",
-                "Employee GPS history viewed. Employee ID: "
-                        + employeeId,
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "VIEW_GPS_HISTORY", "GPS_TRACKING", "Employee GPS history viewed. Employee ID: " + employeeId, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "GPS_TRACKING",
-                "AttendanceService",
-                "GPS history retrieved successfully. Employee ID: "
-                        + employeeId
-        );
+        auditLogsService.logInfo("GPS_TRACKING", "AttendanceService", "GPS history retrieved successfully. Employee ID: " + employeeId);
 
         return result;
     }
@@ -4166,139 +2324,416 @@ public Attendance getAttendance(Long id) {
 
         LocalDate today = LocalDate.now();
 
-        List<Attendance> allAttendance =
-                attendanceRepository.findAll();
+        List<Attendance> allAttendance = attendanceRepository.findAll();
 
-        List<OvertimeRequest> allOvertime =
-                overtimeRequestRepository.findAll();
+        List<OvertimeRequest> allOvertime = overtimeRequestRepository.findAll();
 
-        List<AttendanceRegularization> allRegularizations =
-                attendanceRegularizationRepository.findAll();
+        List<AttendanceRegularization> allRegularizations = attendanceRegularizationRepository.findAll();
 
-        List<GpsTracking> allGps =
-                gpsTrackingRepository.findAll();
+        List<GpsTracking> allGps = gpsTrackingRepository.findAll();
 
         // Total Employees
-        long totalEmployees =
-                employeeRepository.count();
+        long totalEmployees = employeeRepository.count();
 
         // Present Employees
-        long presentEmployees =
-                allAttendance.stream()
-                        .filter(attendance ->
-                                "PRESENT".equalsIgnoreCase(
-                                        attendance.getAttendanceStatus()))
-                        .filter(attendance ->
-                                attendance.getLoginTime() != null &&
-                                        attendance.getLoginTime()
-                                                .toLocalDate()
-                                                .equals(today))
-                        .count();
+        long presentEmployees = allAttendance.stream().filter(attendance -> "PRESENT".equalsIgnoreCase(String.valueOf(attendance.getAttendanceStatus()))).filter(attendance -> attendance.getLoginTime() != null && attendance.getLoginTime().toLocalDate().equals(today)).count();
 
         // Absent Employees
-        long absentEmployees =
-                allAttendance.stream()
-                        .filter(attendance ->
-                                "ABSENT".equalsIgnoreCase(
-                                        attendance.getAttendanceStatus()))
-                        .filter(attendance ->
-                                attendance.getCreatedAt() != null &&
-                                        attendance.getCreatedAt()
-                                                .toLocalDate()
-                                                .equals(today))
-                        .count();
+        long absentEmployees = allAttendance.stream().filter(attendance -> "ABSENT".equalsIgnoreCase(String.valueOf(attendance.getAttendanceStatus()))).filter(attendance -> attendance.getCreatedAt() != null && attendance.getCreatedAt().toLocalDate().equals(today)).count();
 
         // Late Employees
-        long lateEmployees =
-                allAttendance.stream()
-                        .filter(attendance ->
-                                Boolean.TRUE.equals(
-                                        attendance.getLate()))
-                        .filter(attendance ->
-                                attendance.getLoginTime() != null &&
-                                        attendance.getLoginTime()
-                                                .toLocalDate()
-                                                .equals(today))
-                        .count();
+        long lateEmployees = allAttendance.stream().filter(attendance -> Boolean.TRUE.equals(attendance.getLate())).filter(attendance -> attendance.getLoginTime() != null && attendance.getLoginTime().toLocalDate().equals(today)).count();
 
         // Early Leaving Employees
-        long earlyLeavingEmployees =
-                allAttendance.stream()
-                        .filter(attendance ->
-                                Boolean.TRUE.equals(
-                                        attendance.getEarlyLeaving()))
-                        .filter(attendance ->
-                                attendance.getLoginTime() != null &&
-                                        attendance.getLoginTime()
-                                                .toLocalDate()
-                                                .equals(today))
-                        .count();
+        long earlyLeavingEmployees = allAttendance.stream().filter(attendance -> Boolean.TRUE.equals(attendance.getEarlyLeaving())).filter(attendance -> attendance.getLoginTime() != null && attendance.getLoginTime().toLocalDate().equals(today)).count();
 
         // Today's Attendance
-        long todayAttendance =
-                allAttendance.stream()
-                        .filter(attendance ->
-                                attendance.getLoginTime() != null &&
-                                        attendance.getLoginTime()
-                                                .toLocalDate()
-                                                .equals(today))
-                        .count();
+        long todayAttendance = allAttendance.stream().filter(attendance -> attendance.getLoginTime() != null && attendance.getLoginTime().toLocalDate().equals(today)).count();
 
         // Approved Overtime
-        long approvedOvertime =
-                allOvertime.stream()
-                        .filter(overtime ->
-                                "APPROVED".equalsIgnoreCase(
-                                        overtime.getStatus()))
-                        .count();
+        long approvedOvertime = allOvertime.stream().filter(overtime -> "APPROVED".equalsIgnoreCase(String.valueOf(overtime.getStatus()))).count();
 
         // Pending Overtime
-        long pendingOvertime =
-                allOvertime.stream()
-                        .filter(overtime ->
-                                "PENDING".equalsIgnoreCase(
-                                        overtime.getStatus()))
-                        .count();
+        long pendingOvertime = allOvertime.stream().filter(overtime -> "PENDING".equalsIgnoreCase(String.valueOf(overtime.getStatus()))).count();
 
         // Pending Regularization
-        long pendingRegularization =
-                allRegularizations.stream()
-                        .filter(regularization ->
-                                "PENDING".equalsIgnoreCase(
-                                        regularization.getStatus()))
-                        .count();
+        long pendingRegularization = allRegularizations.stream().filter(regularization -> "PENDING".equalsIgnoreCase(regularization.getStatus())).count();
 
         // Approved Regularization
-        long approvedRegularization =
-                allRegularizations.stream()
-                        .filter(regularization ->
-                                "APPROVED".equalsIgnoreCase(
-                                        regularization.getStatus()))
-                        .count();
+        long approvedRegularization = allRegularizations.stream().filter(regularization -> "APPROVED".equalsIgnoreCase(regularization.getStatus())).count();
 
         // Live GPS Tracking
-        long liveGpsTracking =
-                allGps.stream()
-                        .filter(gps ->
-                                "ACTIVE".equalsIgnoreCase(
-                                        gps.getTrackingStatus()))
-                        .filter(gps ->
-                                gps.getLogoutLocation() == null)
-                        .count();
+        long liveGpsTracking = allGps.stream().filter(gps -> "ACTIVE".equalsIgnoreCase(gps.getTrackingStatus())).filter(gps -> gps.getLogoutLocation() == null).count();
 
-        return new AttendanceDashboardDTO(
-                totalEmployees,
-                presentEmployees,
-                absentEmployees,
-                lateEmployees,
-                earlyLeavingEmployees,
-                todayAttendance,
-                approvedOvertime,
-                pendingOvertime,
-                pendingRegularization,
-                approvedRegularization,
-                liveGpsTracking
-        );
+        return new AttendanceDashboardDTO(totalEmployees, presentEmployees, absentEmployees, lateEmployees, earlyLeavingEmployees, todayAttendance, approvedOvertime, pendingOvertime, pendingRegularization, approvedRegularization, liveGpsTracking);
     }
 
-}
+    // =========================================================
+// ATTENDANCE FILTER
+// =========================================================
+
+    public List<Attendance> filterAttendance(String period, Integer year, Integer month, String date) {
+
+        LocalDateTime start;
+        LocalDateTime end;
+
+        switch (period.toUpperCase()) {
+
+            // =================================================
+            // TODAY
+            // =================================================
+
+            case "TODAY":
+
+                LocalDate today = LocalDate.now();
+
+                start = today.atStartOfDay();
+
+                end = today.plusDays(1).atStartOfDay();
+
+                break;
+
+
+            // =================================================
+            // YESTERDAY
+            // =================================================
+
+            case "YESTERDAY":
+
+                LocalDate yesterday = LocalDate.now().minusDays(1);
+
+                start = yesterday.atStartOfDay();
+
+                end = yesterday.plusDays(1).atStartOfDay();
+
+                break;
+
+
+            // =================================================
+            // THIS WEEK
+            // =================================================
+
+            case "THIS_WEEK":
+
+                LocalDate currentDate = LocalDate.now();
+
+                LocalDate weekStart = currentDate.with(DayOfWeek.MONDAY);
+
+                LocalDate weekEnd = weekStart.plusDays(7);
+
+                start = weekStart.atStartOfDay();
+
+                end = weekEnd.atStartOfDay();
+
+                break;
+
+
+            // =================================================
+            // THIS MONTH
+            // =================================================
+
+            case "THIS_MONTH":
+
+                LocalDate currentMonth = LocalDate.now().withDayOfMonth(1);
+
+                LocalDate nextMonth = currentMonth.plusMonths(1);
+
+                start = currentMonth.atStartOfDay();
+
+                end = nextMonth.atStartOfDay();
+
+                break;
+
+
+            // =================================================
+            // MONTH WISE
+            // =================================================
+
+            case "MONTH":
+
+                if (year == null || month == null) {
+
+                    throw new RuntimeException("Year and month are required");
+                }
+
+                LocalDate monthStart = LocalDate.of(year, month, 1);
+
+                LocalDate monthEnd = monthStart.plusMonths(1);
+
+                start = monthStart.atStartOfDay();
+
+                end = monthEnd.atStartOfDay();
+
+                break;
+
+
+            // =================================================
+            // WEEK WISE
+            // =================================================
+
+            case "WEEK":
+
+                if (date == null) {
+
+                    throw new RuntimeException("Date is required");
+                }
+
+                LocalDate selectedDate = LocalDate.parse(date);
+
+                LocalDate selectedWeekStart = selectedDate.with(DayOfWeek.MONDAY);
+
+                LocalDate selectedWeekEnd = selectedWeekStart.plusDays(7);
+
+                start = selectedWeekStart.atStartOfDay();
+
+                end = selectedWeekEnd.atStartOfDay();
+
+                break;
+
+
+            // =================================================
+            // INVALID PERIOD
+            // =================================================
+
+            default:
+
+                throw new RuntimeException("Invalid period. Use TODAY, YESTERDAY, " + "THIS_WEEK, THIS_MONTH, MONTH or WEEK");
+        }
+
+
+        return attendanceRepository.findByDateRange(start, end);
+    }
+
+    public List<Attendance> getAttendanceByStatus(AttendanceStatus status) {
+
+        return attendanceRepository.findByAttendanceStatus(status);
+    }
+
+    public List<EmployeeShift> getEmployeesByShiftCode(String shiftCode) {
+
+        if (shiftCode == null || shiftCode.isBlank()) {
+
+            throw new RuntimeException("Shift code is required");
+        }
+
+        return employeeShiftRepository.findByShiftShiftCode(shiftCode);
+    }
+
+    public List<OvertimeRequest> getOvertimeByStatus(OvertimeStatus status) {
+
+        if (status == null) {
+            throw new RuntimeException("Overtime status is required");
+        }
+
+        return overtimeRequestRepository.findByStatus(status);
+    }
+
+
+    public byte[] exportEmployeeAttendance(String employeeId) {
+
+        // =====================================================
+        // CHECK EMPLOYEE
+        // =====================================================
+
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+
+        // =====================================================
+        // GET EMPLOYEE ATTENDANCE
+        // =====================================================
+
+        List<Attendance> attendanceList = attendanceRepository.findByEmployeeEmployeeId(employeeId);
+
+        try (Workbook workbook = new XSSFWorkbook();
+
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Employee Attendance");
+
+            // =================================================
+            // EMPLOYEE INFORMATION
+            // =================================================
+
+            Row employeeRow = sheet.createRow(0);
+
+            employeeRow.createCell(0).setCellValue("Employee ID");
+
+            employeeRow.createCell(1).setCellValue(employee.getEmployeeId());
+
+            Row nameRow = sheet.createRow(1);
+
+            nameRow.createCell(0).setCellValue("Employee Name");
+
+            String employeeName = (employee.getFirstName() != null ? employee.getFirstName() : "") + " " + (employee.getLastName() != null ? employee.getLastName() : "");
+
+            nameRow.createCell(1).setCellValue(employeeName.trim());
+
+            Row emailRow = sheet.createRow(2);
+
+            emailRow.createCell(0).setCellValue("Email");
+
+            emailRow.createCell(1).setCellValue(employee.getEmail() != null ? employee.getEmail() : "");
+
+            // =================================================
+            // HEADER
+            // =================================================
+
+            Row headerRow = sheet.createRow(4);
+
+            String[] headers = {
+
+                    "Date", "Login Time", "Logout Time", "Total Hours", "Attendance Status", "Late", "Early Leaving", "Remarks"};
+
+            for (int i = 0; i < headers.length; i++) {
+
+                headerRow.createCell(i).setCellValue(headers[i]);
+            }
+
+            // =================================================
+            // ATTENDANCE DATA
+            // =================================================
+
+            int rowNumber = 5;
+
+            for (Attendance attendance : attendanceList) {
+
+                Row row = sheet.createRow(rowNumber++);
+
+                // Date
+                row.createCell(0).setCellValue(attendance.getLoginTime() != null ? attendance.getLoginTime().toLocalDate().toString() : "");
+
+                // Login
+                row.createCell(1).setCellValue(attendance.getLoginTime() != null ? attendance.getLoginTime().toLocalTime().toString() : "");
+
+                // Logout
+                row.createCell(2).setCellValue(attendance.getLogoutTime() != null ? attendance.getLogoutTime().toLocalTime().toString() : "");
+
+                // Total Hours
+                row.createCell(3).setCellValue(attendance.getTotalHours() != null ? attendance.getTotalHours().doubleValue() : 0);
+
+                // Status
+                row.createCell(4).setCellValue(attendance.getAttendanceStatus() != null ? attendance.getAttendanceStatus().toString() : "");
+
+                // Late
+                row.createCell(5).setCellValue(attendance.getLate() != null ? attendance.getLate() : false);
+
+                // Early Leaving
+                row.createCell(6).setCellValue(attendance.getEarlyLeaving() != null ? attendance.getEarlyLeaving() : false);
+
+                // Remarks
+                row.createCell(7).setCellValue(attendance.getRemarks() != null ? attendance.getRemarks() : "");
+            }
+
+            // =================================================
+            // AUTO SIZE
+            // =================================================
+
+            for (int i = 0; i < headers.length; i++) {
+
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(outputStream);
+
+            return outputStream.toByteArray();
+
+        } catch (IOException e) {
+
+            throw new RuntimeException("Failed to generate employee attendance Excel", e);
+        }
+    }
+
+
+
+
+
+        public byte[] exportAttendanceToExcel() {
+
+            List<Attendance> attendanceList = attendanceRepository.findAll();
+
+            try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+
+                Sheet sheet = workbook.createSheet("Attendance Report");
+
+                // =====================================================
+                // HEADER
+                // =====================================================
+
+                Row headerRow = sheet.createRow(0);
+
+                String[] headers = {"Employee ID", "Employee Name", "Mobile Number", "Department ID", "Login Time", "Logout Time", "Total Hours", "Attendance Status", "Late", "Early Leaving", "Remarks", "Created At"};
+
+                for (int i = 0; i < headers.length; i++) {
+
+                    Cell cell = headerRow.createCell(i);
+
+                    cell.setCellValue(headers[i]);
+                }
+
+                // =====================================================
+                // DATA
+                // =====================================================
+
+                int rowNumber = 1;
+
+                for (Attendance attendance : attendanceList) {
+
+                    Row row = sheet.createRow(rowNumber++);
+
+                    Employee employee = attendance.getEmployee();
+
+                    row.createCell(0).setCellValue(employee != null ? employee.getEmployeeId() : "");
+
+                    String employeeName = "";
+
+                    if (employee != null) {
+
+                        employeeName = (employee.getFirstName() != null ? employee.getFirstName() : "") + " " + (employee.getLastName() != null ? employee.getLastName() : "");
+                    }
+
+                    row.createCell(1).setCellValue(employeeName.trim());
+
+                    row.createCell(2).setCellValue(employee != null ? employee.getMobileNumber() : "");
+
+                    row.createCell(3).setCellValue((Calendar) (employee != null && employee.getDepartmentId() != null ? employee.getDepartmentId() : 0));
+
+                    row.createCell(4).setCellValue(attendance.getLoginTime() != null ? attendance.getLoginTime().toString() : "");
+
+                    row.createCell(5).setCellValue(attendance.getLogoutTime() != null ? attendance.getLogoutTime().toString() : "");
+
+                    row.createCell(6).setCellValue(attendance.getTotalHours() != null ? attendance.getTotalHours().doubleValue() : 0);
+
+                    row.createCell(7).setCellValue(attendance.getAttendanceStatus() != null ? attendance.getAttendanceStatus().toString() : "");
+
+                    row.createCell(8).setCellValue(attendance.getLate() != null ? attendance.getLate() : false);
+
+                    row.createCell(9).setCellValue(attendance.getEarlyLeaving() != null ? attendance.getEarlyLeaving() : false);
+
+                    row.createCell(10).setCellValue(attendance.getRemarks() != null ? attendance.getRemarks() : "");
+
+                    row.createCell(11).setCellValue(attendance.getCreatedAt() != null ? attendance.getCreatedAt().toString() : "");
+                }
+
+                // =====================================================
+                // AUTO SIZE
+                // =====================================================
+
+                for (int i = 0; i < headers.length; i++) {
+
+                    sheet.autoSizeColumn(i);
+                }
+
+                workbook.write(outputStream);
+
+                return outputStream.toByteArray();
+
+            } catch (IOException e) {
+
+                throw new RuntimeException("Failed to generate attendance Excel", e);
+            }
+        }
+
+
+    }
+
+
+

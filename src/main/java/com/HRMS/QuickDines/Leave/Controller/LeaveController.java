@@ -453,4 +453,17 @@ public class LeaveController {
         return ResponseEntity.ok(
                 service.getActiveLeavePolicies());
     }
+    // =========================================================
+// LEAVE TYPE-WISE EMPLOYEE FILTER
+// =========================================================
+
+    @GetMapping("/leave-type/{leaveTypeId}")
+    @PreAuthorize("hasAuthority('LEAVE_READ')")
+    public ResponseEntity<?> getEmployeesByLeaveType(
+            @PathVariable Long leaveTypeId) {
+
+        return ResponseEntity.ok(
+                service.getEmployeesByLeaveType(
+                        leaveTypeId));
+    }
 }

@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Auth.model;
 
+import com.HRMS.QuickDines.Auth.Entity.UserStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -52,6 +53,9 @@ public class Users {
     private LocalDateTime createdAt;
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus status;
 
     //USER ROLES
 

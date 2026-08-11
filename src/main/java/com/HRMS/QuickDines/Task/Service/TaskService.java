@@ -5,6 +5,7 @@ import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
 import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
+import com.HRMS.QuickDines.Task.Entity.TaskAssignmentStatus;
 import com.HRMS.QuickDines.Task.model.TaskAssignments;
 import com.HRMS.QuickDines.Task.model.TaskReports;
 import com.HRMS.QuickDines.Task.model.Tasks;
@@ -885,5 +886,20 @@ public class TaskService {
     public Long getOnHoldTaskCount(String employeeId) {
 
         return taskAssignmentsRepository.countByAssignedToEmployeeIdAndTaskStatus(employeeId, "ON_HOLD");
+    }
+    // =========================================================
+// FILTER TASK ASSIGNMENTS BY STATUS
+// =========================================================
+
+    public List<TaskAssignments> getTasksByStatus(
+            TaskAssignmentStatus status) {
+
+        if (status == null) {
+            throw new RuntimeException(
+                    "Task status is required");
+        }
+
+        return taskAssignmentsRepository
+                .findByStatus(status);
     }
 }

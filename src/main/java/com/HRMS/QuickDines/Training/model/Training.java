@@ -1,6 +1,7 @@
 package com.HRMS.QuickDines.Training.model;
 
 import com.HRMS.QuickDines.Employee.model.Employee;
+import com.HRMS.QuickDines.Training.Entity.TrainingStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -60,8 +61,9 @@ public class Training {
      * COMPLETED
      * CANCELLED
      */
+    @Enumerated(EnumType.STRING)
     @Column(length = 20)
-    private String status;
+    private TrainingStatus status;
 
 
     /*

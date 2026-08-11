@@ -1,4 +1,5 @@
 package com.HRMS.QuickDines.Sales.model;
+import com.HRMS.QuickDines.Sales.Entity.BusServiceStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -21,7 +22,9 @@ public class BusService {
 
     private String location;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private BusServiceStatus status;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

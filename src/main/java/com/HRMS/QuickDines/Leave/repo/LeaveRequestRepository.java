@@ -4,9 +4,12 @@ import com.HRMS.QuickDines.Leave.model.LeaveRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long> {
-    Object findByEmployeeEmployeeId(String employeeId);
+    LeaveRequest findByEmployeeEmployeeId(String employeeId);
 
-    Object findByStatus(String pending);
+    List<LeaveRequest> findByStatus(String pending);
+    List<LeaveRequest> findByLeaveTypeId(Long leaveTypeId);
 }

@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Task.Controller;
 
+import com.HRMS.QuickDines.Task.Entity.TaskAssignmentStatus;
 import com.HRMS.QuickDines.Task.Service.TaskService;
 import com.HRMS.QuickDines.Task.model.TaskAssignments;
 import com.HRMS.QuickDines.Task.model.Tasks;
@@ -285,5 +286,17 @@ public class TaskController {
 
         return ResponseEntity.ok(
                 service.getOnHoldTaskCount(employeeId));
+    }
+    // =========================================================
+// TASK STATUS FILTER
+// =========================================================
+
+    @GetMapping("/filter/status")
+    @PreAuthorize("hasAuthority('TASK_READ')")
+    public ResponseEntity<?> getTasksByStatus(
+            @RequestParam TaskAssignmentStatus status) {
+
+        return ResponseEntity.ok(
+                service.getTasksByStatus(status));
     }
 }

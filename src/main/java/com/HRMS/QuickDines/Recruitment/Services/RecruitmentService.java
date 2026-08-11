@@ -1,8 +1,13 @@
 package com.HRMS.QuickDines.Recruitment.Services;
 
+import com.HRMS.QuickDines.AdvanceServices.EmailService;
 import com.HRMS.QuickDines.AuditLogs.Entity.ActivityStatus;
 import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
 import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
+import com.HRMS.QuickDines.Company.model.Branch;
+import com.HRMS.QuickDines.Company.repo.BranchRepository;
+import com.HRMS.QuickDines.Recruitment.Entity.InterviewStatus;
+import com.HRMS.QuickDines.Recruitment.Entity.JobOpeningStatus;
 import com.HRMS.QuickDines.Recruitment.model.*;
 import com.HRMS.QuickDines.Recruitment.repo.*;
 import com.cloudinary.Cloudinary;
@@ -17,7 +22,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -25,6 +33,8 @@ import java.util.Map;
 public class RecruitmentService {
 
 private final ApplicationRepository applicationRepository;
+private final BranchRepository branchRepository;
+private final EmailService emailService;
 private final JobOpeningRepository jobOpeningRepository;
 private final CandidateDocumentRepository candidateDocumentRepository;
 private final InterviewRepository interviewRepository;
@@ -457,13 +467,36 @@ private final OfferLetterRepository offerLetterRepository;
 
     public String createInterview(Long applicationId, Interview interview) {
 
-        Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() ->
-                        new RuntimeException("Application Not Found"));
+        Application application =
+                applicationRepository.findById(applicationId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Application Not Found"));
+
+
 
         interview.setApplication(application);
 
-        interviewRepository.save(interview);
+
+        if (interview.getInterviewStatus() == null) {
+
+            interview.setInterviewStatus(
+                    InterviewStatus.SCHEDULED);
+        }
+
+        if (interview.getInterviewDate() == null) {
+
+            throw new RuntimeException(
+                    "Interview date and time is required");
+        }
+
+        Interview saved =
+                interviewRepository.save(interview);
+
+        // Send interview email
+      emailService.sendInterviewEmail (saved);
+
+
 
         String performedBy = getLoggedInEmployeeId();
 
@@ -1161,5 +1194,105 @@ private final OfferLetterRepository offerLetterRepository;
                 offerLetterRepository.findByOfferStatus("REJECTED").size());
 
         return counts;
+    }
+
+    public List<JobOpening> getJobOpeningsByStatus(
+            JobOpeningStatus status) {
+
+        return jobOpeningRepository.findByStatus(status);
+    }
+    // =========================================================
+// UPDATE JOB OPENING STATUS
+// =========================================================
+
+    public String updateJobOpeningStatus(
+            Long id,
+            JobOpeningStatus status) {
+
+        JobOpening jobOpening =
+                jobOpeningRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Job Opening Not Found"));
+
+        if (status == null) {
+            throw new RuntimeException(
+                    "Status is required");
+        }
+
+        jobOpening.setStatus(status);
+
+        jobOpeningRepository.save(jobOpening);
+
+        return "Job Opening status updated to "
+                + status;
+    }
+    public String selectCandidate(Long interviewId) {
+
+        Interview interview =
+                interviewRepository.findById(interviewId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Interview Not Found"));
+
+        interview.setInterviewStatus(
+                InterviewStatus.SELECTED);
+
+        Interview selected =
+                interviewRepository.save(interview);
+
+        emailService.sendSelectionEmail(selected);
+
+        return "Candidate Selected Successfully";
+    }
+
+    public List<Interview> filterInterviews(
+            InterviewStatus status,
+            String startDate,
+            String endDate) {
+
+        if (status != null &&
+                startDate != null &&
+                endDate != null) {
+
+            LocalDateTime start =
+                    LocalDate.parse(startDate)
+                            .atStartOfDay();
+
+            LocalDateTime end =
+                    LocalDate.parse(endDate)
+                            .atTime(23, 59, 59);
+
+            return interviewRepository
+                    .findByInterviewStatusAndInterviewDateBetween(
+                            status,
+                            start,
+                            end);
+        }
+
+        if (status != null) {
+
+            return interviewRepository
+                    .findByInterviewStatus(status);
+        }
+
+        if (startDate != null &&
+                endDate != null) {
+
+            LocalDateTime start =
+                    LocalDate.parse(startDate)
+                            .atStartOfDay();
+
+            LocalDateTime end =
+                    LocalDate.parse(endDate)
+                            .atTime(23, 59, 59);
+
+            return interviewRepository
+                    .findByInterviewDateBetween(
+                            start,
+                            end);
+        }
+
+        return interviewRepository.findAll();
     }
 }

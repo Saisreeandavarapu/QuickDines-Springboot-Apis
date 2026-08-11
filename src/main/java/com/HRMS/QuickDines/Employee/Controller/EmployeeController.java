@@ -790,6 +790,37 @@ public class EmployeeController {
         return ResponseEntity.ok(service.getCounts());
     }
 
+    @GetMapping("/search")
+    @PreAuthorize("hasAuthority('EMPLOYEE_READ')")
+    public ResponseEntity<?> searchEmployees(
+            @RequestParam String keyword) {
+
+        return ResponseEntity.ok(
+                service.searchEmployees(keyword)
+        );
+    }
+    @GetMapping("/filter/department")
+    @PreAuthorize("hasAuthority('EMPLOYEE_READ')")
+    public ResponseEntity<?> getEmployeesByDepartmentName(
+            @RequestParam String departmentName) {
+
+        return ResponseEntity.ok(
+                service
+                        .getEmployeesByDepartmentName(
+                                departmentName)
+        );
+    }
+    @GetMapping("/filter/designation")
+    @PreAuthorize("hasAuthority('EMPLOYEE_READ')")
+    public ResponseEntity<?> getEmployeesByDesignation(
+            @RequestParam String designationName) {
+
+        return ResponseEntity.ok(
+                service
+                        .getEmployeesByDesignation(
+                                designationName));
+    }
+
 
 //    //-------------------------
 //    // Attendance
