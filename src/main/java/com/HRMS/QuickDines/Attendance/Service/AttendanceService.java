@@ -2694,7 +2694,7 @@ public class AttendanceService {
 
                     row.createCell(2).setCellValue(employee != null ? employee.getMobileNumber() : "");
 
-                    row.createCell(3).setCellValue((Calendar) (employee != null && employee.getDepartmentId() != null ? employee.getDepartmentId() : 0));
+                    row.createCell(3).setCellValue(String.valueOf(( (employee != null && employee.getDepartmentId() != null ? employee.getDepartmentId() : 0))));
 
                     row.createCell(4).setCellValue(attendance.getLoginTime() != null ? attendance.getLoginTime().toString() : "");
 
