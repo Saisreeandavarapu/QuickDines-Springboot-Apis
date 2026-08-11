@@ -598,7 +598,7 @@ public class AttendanceController {
         return ResponseEntity.ok(service.getEmployeesByShiftCode(shiftCode));
     }
 
-    @GetMapping("/filter/status")
+    @GetMapping("/overtime/filter/status")
     @PreAuthorize("hasAuthority('OVERTIME_READ')")
     public ResponseEntity<?> getOvertimeByStatus(@RequestParam OvertimeStatus status) {
 
