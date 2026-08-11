@@ -27,19 +27,23 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Inte
             LocalDate fromDate,
             LocalDate toDate);
     @Query("""
-        SELECT l
-        FROM LoginHistory l
-        LEFT JOIN l.users u
-        WHERE
-            LOWER(u.username) LIKE LOWER(CONCAT('%', :search, '%'))
-            OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))
-            OR LOWER(l.ipAddress) LIKE LOWER(CONCAT('%', :search, '%'))
-            OR LOWER(l.browserName) LIKE LOWER(CONCAT('%', :search, '%'))
-            OR LOWER(l.operatingSystem) LIKE LOWER(CONCAT('%', :search, '%'))
-            OR LOWER(l.remarks) LIKE LOWER(CONCAT('%', :search, '%'))
-            OR LOWER(CAST(l.loginStatus AS string))
-                LIKE LOWER(CONCAT('%', :search, '%'))
-        """)
+    SELECT l
+    FROM LoginHistory l
+    LEFT JOIN l.users u
+    WHERE
+        LOWER(u.employeeId) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(u.mobileNumber) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(l.ipAddress) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(l.browserName) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(l.operatingSystem) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(l.remarks) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(CAST(l.loginStatus AS string))
+            LIKE LOWER(CONCAT('%', :search, '%'))
+    """)
     List<LoginHistory> searchLoginHistory(
-            @Param("search") String search);
+            @Param("search") String search
+    );
 }
