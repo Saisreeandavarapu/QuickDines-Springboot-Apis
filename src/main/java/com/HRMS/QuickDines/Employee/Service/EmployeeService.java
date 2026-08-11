@@ -2646,11 +2646,9 @@ public class EmployeeService {
             return employeeRepository.findAll();
         }
 
-        String searchKeyword =
-                "%" + keyword.trim() + "%";
-
         return employeeRepository.searchEmployees(
-                searchKeyword);
+                keyword.trim()
+        );
     }
     public List<Employee> getEmployeesByDepartmentName(
             String departmentName) {
