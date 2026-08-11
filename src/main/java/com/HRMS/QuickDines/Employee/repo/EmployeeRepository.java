@@ -15,17 +15,17 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     Optional<Employee> findByEmployeeId(String employeeId);
     @Query("""
-        SELECT DISTINCT e
-        FROM Employee e
-        LEFT JOIN e.documents d
-        WHERE
-            e.employeeId LIKE :keyword
-            OR e.firstName LIKE :keyword
-            OR e.lastName LIKE :keyword
-            OR e.mobileNumber LIKE :keyword
-            OR d.aadhaarNumber LIKE :keyword
-            OR d.panNumber LIKE :keyword
-    """)
+                SELECT DISTINCT e
+                FROM Employee e
+                LEFT JOIN employee_documents d
+                WHERE
+                   LOWER(e.employee_id) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+                                LOWER(e.first_name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+                                             LOWER(e.last_name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR 
+                                                         LOWER(e.mobile_number) LIKE LOWER(CONCAT('%', :keyword, '%')) OR 
+                                                                     LOWER(d.aadhaar_number) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+                                                                                  LOWER(d.pan_number) LIKE LOWER(CONCAT('%', :keyword, '%'))
+            """)
     List<Employee> searchEmployees(
             @Param("keyword") String keyword);
 
