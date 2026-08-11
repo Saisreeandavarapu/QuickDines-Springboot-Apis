@@ -11,12 +11,5 @@ import java.util.List;
 
 @Repository
 public interface DesignationRepository extends JpaRepository<Designation, Long> {
-    @Query("""
-    SELECT h.employee
-    FROM Designation h
-    WHERE LOWER(h.designation.designationName)
-          = LOWER(:designationName)
-""")
-    List<Employee> findEmployeesByDesignationName(
-            @Param("designationName") String designationName);
+
 }
