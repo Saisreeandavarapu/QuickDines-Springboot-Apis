@@ -2665,12 +2665,9 @@ public class EmployeeService {
                 .findByDepartmentId(
                         department.getId());
     }
-    public List<Employee> getEmployeesByDesignation(
-            String designationName) {
-
+    public List<Employee> findEmployeesByDesignationName(String designationName) {
         return employeeDesignationRepository
-                .findEmployeesByDesignationName(
-                        designationName);
+                .findEmployeesByDesignationName(designationName);
     }
 
 

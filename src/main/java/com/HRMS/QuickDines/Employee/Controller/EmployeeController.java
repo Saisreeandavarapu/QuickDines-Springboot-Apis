@@ -810,15 +810,15 @@ public class EmployeeController {
                                 departmentName)
         );
     }
-    @GetMapping("/filter/designation")
+
     @PreAuthorize("hasAuthority('EMPLOYEE_READ')")
-    public ResponseEntity<?> getEmployeesByDesignation(
-            @RequestParam String designationName) {
+    @GetMapping("/designation/{designationName}")
+    public ResponseEntity<List<Employee>> getEmployeesByDesignation(
+            @PathVariable String designationName) {
 
         return ResponseEntity.ok(
-                service
-                        .getEmployeesByDesignation(
-                                designationName));
+                service.findEmployeesByDesignationName(designationName)
+        );
     }
 
 

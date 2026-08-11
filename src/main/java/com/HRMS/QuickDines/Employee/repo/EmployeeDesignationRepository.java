@@ -13,11 +13,11 @@ import java.util.List;
 public interface EmployeeDesignationRepository extends JpaRepository<EmployeeDesignation, Long> {
     List<EmployeeDesignation> findByEmployeeId(String employeeId);
     @Query("""
-        SELECT e
-        FROM Employee e
-        WHERE LOWER(e.designation.designationName) =
-              LOWER(:designationName)
-    """)
+    SELECT e
+    FROM Employee e
+    WHERE LOWER(e.designation.designationName) =
+          LOWER(:designationName)
+""")
     List<Employee> findEmployeesByDesignationName(
             @Param("designationName") String designationName
     );
