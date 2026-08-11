@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Attendance.Service;
 
+import com.HRMS.QuickDines.Attendance.Entity.AttendanceStatus;
 import com.HRMS.QuickDines.Attendance.model.Attendance;
 import com.HRMS.QuickDines.Attendance.model.AttendanceReports;
 import com.HRMS.QuickDines.Attendance.repo.AttendanceReportsRepository;
@@ -52,7 +53,7 @@ public class AttendanceSchedulerService {
             Attendance attendance = new Attendance();
 
             attendance.setEmployee(employee);
-            attendance.setAttendanceStatus("ABSENT");
+            attendance.setAttendanceStatus(AttendanceStatus.ABSENT);
             attendance.setRemarks(
                     "Employee did not mark attendance.");
             attendance.setTotalHours(BigDecimal.valueOf(0.0));
@@ -133,7 +134,7 @@ public class AttendanceSchedulerService {
                     Attendance attendance = new Attendance();
 
                     attendance.setEmployee(employee);
-                    attendance.setAttendanceStatus("WEEKEND");
+                    attendance.setAttendanceStatus(AttendanceStatus.WEEKEND);
                     attendance.setRemarks("Weekend");
                     attendance.setTotalHours(BigDecimal.valueOf(0.0));
 
@@ -178,7 +179,7 @@ public class AttendanceSchedulerService {
 
             for (Attendance attendance : attendances) {
 
-                if ("PRESENT".equalsIgnoreCase(attendance.getAttendanceStatus())) {
+                if (AttendanceStatus.PRESENT.equals(attendance.getAttendanceStatus())) {
 
                     presentDays++;
 
@@ -187,15 +188,15 @@ public class AttendanceSchedulerService {
                                 totalWorkingHours.add(attendance.getTotalHours());
                     }
 
-                } else if ("ABSENT".equalsIgnoreCase(attendance.getAttendanceStatus())) {
+                } else if (AttendanceStatus.ABSENT.equals(attendance.getAttendanceStatus())) {
 
                     absentDays++;
 
-                } else if ("PAID_LEAVE".equalsIgnoreCase(attendance.getAttendanceStatus())) {
+                } else if ("PAID_LEAVE".equals(attendance.getAttendanceStatus())) {
 
                     paidLeaves++;
 
-                } else if ("UNPAID_LEAVE".equalsIgnoreCase(attendance.getAttendanceStatus())) {
+                } else if ("UNPAID_LEAVE".equals(attendance.getAttendanceStatus())) {
 
                     unpaidLeaves++;
                 }

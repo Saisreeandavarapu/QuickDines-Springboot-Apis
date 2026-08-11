@@ -93,7 +93,7 @@ public class AttendanceService {
 
         attendance.setEmployee(employee);
         attendance.setLoginTime(LocalDateTime.now());
-        attendance.setAttendanceStatus(AttendanceStatus.valueOf("PRESENT"));
+        attendance.setAttendanceStatus(AttendanceStatus.PRESENT);
         attendance.setRemarks("Checked In");
 
         attendanceRepository.save(attendance);
@@ -2186,7 +2186,7 @@ public class AttendanceService {
 
     public List<Attendance> presentEmployees() {
 
-        List<Attendance> result = attendanceRepository.findAll().stream().filter(attendance -> "PRESENT".equalsIgnoreCase(String.valueOf(attendance.getAttendanceStatus()))).toList();
+        List<Attendance> result = attendanceRepository.findAll().stream().filter(attendance -> AttendanceStatus.PRESENT.equals(String.valueOf(attendance.getAttendanceStatus()))).toList();
         String performedBy = getLoggedInEmployeeId();
         auditLogsService.logActivity(performedBy, "VIEW_PRESENT_EMPLOYEES", "ATTENDANCE_REPORTS", "Present employee attendance report viewed", ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
