@@ -275,7 +275,7 @@ public class TrainingController {
                         .getTrainingsByStatus(status));
     }
 
-    @GetMapping("/filter")
+    @GetMapping("/filter/trainings")
     @PreAuthorize("hasAuthority('TRAINING_READ')")
     public ResponseEntity<?> filterTrainings(
             @RequestParam(required = false)
@@ -284,7 +284,7 @@ public class TrainingController {
         return ResponseEntity.ok(
                 service.filterTrainings(status));
     }
-    @GetMapping("/filter")
+    @GetMapping("/filter/assignments")
     @PreAuthorize("hasAuthority('TRAINING_ASSIGNMENT_READ')")
     public ResponseEntity<?> filterAssignments(
             @RequestParam(required = false)
