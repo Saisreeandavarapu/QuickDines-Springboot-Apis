@@ -16,7 +16,7 @@ public interface EmployeeDesignationRepository extends JpaRepository<EmployeeDes
     SELECT e
     FROM Employee e
     WHERE LOWER(e.designation.designationName)
-          = LOWER(:designationName)
+          LIKE LOWER(CONCAT('%', :designationName, '%'))
 """)
     List<Employee> findEmployeesByDesignationName(
             @Param("designationName") String designationName);
