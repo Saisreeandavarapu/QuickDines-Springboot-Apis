@@ -10,4 +10,6 @@ import java.util.Optional;
 @Repository
 public interface UserRoleRepository extends JpaRepository<UserRole, Integer> {
     Optional<Object> findByUsers(Users user);
+    long countByRole_RoleNameAndStatus(String roleName, String status);
+
 }

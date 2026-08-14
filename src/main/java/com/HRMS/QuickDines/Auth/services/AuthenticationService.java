@@ -94,34 +94,57 @@ public class AuthenticationService {
 
     public String registerSuperAdmin(Users request) {
 
-        // Check email already exists
+        // =====================================================
+        // 1. CHECK EMAIL
+        // =====================================================
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already exists.");
         }
 
-        // Fetch Department
-        Department department = departmentRepository.findById(Long.valueOf(request.getRole()))
-                .orElseThrow(() -> new RuntimeException("Department not found"));
 
-        // Department code (example: HR, DEV, SALES)
-        String departmentCode = department.getDepartmentCode().toUpperCase();
+        // =====================================================
+        // 2. SET ROLE
+        // =====================================================
 
-        // Generate employee sequence number
-        Long count = employeeRepository.count() + 1;
+        request.setRole("SUPER_ADMIN");
 
-        // Generate Employee Code
-        String employeeCode = "QD-"
-                + departmentCode + "-"
-                + LocalDate.now().getYear()
-                + "-"
-                + String.format("%03d", count);
+
+        // =====================================================
+        // 3. GENERATE ADMIN EMPLOYEE ID
+        // =====================================================
+
+        long adminCount = userRoleRepository.countByRole_RoleNameAndStatus(
+                "SUPER_ADMIN",
+                "ACTIVE"
+        );
+
+        long nextNumber = adminCount + 1;
+
+        int currentYear = LocalDate.now().getYear();
+
+        String employeeCode = String.format(
+                "QD-ADMIN-%d-%03d",
+                currentYear,
+                nextNumber
+        );
 
         request.setEmployeeId(employeeCode);
-        // Encrypt Password
+
+
+        // =====================================================
+        // 4. ENCRYPT PASSWORD
+        // =====================================================
+
         request.setPassword(
                 passwordEncoder.encode(request.getPassword())
         );
-        // Set default values
+
+
+        // =====================================================
+        // 5. DEFAULT ACCOUNT VALUES
+        // =====================================================
+
         request.setRole("SUPER_ADMIN");
         request.setActive(true);
         request.setVerified(false);
@@ -130,25 +153,53 @@ public class AuthenticationService {
         request.setCredentialsExpired(false);
         request.setLoginAttempts(0);
         request.setCreatedAt(LocalDateTime.now());
-        // Save User
+
+
+        // =====================================================
+        // 6. SAVE USER
+        // =====================================================
+
         Users savedUser = userRepository.save(request);
-        // Assign SUPER_ADMIN Role
-        Role role = roleRepository.findByRoleName("SUPER_ADMIN").orElseThrow(() -> new RuntimeException("SUPER_ADMIN role not found"));
+
+
+        // =====================================================
+        // 7. ASSIGN SUPER ADMIN ROLE
+        // =====================================================
+
+        Role role = roleRepository
+                .findByRoleName("SUPER_ADMIN")
+                .orElseThrow(() ->
+                        new RuntimeException("SUPER_ADMIN role not found")
+                );
 
         UserRole userRole = new UserRole();
 
+        userRole.setUsers(savedUser);
         userRole.setRole(role);
         userRole.setAssignedBy("SYSTEM");
         userRole.setAssignedDate(LocalDateTime.now());
         userRole.setStatus("ACTIVE");
         userRole.setCreatedAt(LocalDateTime.now());
-        userRoleRepository.save(userRole);
-        // Generate OTP
-        String otp = String.valueOf(
-                new Random().nextInt(900000) + 100000);
-        // Save OTP
-        OtpVerification verification = new OtpVerification();
 
+        userRoleRepository.save(userRole);
+
+        userRoleRepository.save(userRole);
+
+
+        // =====================================================
+        // 8. GENERATE OTP
+        // =====================================================
+
+        String otp = String.valueOf(
+                new Random().nextInt(900000) + 100000
+        );
+
+
+        // =====================================================
+        // 9. SAVE OTP
+        // =====================================================
+
+        OtpVerification verification = new OtpVerification();
 
         verification.setEmail(savedUser.getEmail());
         verification.setMobileNumber(savedUser.getMobileNumber());
@@ -161,7 +212,12 @@ public class AuthenticationService {
         verification.setCreatedAt(LocalDateTime.now());
 
         otpRepository.save(verification);
-        // Send Registration Mail
+
+
+        // =====================================================
+        // 10. REGISTRATION EMAIL
+        // =====================================================
+
         emailService.sendMail(
                 savedUser.getEmail(),
 
@@ -173,8 +229,14 @@ public class AuthenticationService {
                         + "Employee ID : " + savedUser.getEmployeeId()
                         + "\nRole : SUPER_ADMIN\n\n"
                         + "Thank You.\n"
-                        + "QuickDines Team");
-        // Send Welcome Mail
+                        + "QuickDines Team"
+        );
+
+
+        // =====================================================
+        // 11. WELCOME EMAIL + OTP
+        // =====================================================
+
         emailService.sendMail(
 
                 savedUser.getEmail(),
@@ -187,11 +249,16 @@ public class AuthenticationService {
                         + "Please verify your account using the OTP below.\n\n"
                         + "OTP : " + otp
                         + "\n\n"
-                        + "OTP is valid for 10 minutes.");
+                        + "OTP is valid for 10 minutes."
+        );
+
+
         // =====================================================
-// AUDIT LOG
-// =====================================================
+        // 12. AUDIT LOG
+        // =====================================================
+
         String performedBy = getLoggedInEmployeeId();
+
         auditLogsService.logCreate(
                 "SUPER_ADMIN",
                 savedUser.getEmployeeId(),
@@ -200,6 +267,8 @@ public class AuthenticationService {
                 "SUPER_ADMIN account created successfully for employee ID: "
                         + savedUser.getEmployeeId()
         );
+
+
         auditLogsService.logActivity(
                 savedUser.getEmployeeId(),
                 "REGISTER_SUPER_ADMIN",
@@ -211,13 +280,23 @@ public class AuthenticationService {
                 clientInfoService.getClientInfo().getBrowser(),
                 clientInfoService.getClientInfo().getOperatingSystem()
         );
+
+
         auditLogsService.logInfo(
                 "AUTHENTICATION",
                 "AuthService",
                 "SUPER_ADMIN registration completed successfully. Employee ID: "
                         + savedUser.getEmployeeId()
         );
-        return "SUPER_ADMIN registered successfully.";}
+
+
+        // =====================================================
+        // 13. RESPONSE
+        // =====================================================
+
+        return "SUPER_ADMIN registered successfully. Employee ID: "
+                + savedUser.getEmployeeId();
+    }
 
 
 
