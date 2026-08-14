@@ -2230,9 +2230,16 @@ public class AuthenticationService {
 
     public String createRole(Role role) {
 
+        if (roleRepository.existsByRoleName(role.getRoleName())) {
+            throw new RuntimeException("Role already exists");
+        }
+
         role.setCreatedAt(LocalDateTime.now());
 
         roleRepository.save(role);
+
+
+
 
 
         // =====================================================
@@ -2317,7 +2324,7 @@ public class AuthenticationService {
 
     public List<Role> getRoles(){
 
-        List<Role> roles = roleRepository.findAll();
+        List<Role> roles = roleRepository.findAllWithPermissions();
 
 
 //        // =====================================================
