@@ -2239,76 +2239,76 @@ public class AuthenticationService {
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-
-                getLoggedInEmployeeId(),
-
-                "CREATE_ROLE",
-
-                "ROLE_MANAGEMENT",
-
-                "Role created successfully. Role ID: "
-                        + role.getId()
-                        + ", Role Name: "
-                        + role.getRoleName(),
-
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-
-                clientInfoService.getClientInfo().getBrowser(),
-
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-        String performedBy = getLoggedInEmployeeId();
-        auditLogsService.createAuditLog(
-
-                "ROLE_MANAGEMENT",
-
-                performedBy,
-
-                AuditActionType.CREATE,
-
-              getLoggedInEmployeeId(),
-
-                getLoggedInEmployeeId(),
-
-                "Role created successfully",
-
-                null,
-
-                "{"
-                        + "\"roleId\":\"" + role.getId() + "\","
-                        + "\"roleName\":\"" + role.getRoleName() + "\","
-                        + "\"description\":\"" + role.getDescription() + "\""
-                        + "}",
-
-                clientInfoService.getClientInfo().getIpAddress(),
-
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-
-                "ROLE_MANAGEMENT",
-
-                "RoleService",
-
-                "Role created successfully. Role ID: "
-                        + role.getId()
-                        + ", Role Name: "
-                        + role.getRoleName()
-        );
+//        auditLogsService.logActivity(
+//
+//                getLoggedInEmployeeId(),
+//
+//                "CREATE_ROLE",
+//
+//                "ROLE_MANAGEMENT",
+//
+//                "Role created successfully. Role ID: "
+//                        + role.getId()
+//                        + ", Role Name: "
+//                        + role.getRoleName(),
+//
+//                ActivityStatus.SUCCESS,
+//
+//                clientInfoService.getClientInfo().getIpAddress(),
+//
+//                clientInfoService.getClientInfo().getBrowser(),
+//
+//                clientInfoService.getClientInfo().getOperatingSystem()
+//        );
+//
+//
+//        // =====================================================
+//        // AUDIT LOG
+//        // =====================================================
+//        String performedBy = getLoggedInEmployeeId();
+//        auditLogsService.createAuditLog(
+//
+//                "ROLE_MANAGEMENT",
+//
+//                performedBy,
+//
+//                AuditActionType.CREATE,
+//
+//              getLoggedInEmployeeId(),
+//
+//                getLoggedInEmployeeId(),
+//
+//                "Role created successfully",
+//
+//                null,
+//
+//                "{"
+//                        + "\"roleId\":\"" + role.getId() + "\","
+//                        + "\"roleName\":\"" + role.getRoleName() + "\","
+//                        + "\"description\":\"" + role.getDescription() + "\""
+//                        + "}",
+//
+//                clientInfoService.getClientInfo().getIpAddress(),
+//
+//                clientInfoService.getClientInfo().getOperatingSystem()
+//        );
+//
+//
+//        // =====================================================
+//        // SYSTEM LOG
+//        // =====================================================
+//
+//        auditLogsService.logInfo(
+//
+//                "ROLE_MANAGEMENT",
+//
+//                "RoleService",
+//
+//                "Role created successfully. Role ID: "
+//                        + role.getId()
+//                        + ", Role Name: "
+//                        + role.getRoleName()
+//        );
 
 
         return "Role Created Successfully.";
@@ -2320,44 +2320,44 @@ public class AuthenticationService {
         List<Role> roles = roleRepository.findAll();
 
 
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-
-        auditLogsService.logActivity(
-
-                getLoggedInEmployeeId(),
-
-                "GET_ROLES",
-
-                "ROLE_MANAGEMENT",
-
-                "All roles retrieved successfully. Total roles: "
-                        + roles.size(),
-
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-
-                clientInfoService.getClientInfo().getBrowser(),
-
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-
-                "ROLE_MANAGEMENT",
-
-                "RoleService",
-
-                "All roles retrieved successfully. Total roles: "
-                        + roles.size()
-        );
+//        // =====================================================
+//        // ACTIVITY LOG
+//        // =====================================================
+//
+//        auditLogsService.logActivity(
+//
+//                getLoggedInEmployeeId(),
+//
+//                "GET_ROLES",
+//
+//                "ROLE_MANAGEMENT",
+//
+//                "All roles retrieved successfully. Total roles: "
+//                        + roles.size(),
+//
+//                ActivityStatus.SUCCESS,
+//
+//                clientInfoService.getClientInfo().getIpAddress(),
+//
+//                clientInfoService.getClientInfo().getBrowser(),
+//
+//                clientInfoService.getClientInfo().getOperatingSystem()
+//        );
+//
+//
+//        // =====================================================
+//        // SYSTEM LOG
+//        // =====================================================
+//
+//        auditLogsService.logInfo(
+//
+//                "ROLE_MANAGEMENT",
+//
+//                "RoleService",
+//
+//                "All roles retrieved successfully. Total roles: "
+//                        + roles.size()
+//        );
 
 
         return roles;
