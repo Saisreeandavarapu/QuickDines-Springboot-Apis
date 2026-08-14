@@ -24,10 +24,11 @@ public class Role {
     @Column(name = "description")
     private String description;
 
-    @OneToMany(
-            mappedBy = "role",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "role_permissions",
+            joinColumns = @JoinColumn(name = "role_id"),
+            inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
     private List<Permission> permissions = new ArrayList<>();
 
