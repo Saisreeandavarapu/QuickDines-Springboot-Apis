@@ -57,26 +57,45 @@ public class SecurityConfig{
 
 
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)throws Exception{
-        http.csrf(csrf->csrf.disable())
-                .cors(Customizer.withDefaults())
-                .authenticationProvider(authenticationProvider())
-                .sessionManagement(session->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth-> auth
+//    @Bean
+//    public SecurityFilterChain securityFilterChain(HttpSecurity http)throws Exception{
+//        http.csrf(csrf->csrf.disable())
+//                .cors(Customizer.withDefaults())
+//                .authenticationProvider(authenticationProvider())
+//                .sessionManagement(session->
+//                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+//                .authorizeHttpRequests(auth-> auth
 //                                .requestMatchers(
 //                                        "/",
 //                                        "/error",
 //                                        "/api/auth/**")
+//                                .permitAll()
+//                                .anyRequest().authenticated()
+//                        )
+//                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+//        return http.build();
+@Bean
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-                                .anyRequest().permitAll()
-                        )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-        return http.build();
+    http
+            .csrf(csrf -> csrf.disable())
+
+            .cors(Customizer.withDefaults())
+
+            .authenticationProvider(authenticationProvider())
+
+            .sessionManagement(session ->
+                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+
+            .authorizeHttpRequests(auth -> auth
+                    .anyRequest().permitAll()
+            );
+
+    return http.build();
+}
 
 
     }
 
 
-}

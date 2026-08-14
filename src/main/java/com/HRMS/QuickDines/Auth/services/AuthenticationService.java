@@ -2877,55 +2877,55 @@ public class AuthenticationService {
                 permissionRepository.save(permission);
 
 
-        // =====================================================
-        // LOGGED-IN USER
-        // =====================================================
-
-        String performedBy = getLoggedInEmployeeId();
-
-
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-
-        auditLogsService.logCreate(
-                "PERMISSION",
-                savedPermission.getId().toString(),
-                performedBy,
-                null,
-                "Permission created successfully. Permission: "
-                        + savedPermission.getPermissionName()
-        );
-
-
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-
-        auditLogsService.logActivity(
-                null,
-                "CREATE_PERMISSION",
-                "PERMISSION",
-                "Permission created successfully: "
-                        + savedPermission.getPermissionName(),
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-                "PERMISSION",
-                "PermissionService",
-                "Permission created successfully. Permission: "
-                        + savedPermission.getPermissionName()
-        );
+//        // =====================================================
+//        // LOGGED-IN USER
+//        // =====================================================
+//
+//        String performedBy = getLoggedInEmployeeId();
+//
+//
+//        // =====================================================
+//        // AUDIT LOG
+//        // =====================================================
+//
+//        auditLogsService.logCreate(
+//                "PERMISSION",
+//                savedPermission.getId().toString(),
+//                performedBy,
+//                null,
+//                "Permission created successfully. Permission: "
+//                        + savedPermission.getPermissionName()
+//        );
+//
+//
+//        // =====================================================
+//        // ACTIVITY LOG
+//        // =====================================================
+//
+//        auditLogsService.logActivity(
+//                null,
+//                "CREATE_PERMISSION",
+//                "PERMISSION",
+//                "Permission created successfully: "
+//                        + savedPermission.getPermissionName(),
+//                ActivityStatus.SUCCESS,
+//
+//                clientInfoService.getClientInfo().getIpAddress(),
+//                clientInfoService.getClientInfo().getBrowser(),
+//                clientInfoService.getClientInfo().getOperatingSystem()
+//        );
+//
+//
+//        // =====================================================
+//        // SYSTEM LOG
+//        // =====================================================
+//
+//        auditLogsService.logInfo(
+//                "PERMISSION",
+//                "PermissionService",
+//                "Permission created successfully. Permission: "
+//                        + savedPermission.getPermissionName()
+//        );
 
 
         return savedPermission;
@@ -2941,32 +2941,32 @@ public class AuthenticationService {
         List<Permission> permissions =
                 permissionRepository.findAll();
 
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-        String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logActivity(
-                performedBy,
-                "GET_ALL_PERMISSIONS",
-                "PERMISSION",
-                "All permissions retrieved successfully. Total permissions: "
-                        + permissions.size(),
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-                "PERMISSION",
-                "PermissionService",
-                "All permissions retrieved successfully. Total permissions: "
-                        + permissions.size()
-        );
+//        // =====================================================
+//        // ACTIVITY LOG
+//        // =====================================================
+//        String performedBy = getLoggedInEmployeeId();
+//        auditLogsService.logActivity(
+//                performedBy,
+//                "GET_ALL_PERMISSIONS",
+//                "PERMISSION",
+//                "All permissions retrieved successfully. Total permissions: "
+//                        + permissions.size(),
+//                ActivityStatus.SUCCESS,
+//                clientInfoService.getClientInfo().getIpAddress(),
+//                clientInfoService.getClientInfo().getBrowser(),
+//                clientInfoService.getClientInfo().getOperatingSystem()
+//        );
+//
+//        // =====================================================
+//        // SYSTEM LOG
+//        // =====================================================
+//
+//        auditLogsService.logInfo(
+//                "PERMISSION",
+//                "PermissionService",
+//                "All permissions retrieved successfully. Total permissions: "
+//                        + permissions.size()
+//        );
 
         return permissions;
     }
