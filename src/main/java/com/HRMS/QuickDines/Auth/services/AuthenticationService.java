@@ -3336,6 +3336,9 @@ public class AuthenticationService {
     }
 
 
+    public List<Permission> createAllPermission(List<Permission> permission) {
+        return permissionRepository.saveAll(permission);
+    }
 }
 
 

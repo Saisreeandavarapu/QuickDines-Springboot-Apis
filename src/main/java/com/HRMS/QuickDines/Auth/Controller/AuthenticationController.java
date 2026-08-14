@@ -18,6 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -312,6 +313,16 @@ public class AuthenticationController {
 
         return ResponseEntity.ok(
                 service.createPermission(permission)
+        );
+
+    }
+    @PostMapping("/all/permissions")
+    @PreAuthorize("hasAuthority('PERMISSION_CREATE')")
+    public ResponseEntity<?> createAllPermission(
+            @RequestBody List<Permission> permission){
+
+        return ResponseEntity.ok(
+                service.createAllPermission(permission)
         );
 
     }
