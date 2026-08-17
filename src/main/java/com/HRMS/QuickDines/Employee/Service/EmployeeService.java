@@ -2,14 +2,20 @@ package com.HRMS.QuickDines.Employee.Service;
 
 import com.HRMS.QuickDines.AdvanceServices.CloudinaryService;
 import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
+import com.HRMS.QuickDines.Company.repo.BranchRepository;
 import com.HRMS.QuickDines.Employee.model.*;
 import com.HRMS.QuickDines.Employee.repo.*;
 import com.HRMS.QuickDines.Organization.model.Department;
+import com.HRMS.QuickDines.Organization.model.Designation;
 import com.HRMS.QuickDines.Organization.repo.DepartmentRepository;
 import com.HRMS.QuickDines.Organization.repo.DesignationRepository;
+import com.HRMS.QuickDines.Organization.repo.TeamRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -17,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
 import com.HRMS.QuickDines.AuditLogs.Entity.ActivityStatus;
 
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -41,6 +48,8 @@ public class EmployeeService {
     private final EmployeePromotionRepository employeePromotionRepository;
     private final EmployeeTransferRepository employeeTransferRepository;
     private final DesignationRepository  designationRepository;
+    private final TeamRepository teamRepository;
+    private final BranchRepository branchRepository;
 
     private final AuditLogsService auditLogsService;
     private final ClientInfoService clientInfoService;
@@ -2671,6 +2680,1207 @@ public class EmployeeService {
                 .findEmployeesByDesignationName(designationName);
     }
 
+    @Transactional
+    public Map<String, Object> uploadEmployees(MultipartFile file) {
+
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Excel file is required");
+        }
+
+        if (!file.getOriginalFilename().endsWith(".xlsx")) {
+            throw new RuntimeException(
+                    "Only .xlsx Excel files are supported"
+            );
+        }
+
+        int employeeCount = 0;
+        int addressCount = 0;
+        int bankCount = 0;
+        int documentCount = 0;
+
+        try (InputStream inputStream = file.getInputStream();
+             Workbook workbook = new XSSFWorkbook(inputStream)) {
+
+            /*
+             * =====================================================
+             * 1. EMPLOYEES
+             * =====================================================
+             */
+
+            Sheet employeeSheet =
+                    workbook.getSheet("Employees");
+
+            if (employeeSheet == null) {
+                throw new RuntimeException(
+                        "Employees sheet not found"
+                );
+            }
+
+            Map<String, Employee> employeeMap = new HashMap<>();
+
+            for (int i = 1; i <= employeeSheet.getLastRowNum(); i++) {
+
+                Row row = employeeSheet.getRow(i);
+
+                if (row == null) {
+                    continue;
+                }
+
+                String employeeId =
+                        getCellValue(row.getCell(0));
+
+                if (employeeId == null ||
+                        employeeId.isBlank()) {
+                    continue;
+                }
+
+                if (employeeRepository
+                        .findByEmployeeId(employeeId)
+                        .isPresent()) {
+
+                    throw new RuntimeException(
+                            "Employee already exists: "
+                                    + employeeId
+                    );
+                }
+
+                Employee employee = new Employee();
+
+                employee.setEmployeeId(employeeId);
+
+                employee.setFirstName(
+                        getCellValue(row.getCell(1))
+                );
+
+                employee.setLastName(
+                        getCellValue(row.getCell(2))
+                );
+
+                employee.setEmail(
+                        getCellValue(row.getCell(3))
+                );
+
+                employee.setMobileNumber(
+                        getCellValue(row.getCell(4))
+                );
+
+                employee.setGender(
+                        getCellValue(row.getCell(5))
+                );
+
+                employee.setDateOfBirth(
+                        getLocalDate(row.getCell(6))
+                );
+
+                employee.setJoiningDate(
+                        getLocalDate(row.getCell(7))
+                );
+
+                employee.setStatus(
+                        getCellValue(row.getCell(8))
+                );
+
+                /*
+                 * Company / Branch / Department
+                 *
+                 * Resolve these using your repositories.
+                 */
+
+                Employee savedEmployee =
+                        employeeRepository.save(employee);
+
+                employeeMap.put(
+                        employeeId,
+                        savedEmployee
+                );
+
+                employeeCount++;
+            }
+
+            /*
+             * =====================================================
+             * 2. ADDRESSES
+             * =====================================================
+             */
+
+            Sheet addressSheet =
+                    workbook.getSheet("Addresses");
+
+            if (addressSheet != null) {
+
+                for (int i = 1;
+                     i <= addressSheet.getLastRowNum();
+                     i++) {
+
+                    Row row = addressSheet.getRow(i);
+
+                    if (row == null) {
+                        continue;
+                    }
+
+                    String employeeId =
+                            getCellValue(row.getCell(0));
+
+                    Employee employee =
+                            getEmployee(
+                                    employeeMap,
+                                    employeeId
+                            );
+
+                    EmployeeAddress address =
+                            new EmployeeAddress();
+
+                    address.setEmployee(employee);
+
+                    address.setAddressType(
+                            getCellValue(row.getCell(1))
+                    );
+
+                    address.setAddressLine1(
+                            getCellValue(row.getCell(2))
+                    );
+
+                    address.setAddressLine2(
+                            getCellValue(row.getCell(3))
+                    );
+
+                    address.setCity(
+                            getCellValue(row.getCell(4))
+                    );
+
+                    address.setDistrict(
+                            getCellValue(row.getCell(5))
+                    );
+
+                    address.setState(
+                            getCellValue(row.getCell(6))
+                    );
+
+                    address.setCountry(
+                            getCellValue(row.getCell(7))
+                    );
+
+                    address.setPostalCode(
+                            getCellValue(row.getCell(8))
+                    );
+
+                    employeeAddressRepository.save(address);
+
+                    addressCount++;
+                }
+            }
+
+            /*
+             * =====================================================
+             * 3. BANK DETAILS
+             * =====================================================
+             */
+
+            Sheet bankSheet =
+                    workbook.getSheet("BankDetails");
+
+            if (bankSheet != null) {
+
+                for (int i = 1;
+                     i <= bankSheet.getLastRowNum();
+                     i++) {
+
+                    Row row = bankSheet.getRow(i);
+
+                    if (row == null) {
+                        continue;
+                    }
+
+                    String employeeId =
+                            getCellValue(row.getCell(0));
+
+                    Employee employee =
+                            getEmployee(
+                                    employeeMap,
+                                    employeeId
+                            );
+
+                    EmployeeBankDetails bank =
+                            new EmployeeBankDetails();
+
+                    bank.setEmployee(employee);
+
+                    bank.setAccountHolderName(
+                            getCellValue(row.getCell(1))
+                    );
+
+                    bank.setBankName(
+                            getCellValue(row.getCell(2))
+                    );
+
+                    bank.setAccountNumber(
+                            getCellValue(row.getCell(3))
+                    );
+
+                    bank.setIfscCode(
+                            getCellValue(row.getCell(4))
+                    );
+
+                    bank.setBranchName(
+                            getCellValue(row.getCell(5))
+                    );
+
+                    bank.setUpiId(
+                            getCellValue(row.getCell(6))
+                    );
+
+                    bank.setAccountStatus(
+                            getCellValue(row.getCell(7))
+                    );
+
+                    employeeBankRepository.save(bank);
+
+                    bankCount++;
+                }
+            }
+
+            /*
+             * =====================================================
+             * 4. DOCUMENTS
+             * =====================================================
+             */
+
+            Sheet documentSheet =
+                    workbook.getSheet("Documents");
+
+            if (documentSheet != null) {
+
+                for (int i = 1;
+                     i <= documentSheet.getLastRowNum();
+                     i++) {
+
+                    Row row = documentSheet.getRow(i);
+
+                    if (row == null) {
+                        continue;
+                    }
+
+                    String employeeId =
+                            getCellValue(row.getCell(0));
+
+                    Employee employee =
+                            getEmployee(
+                                    employeeMap,
+                                    employeeId
+                            );
+
+                    EmployeeDocuments documents =
+                            new EmployeeDocuments();
+
+                    documents.setEmployee(employee);
+
+                    documents.setAadhaarNumber(
+                            getCellValue(row.getCell(1))
+                    );
+
+                    documents.setPanNumber(
+                            getCellValue(row.getCell(2))
+                    );
+
+                    documents.setPassportNumber(
+                            getCellValue(row.getCell(3))
+                    );
+
+                    documents.setResumeUrl(
+                            getCellValue(row.getCell(4))
+                    );
+
+                    documents.setAadhaarDocument(
+                            getCellValue(row.getCell(5))
+                    );
+
+                    documents.setPanDocument(
+                            getCellValue(row.getCell(6))
+                    );
+
+                    documents.setDegreeCertificate(
+                            getCellValue(row.getCell(7))
+                    );
+
+                    documents.setPgCertificate(
+                            getCellValue(row.getCell(8))
+                    );
+
+                    documents.setOfferLetter(
+                            getCellValue(row.getCell(9))
+                    );
+
+                    documents.setJoiningLetter(
+                            getCellValue(row.getCell(10))
+                    );
+
+                    documents.setSalarySlips(
+                            getCellValue(row.getCell(11))
+                    );
+
+                    documents.setExperienceLetter(
+                            getCellValue(row.getCell(12))
+                    );
+
+                    documents.setStatus(
+                            getCellValue(row.getCell(13))
+                    );
+
+                    employeeDocumentRepository.save(documents);
+
+                    documentCount++;
+                }
+            }
+
+            /*
+             * =====================================================
+             * OTHER SHEETS
+             * =====================================================
+             */
+            // Contacts
+             Sheet contactSheet = workbook.getSheet("Contacts");
+
+if (contactSheet != null) {
+
+    for (int i = 1; i <= contactSheet.getLastRowNum(); i++) {
+
+        Row row = contactSheet.getRow(i);
+
+        if (row == null) continue;
+
+        String employeeId = getCellValue(row.getCell(0));
+
+        Employee employee = getEmployee(employeeMap, employeeId);
+
+        EmployeeContacts contact = new EmployeeContacts();
+
+        contact.setEmployee(employee);
+
+        contact.setEmergencyContactName(
+                getCellValue(row.getCell(1))
+        );
+
+        contact.setRelation(
+                getCellValue(row.getCell(2))
+        );
+
+        contact.setMobileNumber(
+                getCellValue(row.getCell(3))
+        );
+
+        contact.setAlternateNumber(
+                getCellValue(row.getCell(4))
+        );
+
+        employeeContactRepository.save(contact);
+    }
+}
+//             //Certifications
+            Sheet certificationSheet =
+                    workbook.getSheet("Certifications");
+
+            if (certificationSheet != null) {
+
+                for (int i = 1;
+                     i <= certificationSheet.getLastRowNum();
+                     i++) {
+
+                    Row row = certificationSheet.getRow(i);
+
+                    if (row == null) continue;
+
+                    String employeeId =
+                            getCellValue(row.getCell(0));
+
+                    Employee employee =
+                            getEmployee(employeeMap, employeeId);
+
+                    EmployeeCertification certification =
+                            new EmployeeCertification();
+
+                    certification.setEmployee(employee);
+
+                    certification.setCertificationName(
+                            getCellValue(row.getCell(1))
+                    );
+
+                    certification.setIssuingOrganization(
+                            getCellValue(row.getCell(2))
+                    );
+
+                    certification.setCertificateNumber(
+                            getCellValue(row.getCell(3))
+                    );
+
+                    certification.setIssueDate(
+                            getLocalDate(row.getCell(4))
+                    );
+
+                    certification.setExpiryDate(
+                            getLocalDate(row.getCell(5))
+                    );
+
+                    certification.setCredentialUrl(
+                            getCellValue(row.getCell(6))
+                    );
+
+                    certification.setAttachmentUrl(
+                            getCellValue(row.getCell(7))
+                    );
+
+                    certification.setStatus(
+                            getCellValue(row.getCell(8))
+                    );
+
+                    employeeCertificationRepository.save(certification);
+                }
+            }
+//             * Experience
+            Sheet experienceSheet =
+                    workbook.getSheet("Experience");
+
+            if (experienceSheet != null) {
+
+                for (int i = 1;
+                     i <= experienceSheet.getLastRowNum();
+                     i++) {
+
+                    Row row = experienceSheet.getRow(i);
+
+                    if (row == null) continue;
+
+                    String employeeId =
+                            getCellValue(row.getCell(0));
+
+                    Employee employee =
+                            getEmployee(employeeMap, employeeId);
+
+                    EmployeeExperience experience =
+                            new EmployeeExperience();
+
+                    experience.setEmployee(employee);
+
+                    experience.setCompanyName(
+                            getCellValue(row.getCell(1))
+                    );
+
+                    experience.setDesignation(
+                            getCellValue(row.getCell(2))
+                    );
+
+                    experience.setEmploymentType(
+                            getCellValue(row.getCell(3))
+                    );
+
+                    experience.setStartDate(
+                            getLocalDate(row.getCell(4))
+                    );
+
+                    experience.setEndDate(
+                            getLocalDate(row.getCell(5))
+                    );
+
+                    String totalExperience =
+                            getCellValue(row.getCell(6));
+
+                    if (totalExperience != null &&
+                            !totalExperience.isBlank()) {
+
+                        experience.setTotalExperience(
+                                new java.math.BigDecimal(totalExperience)
+                        );
+                    }
+
+                    String currentCompany =
+                            getCellValue(row.getCell(7));
+
+                    if (currentCompany != null &&
+                            !currentCompany.isBlank()) {
+
+                        experience.setCurrentCompany(
+                                Boolean.parseBoolean(currentCompany)
+                        );
+                    }
+
+                    String salary =
+                            getCellValue(row.getCell(8));
+
+                    if (salary != null &&
+                            !salary.isBlank()) {
+
+                        experience.setSalary(
+                                new java.math.BigDecimal(salary)
+                        );
+                    }
+
+                    experience.setReasonForLeaving(
+                            getCellValue(row.getCell(9))
+                    );
+
+                    employeeExperienceRepository.save(experience);
+                }
+            }
+//             * FamilyMembers
+            Sheet familySheet =
+                    workbook.getSheet("FamilyMembers");
+
+            if (familySheet != null) {
+
+                for (int i = 1;
+                     i <= familySheet.getLastRowNum();
+                     i++) {
+
+                    Row row = familySheet.getRow(i);
+
+                    if (row == null) continue;
+
+                    String employeeId =
+                            getCellValue(row.getCell(0));
+
+                    Employee employee =
+                            getEmployee(employeeMap, employeeId);
+
+                    EmployeeFamilyMember family =
+                            new EmployeeFamilyMember();
+
+                    family.setEmployee(employee);
+
+                    family.setMemberName(
+                            getCellValue(row.getCell(1))
+                    );
+
+                    family.setRelationship(
+                            getCellValue(row.getCell(2))
+                    );
+
+                    family.setDateOfBirth(
+                            getLocalDate(row.getCell(3))
+                    );
+
+                    family.setOccupation(
+                            getCellValue(row.getCell(4))
+                    );
+
+                    family.setMobileNumber(
+                            getCellValue(row.getCell(5))
+                    );
+
+                    String dependent =
+                            getCellValue(row.getCell(6));
+
+                    if (dependent != null &&
+                            !dependent.isBlank()) {
+
+                        family.setDependent(
+                                Boolean.parseBoolean(dependent)
+                        );
+                    }
+
+                    String nominee =
+                            getCellValue(row.getCell(7));
+
+                    if (nominee != null &&
+                            !nominee.isBlank()) {
+
+                        family.setNominee(
+                                Boolean.parseBoolean(nominee)
+                        );
+                    }
+
+                    employeeFamilyMemberRepository.save(family);
+                }
+            }
+//             * Languages
+            Sheet languageSheet =
+                    workbook.getSheet("Languages");
+
+            if (languageSheet != null) {
+
+                for (int i = 1;
+                     i <= languageSheet.getLastRowNum();
+                     i++) {
+
+                    Row row = languageSheet.getRow(i);
+
+                    if (row == null) continue;
+
+                    String employeeId =
+                            getCellValue(row.getCell(0));
+
+                    Employee employee =
+                            getEmployee(employeeMap, employeeId);
+
+                    EmployeeLanguage language =
+                            new EmployeeLanguage();
+
+                    language.setEmployee(employee);
+
+                    language.setLanguageName(
+                            getCellValue(row.getCell(1))
+                    );
+
+                    language.setReadLevel(
+                            getCellValue(row.getCell(2))
+                    );
+
+                    language.setWriteLevel(
+                            getCellValue(row.getCell(3))
+                    );
+
+                    language.setSpeakLevel(
+                            getCellValue(row.getCell(4))
+                    );
+
+                    String nativeLanguage =
+                            getCellValue(row.getCell(5));
+
+                    if (nativeLanguage != null &&
+                            !nativeLanguage.isBlank()) {
+
+                        language.setNativeLanguage(
+                                Boolean.parseBoolean(nativeLanguage)
+                        );
+                    }
+
+                    employeeLanguageRepository.save(language);
+                }
+            }
+//             * Skills
+            Sheet skillSheet =
+                    workbook.getSheet("Skills");
+
+            if (skillSheet != null) {
+
+                for (int i = 1;
+                     i <= skillSheet.getLastRowNum();
+                     i++) {
+
+                    Row row = skillSheet.getRow(i);
+
+                    if (row == null) continue;
+
+                    String employeeId =
+                            getCellValue(row.getCell(0));
+
+                    Employee employee =
+                            getEmployee(employeeMap, employeeId);
+
+                    EmployeeSkill skill =
+                            new EmployeeSkill();
+
+                    skill.setEmployee(employee);
+
+                    skill.setSkillName(
+                            getCellValue(row.getCell(1))
+                    );
+
+                    skill.setSkillCategory(
+                            getCellValue(row.getCell(2))
+                    );
+
+                    skill.setProficiencyLevel(
+                            getCellValue(row.getCell(3))
+                    );
+
+                    String experienceYears =
+                            getCellValue(row.getCell(4));
+
+                    if (experienceYears != null &&
+                            !experienceYears.isBlank()) {
+
+                        skill.setExperienceYears(
+                                new java.math.BigDecimal(experienceYears)
+                        );
+                    }
+
+                    skill.setLastUsed(
+                            getLocalDate(row.getCell(5))
+                    );
+
+                    String certificationAvailable =
+                            getCellValue(row.getCell(6));
+
+                    if (certificationAvailable != null &&
+                            !certificationAvailable.isBlank()) {
+
+                        skill.setCertificationAvailable(
+                                Boolean.parseBoolean(
+                                        certificationAvailable
+                                )
+                        );
+                    }
+
+                    skill.setRemarks(
+                            getCellValue(row.getCell(7))
+                    );
+
+                    employeeSkillRepository.save(skill);
+                }
+            }
+//             * Designations
+            Sheet designationSheet =
+                    workbook.getSheet("Designations");
+
+            if (designationSheet != null) {
+
+                for (int i = 1;
+                     i <= designationSheet.getLastRowNum();
+                     i++) {
+
+                    Row row = designationSheet.getRow(i);
+
+                    if (row == null) continue;
+
+                    String employeeId =
+                            getCellValue(row.getCell(0));
+
+                    Employee employee =
+                            getEmployee(employeeMap, employeeId);
+
+                    String designationName =
+                            getCellValue(row.getCell(1));
+
+                    Designation designation =
+                            designationRepository
+                                    .findByDesignationName(designationName)
+                                    .orElseThrow(() ->
+                                            new RuntimeException(
+                                                    "Designation not found: "
+                                                            + designationName
+                                            )
+                                    );
+
+                    EmployeeDesignation employeeDesignation =
+                            new EmployeeDesignation();
+
+                    employeeDesignation.setEmployee(employee);
+
+                    employeeDesignation.setDesignation(
+                            designation
+                    );
+
+                    employeeDesignation.setPromotedDate(
+                            getLocalDate(row.getCell(2))
+                    );
+
+                    String previousDesignationName =
+                            getCellValue(row.getCell(3));
+
+                    if (previousDesignationName != null &&
+                            !previousDesignationName.isBlank()) {
+
+                        Designation previousDesignation =
+                                designationRepository
+                                        .findByDesignationName(
+                                                previousDesignationName
+                                        )
+                                        .orElseThrow(() ->
+                                                new RuntimeException(
+                                                        "Previous designation not found: "
+                                                                + previousDesignationName
+                                                )
+                                        );
+
+                        employeeDesignation.setPreviousDesignation(
+                                previousDesignation
+                        );
+                    }
+
+                    employeeDesignation.setSalaryGrade(
+                            getCellValue(row.getCell(4))
+                    );
+
+                    employeeDesignationRepository.save(
+                            employeeDesignation
+                    );
+                }
+            }
+//             * Promotions
+            Sheet promotionSheet =
+                    workbook.getSheet("Promotions");
+
+            if (promotionSheet != null) {
+
+                for (int i = 1;
+                     i <= promotionSheet.getLastRowNum();
+                     i++) {
+
+                    Row row = promotionSheet.getRow(i);
+
+                    if (row == null) continue;
+
+                    String employeeId =
+                            getCellValue(row.getCell(0));
+
+                    Employee employee =
+                            getEmployee(employeeMap, employeeId);
+
+                    EmployeePromotion promotion =
+                            new EmployeePromotion();
+
+                    promotion.setEmployee(employee);
+
+                    String previousSalary =
+                            getCellValue(row.getCell(1));
+
+                    if (previousSalary != null &&
+                            !previousSalary.isBlank()) {
+
+                        promotion.setPreviousSalary(
+                                new java.math.BigDecimal(previousSalary)
+                        );
+                    }
+
+                    String newSalary =
+                            getCellValue(row.getCell(2));
+
+                    if (newSalary != null &&
+                            !newSalary.isBlank()) {
+
+                        promotion.setNewSalary(
+                                new java.math.BigDecimal(newSalary)
+                        );
+                    }
+
+                    promotion.setPromotionDate(
+                            getLocalDate(row.getCell(3))
+                    );
+
+                    promotion.setReason(
+                            getCellValue(row.getCell(4))
+                    );
+
+                    employeePromotionRepository.save(
+                            promotion
+                    );
+                }
+            }
+//             * Transfers
+            Sheet transferSheet =
+                    workbook.getSheet("Transfers");
+
+            if (transferSheet != null) {
+
+                for (int i = 1;
+                     i <= transferSheet.getLastRowNum();
+                     i++) {
+
+                    Row row = transferSheet.getRow(i);
+
+                    if (row == null) continue;
+
+                    String employeeId =
+                            getCellValue(row.getCell(0));
+
+                    Employee employee =
+                            getEmployee(employeeMap, employeeId);
+
+                    EmployeeTransfer transfer =
+                            new EmployeeTransfer();
+
+                    transfer.setEmployee(employee);
+
+                    String fromDepartment =
+                            getCellValue(row.getCell(1));
+
+                    String toDepartment =
+                            getCellValue(row.getCell(2));
+
+                    String fromBranch =
+                            getCellValue(row.getCell(3));
+
+                    String toBranch =
+                            getCellValue(row.getCell(4));
+
+                    String fromTeam =
+                            getCellValue(row.getCell(5));
+
+                    String toTeam =
+                            getCellValue(row.getCell(6));
+
+                    /*
+                     * Resolve Department / Branch / Team
+                     * using your repositories.
+                     */
+
+                    if (fromDepartment != null &&
+                            !fromDepartment.isBlank()) {
+
+                        transfer.setFromDepartment(
+                                departmentRepository
+                                        .findByDepartmentName(
+                                                fromDepartment
+                                        )
+                                        .orElseThrow(() ->
+                                                new RuntimeException(
+                                                        "From department not found: "
+                                                                + fromDepartment
+                                                )
+                                        )
+                        );
+                    }
+
+                    if (toDepartment != null &&
+                            !toDepartment.isBlank()) {
+
+                        transfer.setToDepartment(
+                                departmentRepository
+                                        .findByDepartmentName(
+                                                toDepartment
+                                        )
+                                        .orElseThrow(() ->
+                                                new RuntimeException(
+                                                        "To department not found: "
+                                                                + toDepartment
+                                                )
+                                        )
+                        );
+                    }
+
+                    if (fromBranch != null &&
+                            !fromBranch.isBlank()) {
+
+                        transfer.setFromBranch(
+                                branchRepository
+                                        .findByBranchName(fromBranch)
+                                        .orElseThrow(() ->
+                                                new RuntimeException(
+                                                        "From branch not found: "
+                                                                + fromBranch
+                                                )
+                                        )
+                        );
+                    }
+
+                    if (toBranch != null &&
+                            !toBranch.isBlank()) {
+
+                        transfer.setToBranch(
+                                branchRepository
+                                        .findByBranchName(toBranch)
+                                        .orElseThrow(() ->
+                                                new RuntimeException(
+                                                        "To branch not found: "
+                                                                + toBranch
+                                                )
+                                        )
+                        );
+                    }
+
+                    if (fromTeam != null &&
+                            !fromTeam.isBlank()) {
+
+                        transfer.setFromTeam(
+                                teamRepository
+                                        .findByTeamName(fromTeam)
+                                        .orElseThrow(() ->
+                                                new RuntimeException(
+                                                        "From team not found: "
+                                                                + fromTeam
+                                                )
+                                        )
+                        );
+                    }
+
+                    if (toTeam != null &&
+                            !toTeam.isBlank()) {
+
+                        transfer.setToTeam(
+                                teamRepository
+                                        .findByTeamName(toTeam)
+                                        .orElseThrow(() ->
+                                                new RuntimeException(
+                                                        "To team not found: "
+                                                                + toTeam
+                                                )
+                                        ));
+                    }
+
+                    transfer.setTransferDate(
+                            getLocalDate(row.getCell(7))
+                    );
+
+                    transfer.setReason(
+                            getCellValue(row.getCell(8))
+                    );
+
+                    employeeTransferRepository.save(transfer);
+                }
+            }
+//             * ExitManagement
+            Sheet exitSheet =
+                    workbook.getSheet("ExitManagement");
+
+            if (exitSheet != null) {
+
+                for (int i = 1;
+                     i <= exitSheet.getLastRowNum();
+                     i++) {
+
+                    Row row = exitSheet.getRow(i);
+
+                    if (row == null) continue;
+
+                    String employeeId =
+                            getCellValue(row.getCell(0));
+
+                    Employee employee =
+                            getEmployee(employeeMap, employeeId);
+
+                    EmployeeExitManagement exit =
+                            new EmployeeExitManagement();
+
+                    exit.setEmployee(employee);
+
+                    exit.setResignationDate(
+                            getLocalDate(row.getCell(1))
+                    );
+
+                    exit.setLastWorkingDay(
+                            getLocalDate(row.getCell(2))
+                    );
+
+                    exit.setReason(
+                            getCellValue(row.getCell(3))
+                    );
+
+                    exit.setExitStatus(
+                            getCellValue(row.getCell(4))
+                    );
+
+                    exit.setRelievingLetter(
+                            getCellValue(row.getCell(5))
+                    );
+
+                    exit.setRemarks(
+                            getCellValue(row.getCell(6))
+                    );
+
+                    String approvedByEmployeeId =
+                            getCellValue(row.getCell(7));
+
+                    if (approvedByEmployeeId != null &&
+                            !approvedByEmployeeId.isBlank()) {
+
+                        Employee approvedBy =
+                                employeeRepository
+                                        .findByEmployeeId(
+                                                approvedByEmployeeId
+                                        )
+                                        .orElseThrow(() ->
+                                                new RuntimeException(
+                                                        "Approving employee not found: "
+                                                                + approvedByEmployeeId
+                                                )
+                                        );
+
+                        exit.setExitApprovedBy(approvedBy);
+                    }
+
+                    employeeExitRepository.save(exit);
+                }
+            }
+
+            Map<String, Object> response =
+                    new LinkedHashMap<>();
+
+            response.put(
+                    "message",
+                    "Employee Excel uploaded successfully"
+            );
+
+            response.put(
+                    "employeesCreated",
+                    employeeCount
+            );
+
+            response.put(
+                    "addressesCreated",
+                    addressCount
+            );
+
+            response.put(
+                    "bankDetailsCreated",
+                    bankCount
+            );
+
+            response.put(
+                    "documentsCreated",
+                    documentCount
+            );
+
+            response.put(
+                    "status",
+                    "SUCCESS"
+            );
+
+            return response;
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(
+                    "Excel upload failed: "
+                            + e.getMessage(),
+                    e
+            );
+        }
+    }
+
+    private Employee getEmployee(
+            Map<String, Employee> employeeMap,
+            String employeeId) {
+
+        Employee employee =
+                employeeMap.get(employeeId);
+
+        if (employee == null) {
+            throw new RuntimeException(
+                    "Employee ID not found in Employees sheet: "
+                            + employeeId
+            );
+        }
+
+        return employee;
+    }
+
+    private String getCellValue(Cell cell) {
+
+        if (cell == null) {
+            return null;
+        }
+
+        DataFormatter formatter =
+                new DataFormatter();
+
+        return formatter
+                .formatCellValue(cell)
+                .trim();
+    }
+
+    private java.time.LocalDate getLocalDate(Cell cell) {
+
+        if (cell == null) {
+            return null;
+        }
+
+        if (cell.getCellType() ==
+                CellType.NUMERIC &&
+                DateUtil.isCellDateFormatted(cell)) {
+
+            return cell
+                    .getLocalDateTimeCellValue()
+                    .toLocalDate();
+        }
+
+        String value = getCellValue(cell);
+
+        if (value == null ||
+                value.isBlank()) {
+            return null;
+        }
+
+        return java.time.LocalDate.parse(value);
+    }
 
 //    public Object getAttendance(Long id){
 //

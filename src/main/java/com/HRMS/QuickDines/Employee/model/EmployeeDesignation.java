@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Employee.model;
 
+import com.HRMS.QuickDines.Organization.model.Designation;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -14,10 +15,13 @@ public class EmployeeDesignation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    private String designation;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "designation_id")
+    private Designation designation;
     private LocalDate promotedDate;
-    private String previousDesignation;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "previous_designation_id")
+    private Designation previousDesignation;
     private String salaryGrade;
 
     @CreationTimestamp

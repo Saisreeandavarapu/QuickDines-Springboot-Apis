@@ -820,6 +820,14 @@ public class EmployeeController {
                 service.findEmployeesByDesignationName(designationName)
         );
     }
+    @PostMapping("/excel-upload")
+    public ResponseEntity<?> uploadEmployees(
+            @RequestParam("file") MultipartFile file) {
+
+        return ResponseEntity.ok(
+                service.uploadEmployees(file)
+        );
+    }
 
 
 //    //-------------------------
