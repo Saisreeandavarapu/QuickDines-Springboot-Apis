@@ -1,5 +1,7 @@
 package com.HRMS.QuickDines.Organization.model;
+import com.HRMS.QuickDines.Company.model.Company;
 import com.HRMS.QuickDines.Employee.model.Employee;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -19,6 +21,11 @@ public class OrganizationHierarchy {
     @OneToOne
     @JoinColumn(name = "employee_id")
     private Employee employee;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", nullable = false)
+    @JsonIgnore
+    private Company company;
 
 
     private String reportingManager;

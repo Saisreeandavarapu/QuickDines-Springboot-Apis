@@ -171,7 +171,7 @@ public class OrganizationService {
 
         existing.setDepartmentCode(department.getDepartmentCode());
 
-        existing.setManagerName(department.getManagerName());
+
 
         existing.setDescription(department.getDescription());
 

@@ -20,6 +20,7 @@
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long id;
 
+
         /*
          * branches.company_id → companies.id
          */
