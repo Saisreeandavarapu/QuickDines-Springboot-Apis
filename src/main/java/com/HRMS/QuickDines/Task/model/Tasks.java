@@ -1,9 +1,10 @@
 package com.HRMS.QuickDines.Task.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.HRMS.QuickDines.Company.model.Branch;
+import com.HRMS.QuickDines.Company.model.Company;
+import com.HRMS.QuickDines.Organization.model.Department;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -30,5 +31,18 @@ public class Tasks {
 
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", nullable = false)
+    @JsonIgnore
+    private Company company;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "branch_id", nullable = false)
+    @JsonIgnore
+    private Branch branch;
+    @ManyToOne
+    @JoinColumn(name = "department_id")
+    private Department department;
 
 }

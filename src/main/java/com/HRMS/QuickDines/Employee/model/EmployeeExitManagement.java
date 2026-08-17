@@ -29,5 +29,8 @@ public class EmployeeExitManagement {
     @OneToOne
     @JoinColumn(name="employee_id")
     private Employee employee;
+    @OneToOne
+    @JoinColumn(name="employee_id")
+    private Employee exitApprovedBy;
 
 }

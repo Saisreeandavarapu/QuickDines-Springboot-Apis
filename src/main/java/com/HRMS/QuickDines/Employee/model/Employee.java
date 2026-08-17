@@ -1,5 +1,9 @@
 package com.HRMS.QuickDines.Employee.model;
 
+import com.HRMS.QuickDines.Company.model.Branch;
+import com.HRMS.QuickDines.Company.model.Company;
+import com.HRMS.QuickDines.Organization.model.Department;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -19,6 +23,19 @@ public class Employee {
     private Long id;
 
     private String employeeId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", nullable = false)
+    @JsonIgnore
+    private Company company;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "branch_id", nullable = false)
+    @JsonIgnore
+    private Branch branch;
+    @ManyToOne
+    @JoinColumn(name = "department_id")
+    private Department department;
+
     private String firstName;
     private String lastName;
     private String email;
@@ -27,11 +44,11 @@ public class Employee {
     private LocalDate dateOfBirth;
     private LocalDate joiningDate;
 
-    private String departmentId;
 
-    private Long managerId;
-
-    private String employmentType;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reporting_manager_id", nullable = false)
+    @JsonIgnore
+    private Employee employee;
 
     private String status;
 

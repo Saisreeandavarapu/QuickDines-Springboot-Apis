@@ -52,7 +52,7 @@ public class EmployeeTransfer {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "approved_by")
-    private Users approvedBy;
+    private Employee approvedBy;
 
     @Column(length = 1000)
     private String reason;

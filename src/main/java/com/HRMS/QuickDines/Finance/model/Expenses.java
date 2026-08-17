@@ -25,6 +25,7 @@ public class Expenses {
     @JoinColumn(name = "employee_id")
     private Employee employee;
 
+
     private String expenseTitle;
 
     private String expenseCategory;

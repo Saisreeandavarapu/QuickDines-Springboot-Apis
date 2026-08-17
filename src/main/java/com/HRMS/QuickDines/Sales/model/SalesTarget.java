@@ -1,6 +1,9 @@
 package com.HRMS.QuickDines.Sales.model;
 
+import com.HRMS.QuickDines.Company.model.Branch;
+import com.HRMS.QuickDines.Company.model.Company;
 import com.HRMS.QuickDines.Employee.model.Employee;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -19,6 +22,17 @@ public class SalesTarget {
     @ManyToOne
     @JoinColumn(name="employee_id")
     private Employee employee;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", nullable = false)
+    @JsonIgnore
+    private Company company;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "branch_id", nullable = false)
+    @JsonIgnore
+    private Branch branch;
+
+
     @Column(precision = 10, scale = 2)
     private BigDecimal monthlyTarget;
     @Column(precision = 10, scale = 2)
