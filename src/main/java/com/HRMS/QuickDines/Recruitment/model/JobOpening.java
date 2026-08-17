@@ -1,5 +1,7 @@
 package com.HRMS.QuickDines.Recruitment.model;
 
+import com.HRMS.QuickDines.Organization.model.Department;
+import com.HRMS.QuickDines.Organization.model.Designation;
 import com.HRMS.QuickDines.Recruitment.Entity.JobOpeningStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -17,10 +19,14 @@ public class JobOpening {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @ManyToOne
+    @JoinColumn(name = "designation_id")
+    private Designation designation;
 
-    private String designation;
+    @ManyToOne
+    @JoinColumn(name = "department_id")
+    private Department department;
 
-    private String department;
 
     private String experienceRequired;
     @Column(precision = 10, scale = 2)

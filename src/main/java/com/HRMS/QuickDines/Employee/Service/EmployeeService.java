@@ -134,7 +134,7 @@ public class EmployeeService {
 
         // Fetch Department
         Department department = departmentRepository
-                .findById(Long.valueOf(employee.getDepartmentId()))
+                .findById(Long.valueOf(employee.getDepartment().getId()))
                 .orElseThrow(() ->
                         new RuntimeException("Department not found"));
 
@@ -259,7 +259,7 @@ public class EmployeeService {
         existingEmployee.setEmail(employee.getEmail());
         existingEmployee.setMobileNumber(employee.getMobileNumber());
         existingEmployee.setStatus(employee.getStatus());
-        existingEmployee.setDepartmentId(employee.getDepartmentId());
+        existingEmployee.setDepartment(employee.getDepartment());
 
 
         // =========================================================
@@ -375,7 +375,7 @@ public class EmployeeService {
 
             employeeData.put(
                     "departmentId",
-                    employee.getDepartmentId()
+                    employee.getDepartment().getDepartmentCode()
             );
 
             return objectMapper.writeValueAsString(employeeData);
