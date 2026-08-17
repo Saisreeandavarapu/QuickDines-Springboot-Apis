@@ -26,11 +26,11 @@ public class EmployeeExitManagement {
     private LocalDateTime createdAt;
 
 
-    @OneToOne
-    @JoinColumn(name="employee_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
-    @OneToOne
-    @JoinColumn(name="employee_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "employee_id", nullable = false)
     private Employee exitApprovedBy;
 
 }
