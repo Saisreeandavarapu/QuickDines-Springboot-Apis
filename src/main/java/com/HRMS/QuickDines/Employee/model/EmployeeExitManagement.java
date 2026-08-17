@@ -26,11 +26,15 @@ public class EmployeeExitManagement {
     private LocalDateTime createdAt;
 
 
+    // Employee who is exiting/resigning
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
+
+
+    // Employee/HR/Admin who approved the exit
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id", nullable = false)
+    @JoinColumn(name = "exit_approved_by")
     private Employee exitApprovedBy;
 
 }

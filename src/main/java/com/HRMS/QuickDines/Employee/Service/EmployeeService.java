@@ -376,6 +376,7 @@ public class EmployeeService {
             employeeData.put(
                     "departmentId",
                     employee.getDepartment().getDepartmentCode()
+
             );
 
             return objectMapper.writeValueAsString(employeeData);
