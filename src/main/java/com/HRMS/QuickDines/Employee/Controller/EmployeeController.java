@@ -834,8 +834,8 @@ public class EmployeeController {
     // CREATE APPROVAL
     // =====================================================
 
-    @PostMapping("/employee-approvals/{employeeId}")
-    public ResponseEntity<EmployeeApproval> createApproval(
+    @PostMapping("/{employeeId}/approval")
+    public ResponseEntity<?> createApproval(
             @PathVariable String employeeId) {
 
         return ResponseEntity.ok(
@@ -843,24 +843,26 @@ public class EmployeeController {
         );
     }
 
+
     // =====================================================
-    // GET ALL
+    // GET ALL APPROVALS
     // =====================================================
 
-    @GetMapping
-    public ResponseEntity<List<EmployeeApproval>> getAllApprovals() {
+    @GetMapping("/approvals")
+    public ResponseEntity<?> getAllApprovals() {
 
         return ResponseEntity.ok(
                 service.getAllApprovals()
         );
     }
 
+
     // =====================================================
-    // GET BY EMPLOYEE
+    // GET EMPLOYEE APPROVAL
     // =====================================================
 
-    @GetMapping("/employee-approvals/{employeeId}")
-    public ResponseEntity<EmployeeApproval> getApproval(
+    @GetMapping("/{employeeId}/approval")
+    public ResponseEntity<?> getApproval(
             @PathVariable String employeeId) {
 
         return ResponseEntity.ok(
@@ -868,15 +870,16 @@ public class EmployeeController {
         );
     }
 
+
     // =====================================================
     // HR APPROVAL
     // =====================================================
 
-    @PutMapping("/employee-approvals/{employeeId}/hr")
-    public ResponseEntity<EmployeeApproval> hrApproval(
+    @PutMapping("/{employeeId}/approval/hr")
+    public ResponseEntity<?> hrApproval(
             @PathVariable String employeeId,
-            @RequestParam Long approverId,
-            @RequestBody ApprovalRequestdto request) {
+            @RequestBody ApprovalRequestdto request,
+            @RequestParam Long approverId) {
 
         return ResponseEntity.ok(
                 service.hrApproval(
@@ -887,15 +890,16 @@ public class EmployeeController {
         );
     }
 
+
     // =====================================================
     // ADMIN APPROVAL
     // =====================================================
 
-    @PutMapping("/employee-approvals/{employeeId}/admin")
-    public ResponseEntity<EmployeeApproval> adminApproval(
+    @PutMapping("/{employeeId}/approval/admin")
+    public ResponseEntity<?> adminApproval(
             @PathVariable String employeeId,
-            @RequestParam Long approverId,
-            @RequestBody ApprovalRequestdto request) {
+            @RequestBody ApprovalRequestdto request,
+            @RequestParam Long approverId) {
 
         return ResponseEntity.ok(
                 service.adminApproval(
@@ -906,16 +910,16 @@ public class EmployeeController {
         );
     }
 
+
     // =====================================================
     // DEPARTMENT HEAD APPROVAL
     // =====================================================
 
-    @PutMapping("/employee-approvals/{employeeId}/department-head")
-    public ResponseEntity<EmployeeApproval>
-    departmentHeadApproval(
+    @PutMapping("/{employeeId}/approval/department-head")
+    public ResponseEntity<?> departmentHeadApproval(
             @PathVariable String employeeId,
-            @RequestParam Long approverId,
-            @RequestBody ApprovalRequestdto request) {
+            @RequestBody ApprovalRequestdto request,
+            @RequestParam Long approverId) {
 
         return ResponseEntity.ok(
                 service.departmentHeadApproval(
@@ -926,43 +930,72 @@ public class EmployeeController {
         );
     }
 
+
     // =====================================================
     // PENDING HR
     // =====================================================
 
-    @GetMapping("/employee-approvals/pending/hr")
-    public ResponseEntity<List<EmployeeApproval>> pendingHR() {
+    @GetMapping("/approvals/pending/hr")
+    public ResponseEntity<?> getPendingHR() {
 
         return ResponseEntity.ok(
                 service.getPendingHR()
         );
     }
 
+
     // =====================================================
     // PENDING ADMIN
     // =====================================================
 
-    @GetMapping("/employee-approvals/pending/admin")
-    public ResponseEntity<List<EmployeeApproval>> pendingAdmin() {
+    @GetMapping("/approvals/pending/admin")
+    public ResponseEntity<?> getPendingAdmin() {
 
         return ResponseEntity.ok(
                 service.getPendingAdmin()
         );
     }
 
+
     // =====================================================
     // PENDING DEPARTMENT HEAD
     // =====================================================
 
-    @GetMapping("/employee-approvals/pending/department-head")
-    public ResponseEntity<List<EmployeeApproval>>
-    pendingDepartmentHead() {
+    @GetMapping("/approvals/pending/department-head")
+    public ResponseEntity<?> getPendingDepartmentHead() {
 
         return ResponseEntity.ok(
                 service.getPendingDepartmentHead()
         );
     }
 
+
+    // =====================================================
+    // FINAL APPROVED
+    // =====================================================
+
+    @GetMapping("/approvals/approved")
+    public ResponseEntity<?> getFinalApprovedEmployees() {
+
+        return ResponseEntity.ok(
+                service
+                        .getFinalApprovedEmployees()
+        );
+    }
+
+
+    // =====================================================
+    // FINAL REJECTED
+    // =====================================================
+
+    @GetMapping("/approvals/rejected")
+    public ResponseEntity<?> getRejectedEmployees() {
+
+        return ResponseEntity.ok(
+                service
+                        .getRejectedEmployees()
+        );
+    }
 
 //    //-------------------------
 //    // Attendance
