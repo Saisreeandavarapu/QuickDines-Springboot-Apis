@@ -3,6 +3,8 @@ package com.HRMS.QuickDines.Employee.Service;
 import com.HRMS.QuickDines.AdvanceServices.CloudinaryService;
 import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
 import com.HRMS.QuickDines.Company.repo.BranchRepository;
+import com.HRMS.QuickDines.Employee.DTO.ApprovalRequestdto;
+import com.HRMS.QuickDines.Employee.Entity.ApprovalStatus;
 import com.HRMS.QuickDines.Employee.model.*;
 import com.HRMS.QuickDines.Employee.repo.*;
 import com.HRMS.QuickDines.Organization.model.Department;
@@ -10,6 +12,7 @@ import com.HRMS.QuickDines.Organization.model.Designation;
 import com.HRMS.QuickDines.Organization.repo.DepartmentRepository;
 import com.HRMS.QuickDines.Organization.repo.DesignationRepository;
 import com.HRMS.QuickDines.Organization.repo.TeamRepository;
+import com.HRMS.QuickDines.Workflow.model.ApprovalRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
@@ -25,6 +28,7 @@ import com.HRMS.QuickDines.AuditLogs.Entity.ActivityStatus;
 
 import java.io.InputStream;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -50,6 +54,7 @@ public class EmployeeService {
     private final DesignationRepository  designationRepository;
     private final TeamRepository teamRepository;
     private final BranchRepository branchRepository;
+    private final EmployeeApprovalRepository employeeApprovalRepository;
 
     private final AuditLogsService auditLogsService;
     private final ClientInfoService clientInfoService;
@@ -3882,6 +3887,349 @@ if (contactSheet != null) {
         return java.time.LocalDate.parse(value);
     }
 
+    // =====================================================
+    // CREATE APPROVAL
+    // =====================================================
+
+    @Transactional
+    public EmployeeApproval createApproval(String employeeId) {
+
+        Employee employee = getEmployeeByEmployeeId(employeeId);
+
+        if (employeeApprovalRepository.existsByEmployee_Id(employee.getId())) {
+            throw new RuntimeException(
+                    "Approval already exists for employee: " + employeeId
+            );
+        }
+
+        EmployeeApproval approval = new EmployeeApproval();
+
+        approval.setEmployee(employee);
+
+        approval.setHrStatus(ApprovalStatus.PENDING);
+        approval.setAdminStatus(ApprovalStatus.PENDING);
+        approval.setDepartmentHeadStatus(ApprovalStatus.PENDING);
+        approval.setFinalStatus(ApprovalStatus.PENDING);
+
+        approval.setAccountCreated(false);
+        approval.setWelcomeMailSent(false);
+
+        return employeeApprovalRepository.save(approval);
+    }
+
+
+    // =====================================================
+    // GET ALL APPROVALS
+    // =====================================================
+
+    public List<EmployeeApproval> getAllApprovals() {
+
+        return employeeApprovalRepository.findAll();
+    }
+
+
+    // =====================================================
+    // GET APPROVAL BY EMPLOYEE ID
+    // =====================================================
+
+    public EmployeeApproval getApproval(String employeeId) {
+
+        Employee employee = getEmployeeByEmployeeId(employeeId);
+
+        return employeeApprovalRepository
+                .findByEmployee_Id(employee.getId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Approval record not found for employee: "
+                                        + employeeId
+                        )
+                );
+    }
+
+
+    // =====================================================
+    // HR APPROVAL
+    // =====================================================
+
+    @Transactional
+    public EmployeeApproval hrApproval(
+            String employeeId,
+            ApprovalRequestdto request,
+            Long approverId) {
+
+        EmployeeApproval approval = getApproval(employeeId);
+
+        Employee approver = getEmployeeById(approverId);
+
+        approval.setHrStatus(request.getStatus());
+        approval.setHrApprovedBy(approver);
+        approval.setHrApprovedAt(LocalDateTime.now());
+        approval.setHrRemarks(request.getRemarks());
+
+        checkFinalApproval(approval);
+
+        return employeeApprovalRepository.save(approval);
+    }
+
+
+    // =====================================================
+    // ADMIN APPROVAL
+    // =====================================================
+
+    @Transactional
+    public EmployeeApproval adminApproval(
+            String employeeId,
+            ApprovalRequestdto request,
+            Long approverId) {
+
+        EmployeeApproval approval = getApproval(employeeId);
+
+        Employee approver = getEmployeeById(approverId);
+
+        approval.setAdminStatus(request.getStatus());
+        approval.setAdminApprovedBy(approver);
+        approval.setAdminApprovedAt(LocalDateTime.now());
+        approval.setAdminRemarks(request.getRemarks());
+
+        checkFinalApproval(approval);
+
+        return employeeApprovalRepository.save(approval);
+    }
+
+
+    // =====================================================
+    // DEPARTMENT HEAD APPROVAL
+    // =====================================================
+
+    @Transactional
+    public EmployeeApproval departmentHeadApproval(
+            String employeeId,
+            ApprovalRequestdto request,
+            Long approverId) {
+
+        EmployeeApproval approval = getApproval(employeeId);
+
+        Employee approver = getEmployeeById(approverId);
+
+        approval.setDepartmentHeadStatus(request.getStatus());
+        approval.setDepartmentHeadApprovedBy(approver);
+        approval.setDepartmentHeadApprovedAt(
+                LocalDateTime.now()
+        );
+        approval.setDepartmentHeadRemarks(
+                request.getRemarks()
+        );
+
+        checkFinalApproval(approval);
+
+        return employeeApprovalRepository.save(approval);
+    }
+
+
+    // =====================================================
+    // CHECK FINAL APPROVAL
+    // =====================================================
+
+    private void checkFinalApproval(
+            EmployeeApproval approval) {
+
+        // If anyone rejects
+        if (approval.getHrStatus() == ApprovalStatus.REJECTED
+                || approval.getAdminStatus() == ApprovalStatus.REJECTED
+                || approval.getDepartmentHeadStatus()
+                == ApprovalStatus.REJECTED) {
+
+            approval.setFinalStatus(
+                    ApprovalStatus.REJECTED
+            );
+
+            approval.setFinalApprovedAt(null);
+
+            return;
+        }
+
+
+        // All three approved
+        if (approval.getHrStatus() == ApprovalStatus.APPROVED
+                && approval.getAdminStatus() == ApprovalStatus.APPROVED
+                && approval.getDepartmentHeadStatus()
+                == ApprovalStatus.APPROVED) {
+
+            approval.setFinalStatus(
+                    ApprovalStatus.APPROVED
+            );
+
+            approval.setFinalApprovedAt(
+                    LocalDateTime.now()
+            );
+
+            return;
+        }
+
+
+        // Otherwise pending
+        approval.setFinalStatus(
+                ApprovalStatus.PENDING
+        );
+
+        approval.setFinalApprovedAt(null);
+    }
+
+
+    // =====================================================
+    // PENDING HR
+    // =====================================================
+
+    public List<EmployeeApproval> getPendingHR() {
+
+        return employeeApprovalRepository
+                .findByHrStatus(
+                        ApprovalStatus.PENDING
+                );
+    }
+
+
+    // =====================================================
+    // PENDING ADMIN
+    // =====================================================
+
+    public List<EmployeeApproval> getPendingAdmin() {
+
+        return employeeApprovalRepository
+                .findByAdminStatus(
+                        ApprovalStatus.PENDING
+                );
+    }
+
+
+    // =====================================================
+    // PENDING DEPARTMENT HEAD
+    // =====================================================
+
+    public List<EmployeeApproval> getPendingDepartmentHead() {
+
+        return employeeApprovalRepository
+                .findByDepartmentHeadStatus(
+                        ApprovalStatus.PENDING
+                );
+    }
+
+
+    // =====================================================
+    // FINAL APPROVED
+    // =====================================================
+
+    public List<EmployeeApproval> getFinalApprovedEmployees() {
+
+        return employeeApprovalRepository
+                .findByFinalStatus(
+                        ApprovalStatus.APPROVED
+                );
+    }
+
+
+    // =====================================================
+    // FINAL REJECTED
+    // =====================================================
+
+    public List<EmployeeApproval> getRejectedEmployees() {
+
+        return employeeApprovalRepository
+                .findByFinalStatus(
+                        ApprovalStatus.REJECTED
+                );
+    }
+
+
+    // =====================================================
+    // MARK ACCOUNT CREATED
+    // =====================================================
+
+    @Transactional
+    public EmployeeApproval markAccountCreated(
+            String employeeId) {
+
+        EmployeeApproval approval = getApproval(employeeId);
+
+        if (approval.getFinalStatus()
+                != ApprovalStatus.APPROVED) {
+
+            throw new RuntimeException(
+                    "Employee is not finally approved"
+            );
+        }
+
+        approval.setAccountCreated(true);
+
+        approval.setAccountCreatedAt(
+                LocalDateTime.now()
+        );
+
+        return employeeApprovalRepository.save(approval);
+    }
+
+
+    // =====================================================
+    // MARK WELCOME MAIL SENT
+    // =====================================================
+
+    @Transactional
+    public EmployeeApproval markWelcomeMailSent(
+            String employeeId) {
+
+        EmployeeApproval approval = getApproval(employeeId);
+
+        if (!Boolean.TRUE.equals(
+                approval.getAccountCreated())) {
+
+            throw new RuntimeException(
+                    "Employee account has not been created"
+            );
+        }
+
+        approval.setWelcomeMailSent(true);
+
+        approval.setWelcomeMailSentAt(
+                LocalDateTime.now()
+        );
+
+        return employeeApprovalRepository.save(approval);
+    }
+
+
+    // =====================================================
+    // GET EMPLOYEE BY BUSINESS EMPLOYEE ID
+    // =====================================================
+
+    private Employee getEmployeeByEmployeeId(
+            String employeeId) {
+
+        return employeeRepository
+                .findByEmployeeId(employeeId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Employee not found: "
+                                        + employeeId
+                        )
+                );
+    }
+
+
+    // =====================================================
+    // GET EMPLOYEE BY DATABASE ID
+    // =====================================================
+
+    private Employee getEmployeeById(Long id) {
+
+        return employeeRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Employee not found with ID: "
+                                        + id
+                        )
+                );
+    }
 //    public Object getAttendance(Long id){
 //
 //        return null;

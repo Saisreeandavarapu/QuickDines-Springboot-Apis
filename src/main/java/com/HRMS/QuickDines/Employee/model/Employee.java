@@ -50,6 +50,8 @@ public class Employee {
     @JsonIgnore
     private Employee employee;
 
+
+
     private String status;
 
     @CreationTimestamp
@@ -90,5 +92,13 @@ public class Employee {
     @OneToOne(mappedBy = "employee",
             cascade = CascadeType.ALL)
     private EmployeeExitManagement exitManagement;
+    // =====================================================
+    // APPROVAL
+    // =====================================================
+
+    @OneToOne(mappedBy = "employee",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
+    private EmployeeApproval approval;
 
 }

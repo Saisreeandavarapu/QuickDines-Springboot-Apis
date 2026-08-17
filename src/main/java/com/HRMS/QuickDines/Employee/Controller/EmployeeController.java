@@ -1,7 +1,9 @@
 package com.HRMS.QuickDines.Employee.Controller;
 
+import com.HRMS.QuickDines.Employee.DTO.ApprovalRequestdto;
 import com.HRMS.QuickDines.Employee.Service.EmployeeService;
 import com.HRMS.QuickDines.Employee.model.*;
+import com.HRMS.QuickDines.Workflow.model.ApprovalRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -826,6 +828,138 @@ public class EmployeeController {
 
         return ResponseEntity.ok(
                 service.uploadEmployees(file)
+        );
+    }
+    // =====================================================
+    // CREATE APPROVAL
+    // =====================================================
+
+    @PostMapping("/employee-approvals/{employeeId}")
+    public ResponseEntity<EmployeeApproval> createApproval(
+            @PathVariable String employeeId) {
+
+        return ResponseEntity.ok(
+                service.createApproval(employeeId)
+        );
+    }
+
+    // =====================================================
+    // GET ALL
+    // =====================================================
+
+    @GetMapping
+    public ResponseEntity<List<EmployeeApproval>> getAllApprovals() {
+
+        return ResponseEntity.ok(
+                service.getAllApprovals()
+        );
+    }
+
+    // =====================================================
+    // GET BY EMPLOYEE
+    // =====================================================
+
+    @GetMapping("/employee-approvals/{employeeId}")
+    public ResponseEntity<EmployeeApproval> getApproval(
+            @PathVariable String employeeId) {
+
+        return ResponseEntity.ok(
+                service.getApproval(employeeId)
+        );
+    }
+
+    // =====================================================
+    // HR APPROVAL
+    // =====================================================
+
+    @PutMapping("/employee-approvals/{employeeId}/hr")
+    public ResponseEntity<EmployeeApproval> hrApproval(
+            @PathVariable String employeeId,
+            @RequestParam Long approverId,
+            @RequestBody ApprovalRequestdto request) {
+
+        return ResponseEntity.ok(
+                service.hrApproval(
+                        employeeId,
+                        request,
+                        approverId
+                )
+        );
+    }
+
+    // =====================================================
+    // ADMIN APPROVAL
+    // =====================================================
+
+    @PutMapping("/employee-approvals/{employeeId}/admin")
+    public ResponseEntity<EmployeeApproval> adminApproval(
+            @PathVariable String employeeId,
+            @RequestParam Long approverId,
+            @RequestBody ApprovalRequestdto request) {
+
+        return ResponseEntity.ok(
+                service.adminApproval(
+                        employeeId,
+                        request,
+                        approverId
+                )
+        );
+    }
+
+    // =====================================================
+    // DEPARTMENT HEAD APPROVAL
+    // =====================================================
+
+    @PutMapping("/employee-approvals/{employeeId}/department-head")
+    public ResponseEntity<EmployeeApproval>
+    departmentHeadApproval(
+            @PathVariable String employeeId,
+            @RequestParam Long approverId,
+            @RequestBody ApprovalRequestdto request) {
+
+        return ResponseEntity.ok(
+                service.departmentHeadApproval(
+                        employeeId,
+                        request,
+                        approverId
+                )
+        );
+    }
+
+    // =====================================================
+    // PENDING HR
+    // =====================================================
+
+    @GetMapping("/employee-approvals/pending/hr")
+    public ResponseEntity<List<EmployeeApproval>> pendingHR() {
+
+        return ResponseEntity.ok(
+                service.getPendingHR()
+        );
+    }
+
+    // =====================================================
+    // PENDING ADMIN
+    // =====================================================
+
+    @GetMapping("/employee-approvals/pending/admin")
+    public ResponseEntity<List<EmployeeApproval>> pendingAdmin() {
+
+        return ResponseEntity.ok(
+                service.getPendingAdmin()
+        );
+    }
+
+    // =====================================================
+    // PENDING DEPARTMENT HEAD
+    // =====================================================
+
+    @GetMapping("/employee-approvals/pending/department-head")
+    public ResponseEntity<List<EmployeeApproval>>
+    pendingDepartmentHead() {
+
+        return ResponseEntity.ok(
+                service.getPendingDepartmentHead()
         );
     }
 
