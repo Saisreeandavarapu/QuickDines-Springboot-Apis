@@ -26,4 +26,15 @@ public interface EmployeeTimesheetRepository
             String employeeId,
             TimesheetStatus status
     );
+    List<EmployeeTimesheet>
+    findByEmployee_EmployeeId(String employeeId);
+
+//    List<EmployeeTimesheet>
+//    findByWorkDate(LocalDate workDate);
+
+    Optional<EmployeeTimesheet>
+    findByEmployee_EmployeeIdAndWorkDate(
+            String employeeId,
+            LocalDate workDate
+    );
 }
