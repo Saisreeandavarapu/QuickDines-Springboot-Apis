@@ -37,6 +37,11 @@ public class SalesAuditReports {
     @JoinColumn(name = "restaurant_id", nullable = false)
     private Restaurant restaurant;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bus_id" , nullable = false)
+    private BusService busService;
+
+
     // =====================================================
     // SCHEDULE
     // =====================================================
