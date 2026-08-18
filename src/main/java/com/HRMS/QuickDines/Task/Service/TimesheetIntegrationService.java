@@ -29,7 +29,7 @@ public class TimesheetIntegrationService {
 
     private final EmployeeRepository employeeRepository;
 
-    private final GoogleSheetsService googleSheetsService;
+  //  private final GoogleSheetsService googleSheetsService;
 
 
 
@@ -657,203 +657,203 @@ public class TimesheetIntegrationService {
 
         timesheet.setTotalHours(hours);
     }
-    @Transactional
-    public String importGoogleSheet(
-            String employeeId,
-            String spreadsheetId,
-            String sheetName) {
-
-        // =====================================================
-        // FIND EMPLOYEE
-        // =====================================================
-
-        Employee employee = employeeRepository
-                .findByEmployeeId(employeeId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Employee not found: " + employeeId
-                        )
-                );
-
-        // =====================================================
-        // VALIDATE GOOGLE SHEET DETAILS
-        // =====================================================
-
-        if (spreadsheetId == null || spreadsheetId.isBlank()) {
-            throw new RuntimeException(
-                    "Google Spreadsheet ID is required"
-            );
-        }
-
-        if (sheetName == null || sheetName.isBlank()) {
-            throw new RuntimeException(
-                    "Google Sheet name is required"
-            );
-        }
-
-        // =====================================================
-        // READ GOOGLE SHEET
-        // =====================================================
-
-        List<List<Object>> rows =
-                googleSheetsService.readSheet(
-                        spreadsheetId,
-                        sheetName
-                );
-
-        if (rows == null || rows.size() <= 1) {
-            throw new RuntimeException(
-                    "Google Sheet contains no timesheet data"
-            );
-        }
-
-        int imported = 0;
-
-        // =====================================================
-        // PROCESS ROWS
-        // =====================================================
-
-        for (int i = 1; i < rows.size(); i++) {
-
-            List<Object> row = rows.get(i);
-
-            if (row == null || row.isEmpty()) {
-                continue;
-            }
-
-            // ---------------------------------------------
-            // WORK DATE
-            // ---------------------------------------------
-
-            String workDateValue =
-                    getGoogleCell(row, 0);
-
-            if (workDateValue == null ||
-                    workDateValue.isBlank()) {
-                continue;
-            }
-
-            LocalDate workDate =
-                    LocalDate.parse(workDateValue);
-
-            // =================================================
-            // FIND EXISTING TIMESHEET
-            // =================================================
-
-            EmployeeTimesheet timesheet =
-                    timesheetRepository
-                            .findByEmployee_EmployeeIdAndWorkDate(
-                                    employeeId,
-                                    workDate
-                            )
-                            .orElseGet(
-                                    EmployeeTimesheet::new
-                            );
-
-            // =================================================
-            // EMPLOYEE
-            // =================================================
-
-            timesheet.setEmployee(employee);
-
-            timesheet.setWorkDate(workDate);
-
-            // =================================================
-            // PROJECT
-            // =================================================
-
-            timesheet.setProjectName(
-                    getGoogleCell(row, 1)
-            );
-
-            // =================================================
-            // WORK DESCRIPTION
-            // =================================================
-
-            timesheet.setWorkDescription(
-                    getGoogleCell(row, 2)
-            );
-
-            // =================================================
-            // START TIME
-            // =================================================
-
-            String startTime =
-                    getGoogleCell(row, 3);
-
-            if (startTime != null &&
-                    !startTime.isBlank()) {
-
-                timesheet.setStartTime(
-                        LocalTime.parse(startTime)
-                );
-            }
-
-            // =================================================
-            // END TIME
-            // =================================================
-
-            String endTime =
-                    getGoogleCell(row, 4);
-
-            if (endTime != null &&
-                    !endTime.isBlank()) {
-
-                timesheet.setEndTime(
-                        LocalTime.parse(endTime)
-                );
-            }
-
-            // =================================================
-            // BREAK MINUTES
-            // =================================================
-
-            String breakValue =
-                    getGoogleCell(row, 5);
-
-            if (breakValue != null &&
-                    !breakValue.isBlank()) {
-
-                timesheet.setBreakMinutes(
-                        Integer.parseInt(breakValue)
-                );
-            }
-
-            // =================================================
-            // CALCULATE TOTAL HOURS
-            // =================================================
-
-            calculateTotalHours(timesheet);
-
-            // =================================================
-            // IMPORTANT
-            // =================================================
-            // Imported timesheets should normally start as DRAFT.
-            // Employee/team leader can submit later.
-            // =================================================
-
-            if (timesheet.getStatus() == null) {
-
-                timesheet.setStatus(
-                        TimesheetStatus.DRAFT
-                );
-            }
-
-            // =================================================
-            // SAVE
-            // =================================================
-
-            timesheetRepository.save(timesheet);
-
-            imported++;
-        }
-
-        // =====================================================
-        // RESULT
-        // =====================================================
-
-        return imported +
-                " timesheet record(s) imported successfully " +
-                "for employee " + employeeId;
-    }
+//    @Transactional
+//    public String importGoogleSheet(
+//            String employeeId,
+//            String spreadsheetId,
+//            String sheetName) {
+//
+//        // =====================================================
+//        // FIND EMPLOYEE
+//        // =====================================================
+//
+//        Employee employee = employeeRepository
+//                .findByEmployeeId(employeeId)
+//                .orElseThrow(() ->
+//                        new RuntimeException(
+//                                "Employee not found: " + employeeId
+//                        )
+//                );
+//
+//        // =====================================================
+//        // VALIDATE GOOGLE SHEET DETAILS
+//        // =====================================================
+//
+//        if (spreadsheetId == null || spreadsheetId.isBlank()) {
+//            throw new RuntimeException(
+//                    "Google Spreadsheet ID is required"
+//            );
+//        }
+//
+//        if (sheetName == null || sheetName.isBlank()) {
+//            throw new RuntimeException(
+//                    "Google Sheet name is required"
+//            );
+//        }
+//
+//        // =====================================================
+//        // READ GOOGLE SHEET
+//        // =====================================================
+//
+//        List<List<Object>> rows =
+//                googleSheetsService.readSheet(
+//                        spreadsheetId,
+//                        sheetName
+//                );
+//
+//        if (rows == null || rows.size() <= 1) {
+//            throw new RuntimeException(
+//                    "Google Sheet contains no timesheet data"
+//            );
+//        }
+//
+//        int imported = 0;
+//
+//        // =====================================================
+//        // PROCESS ROWS
+//        // =====================================================
+//
+//        for (int i = 1; i < rows.size(); i++) {
+//
+//            List<Object> row = rows.get(i);
+//
+//            if (row == null || row.isEmpty()) {
+//                continue;
+//            }
+//
+//            // ---------------------------------------------
+//            // WORK DATE
+//            // ---------------------------------------------
+//
+//            String workDateValue =
+//                    getGoogleCell(row, 0);
+//
+//            if (workDateValue == null ||
+//                    workDateValue.isBlank()) {
+//                continue;
+//            }
+//
+//            LocalDate workDate =
+//                    LocalDate.parse(workDateValue);
+//
+//            // =================================================
+//            // FIND EXISTING TIMESHEET
+//            // =================================================
+//
+//            EmployeeTimesheet timesheet =
+//                    timesheetRepository
+//                            .findByEmployee_EmployeeIdAndWorkDate(
+//                                    employeeId,
+//                                    workDate
+//                            )
+//                            .orElseGet(
+//                                    EmployeeTimesheet::new
+//                            );
+//
+//            // =================================================
+//            // EMPLOYEE
+//            // =================================================
+//
+//            timesheet.setEmployee(employee);
+//
+//            timesheet.setWorkDate(workDate);
+//
+//            // =================================================
+//            // PROJECT
+//            // =================================================
+//
+//            timesheet.setProjectName(
+//                    getGoogleCell(row, 1)
+//            );
+//
+//            // =================================================
+//            // WORK DESCRIPTION
+//            // =================================================
+//
+//            timesheet.setWorkDescription(
+//                    getGoogleCell(row, 2)
+//            );
+//
+//            // =================================================
+//            // START TIME
+//            // =================================================
+//
+//            String startTime =
+//                    getGoogleCell(row, 3);
+//
+//            if (startTime != null &&
+//                    !startTime.isBlank()) {
+//
+//                timesheet.setStartTime(
+//                        LocalTime.parse(startTime)
+//                );
+//            }
+//
+//            // =================================================
+//            // END TIME
+//            // =================================================
+//
+//            String endTime =
+//                    getGoogleCell(row, 4);
+//
+//            if (endTime != null &&
+//                    !endTime.isBlank()) {
+//
+//                timesheet.setEndTime(
+//                        LocalTime.parse(endTime)
+//                );
+//            }
+//
+//            // =================================================
+//            // BREAK MINUTES
+//            // =================================================
+//
+//            String breakValue =
+//                    getGoogleCell(row, 5);
+//
+//            if (breakValue != null &&
+//                    !breakValue.isBlank()) {
+//
+//                timesheet.setBreakMinutes(
+//                        Integer.parseInt(breakValue)
+//                );
+//            }
+//
+//            // =================================================
+//            // CALCULATE TOTAL HOURS
+//            // =================================================
+//
+//            calculateTotalHours(timesheet);
+//
+//            // =================================================
+//            // IMPORTANT
+//            // =================================================
+//            // Imported timesheets should normally start as DRAFT.
+//            // Employee/team leader can submit later.
+//            // =================================================
+//
+//            if (timesheet.getStatus() == null) {
+//
+//                timesheet.setStatus(
+//                        TimesheetStatus.DRAFT
+//                );
+//            }
+//
+//            // =================================================
+//            // SAVE
+//            // =================================================
+//
+//            timesheetRepository.save(timesheet);
+//
+//            imported++;
+//        }
+//
+//        // =====================================================
+//        // RESULT
+//        // =====================================================
+//
+//        return imported +
+//                " timesheet record(s) imported successfully " +
+//                "for employee " + employeeId;
+//    }
 }
