@@ -126,12 +126,12 @@ public class SecurityConfig {
 
                         // Everything else requires JWT
                         .anyRequest().authenticated()
-                )
-
-                .addFilterBefore(
-                        jwtFilter,
-                        UsernamePasswordAuthenticationFilter.class
                 );
+
+//                .addFilterBefore(
+//                        jwtFilter,
+//                        UsernamePasswordAuthenticationFilter.class
+//                );
 
         return http.build();
     }

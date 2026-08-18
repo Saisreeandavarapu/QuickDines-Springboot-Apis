@@ -77,15 +77,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
+            FilterChain filterChain)
+            throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
 
-        // No JWT
-        if (authHeader == null ||
-                !authHeader.startsWith("Bearer ")) {
-
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -97,17 +94,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String username = jwtService.extractUsername(token);
 
             if (username != null &&
-                    SecurityContextHolder
-                            .getContext()
-                            .getAuthentication() == null) {
+                    SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 UserDetails userDetails =
                         userDetailsService.loadUserByUsername(username);
 
-                if (jwtService.isTokenValid(
-                        token,
-                        userDetails.getUsername()
-                )) {
+                if (jwtService.isTokenValid(token, userDetails.getUsername())) {
 
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
@@ -121,17 +113,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     .buildDetails(request)
                     );
 
-                    SecurityContextHolder
-                            .getContext()
+                    SecurityContextHolder.getContext()
                             .setAuthentication(authentication);
                 }
             }
 
         } catch (JwtException | IllegalArgumentException e) {
 
-            // Invalid/expired JWT
+            // Invalid JWT - don't authenticate
             SecurityContextHolder.clearContext();
 
+            System.out.println("Invalid JWT: " + e.getMessage());
         }
 
         filterChain.doFilter(request, response);
