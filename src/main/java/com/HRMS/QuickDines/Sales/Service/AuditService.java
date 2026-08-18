@@ -17,7 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AuditService {
 
-    private final AuditReportsRepository auditRepository;
+    private final SalesAuditReportsRepository auditRepository;
     private final AuditScheduleRepository scheduleRepository;
     private final AuditChecklistItemRepository checklistRepository;
     private final AuditIssueRepository issueRepository;

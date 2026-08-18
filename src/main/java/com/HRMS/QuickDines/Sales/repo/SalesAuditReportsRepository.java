@@ -3,7 +3,6 @@ package com.HRMS.QuickDines.Sales.repo;
 import com.HRMS.QuickDines.Sales.Entity.AuditApprovalStatus;
 import com.HRMS.QuickDines.Sales.Entity.AuditStatus;
 import com.HRMS.QuickDines.Sales.Entity.AuditType;
-import com.HRMS.QuickDines.Sales.model.AuditChecklistItem;
 import com.HRMS.QuickDines.Sales.model.AuditReports;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -12,7 +11,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Repository
-public interface AuditReportsRepository extends JpaRepository<AuditReports, Long> {
+public interface SalesAuditReportsRepository extends JpaRepository<AuditReports, Long> {
     // =====================================================
     // EMPLOYEE
     // =====================================================
