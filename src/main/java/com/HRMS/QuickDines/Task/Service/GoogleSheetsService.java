@@ -15,11 +15,6 @@ public class GoogleSheetsService {
 
     private final Sheets googleSheets;
 
-
-    // =====================================================
-    // READ GOOGLE SHEET
-    // =====================================================
-
     public List<List<Object>> readSheet(
             String spreadsheetId,
             String sheetName) {

@@ -9,7 +9,8 @@ import com.google.auth.oauth2.GoogleCredentials;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.io.InputStream;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 @Configuration
@@ -18,22 +19,26 @@ public class GoogleSheetsConfig {
     @Bean
     public Sheets googleSheets() throws Exception {
 
-        InputStream credentials =
-                getClass()
-                        .getClassLoader()
-                        .getResourceAsStream(
-                                "google-credentials.json"
-                        );
+        String credentialsJson =
+                System.getenv("GOOGLE_CREDENTIALS_JSON");
 
-        if (credentials == null) {
+        if (credentialsJson == null ||
+                credentialsJson.isBlank()) {
+
             throw new RuntimeException(
-                    "google-credentials.json not found"
+                    "GOOGLE_CREDENTIALS_JSON environment variable not found"
             );
         }
 
         GoogleCredentials googleCredentials =
                 GoogleCredentials
-                        .fromStream(credentials)
+                        .fromStream(
+                                new ByteArrayInputStream(
+                                        credentialsJson.getBytes(
+                                                StandardCharsets.UTF_8
+                                        )
+                                )
+                        )
                         .createScoped(
                                 Collections.singleton(
                                         SheetsScopes.SPREADSHEETS_READONLY
