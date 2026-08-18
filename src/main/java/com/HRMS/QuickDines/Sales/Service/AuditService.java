@@ -31,7 +31,7 @@ public class AuditService {
     // =====================================================
 
     @Transactional
-    public AuditReports createAudit(AuditReports audit) {
+    public SalesAuditReports createAudit(SalesAuditReports audit) {
 
         if (audit.getEmployee() == null) {
             throw new RuntimeException("Employee is required");
@@ -54,11 +54,11 @@ public class AuditService {
         return auditRepository.save(audit);
     }
 
-    public List<AuditReports> getAllAudits() {
+    public List<SalesAuditReports> getAllAudits() {
         return auditRepository.findAll();
     }
 
-    public AuditReports getAudit(Long id) {
+    public SalesAuditReports getAudit(Long id) {
 
         return auditRepository.findById(id)
                 .orElseThrow(() ->
@@ -69,11 +69,11 @@ public class AuditService {
     }
 
     @Transactional
-    public AuditReports updateAudit(
+    public SalesAuditReports updateAudit(
             Long id,
-            AuditReports data) {
+            SalesAuditReports data) {
 
-        AuditReports audit = getAudit(id);
+        SalesAuditReports audit = getAudit(id);
 
         audit.setAuditType(data.getAuditType());
         audit.setAuditDate(data.getAuditDate());
@@ -86,7 +86,7 @@ public class AuditService {
     @Transactional
     public void deleteAudit(Long id) {
 
-        AuditReports audit = getAudit(id);
+        SalesAuditReports audit = getAudit(id);
 
         auditRepository.delete(audit);
     }
@@ -96,14 +96,14 @@ public class AuditService {
     // EMPLOYEE AUDITS
     // =====================================================
 
-    public List<AuditReports> getEmployeeAudits(
+    public List<SalesAuditReports> getEmployeeAudits(
             String employeeId) {
 
         return auditRepository
                 .findByEmployee_EmployeeId(employeeId);
     }
 
-    public List<AuditReports> getEmployeePendingAudits(
+    public List<SalesAuditReports> getEmployeePendingAudits(
             String employeeId) {
 
         return auditRepository
@@ -113,7 +113,7 @@ public class AuditService {
                 );
     }
 
-    public List<AuditReports> getEmployeeSubmittedAudits(
+    public List<SalesAuditReports> getEmployeeSubmittedAudits(
             String employeeId) {
 
         return auditRepository
@@ -123,7 +123,7 @@ public class AuditService {
                 );
     }
 
-    public List<AuditReports> getEmployeeCompletedAudits(
+    public List<SalesAuditReports> getEmployeeCompletedAudits(
             String employeeId) {
 
         return auditRepository
@@ -133,7 +133,7 @@ public class AuditService {
                 );
     }
 
-    public List<AuditReports> getEmployeeOverdueAudits(
+    public List<SalesAuditReports> getEmployeeOverdueAudits(
             String employeeId) {
 
         return auditRepository
@@ -143,7 +143,7 @@ public class AuditService {
                 );
     }
 
-    public List<AuditReports> getEmployeeAuditsByDate(
+    public List<SalesAuditReports> getEmployeeAuditsByDate(
             String employeeId,
             LocalDate date) {
 
@@ -159,21 +159,21 @@ public class AuditService {
     // AUDIT TYPE
     // =====================================================
 
-    public List<AuditReports> getAuditsByType(
+    public List<SalesAuditReports> getAuditsByType(
             AuditType auditType) {
 
         return auditRepository
                 .findByAuditType(auditType);
     }
 
-    public List<AuditReports> getRestaurantAudits(
+    public List<SalesAuditReports> getRestaurantAudits(
             Long restaurantId) {
 
         return auditRepository
                 .findByRestaurant_Id(restaurantId);
     }
 
-    public List<AuditReports> getBusAudits(
+    public List<SalesAuditReports> getBusAudits(
             Long busId) {
 
         return auditRepository
@@ -185,7 +185,7 @@ public class AuditService {
     // STATUS
     // =====================================================
 
-    public List<AuditReports> getAuditsByStatus(
+    public List<SalesAuditReports> getAuditsByStatus(
             AuditStatus status) {
 
         return auditRepository
@@ -198,9 +198,9 @@ public class AuditService {
     // =====================================================
 
     @Transactional
-    public AuditReports startAudit(Long id) {
+    public SalesAuditReports startAudit(Long id) {
 
-        AuditReports audit = getAudit(id);
+        SalesAuditReports audit = getAudit(id);
 
         if (audit.getAuditStatus()
                 != AuditStatus.SCHEDULED) {
@@ -218,9 +218,9 @@ public class AuditService {
     }
 
     @Transactional
-    public AuditReports submitAudit(Long id) {
+    public SalesAuditReports submitAudit(Long id) {
 
-        AuditReports audit = getAudit(id);
+        SalesAuditReports audit = getAudit(id);
 
         if (audit.getAuditStatus()
                 != AuditStatus.IN_PROGRESS) {
@@ -242,12 +242,12 @@ public class AuditService {
     }
 
     @Transactional
-    public AuditReports approveAudit(
+    public SalesAuditReports approveAudit(
             Long id,
             String approverId,
             String remarks) {
 
-        AuditReports audit = getAudit(id);
+        SalesAuditReports audit = getAudit(id);
 
         Employee approver =
                 getEmployee(approverId);
@@ -272,12 +272,12 @@ public class AuditService {
     }
 
     @Transactional
-    public AuditReports rejectAudit(
+    public SalesAuditReports rejectAudit(
             Long id,
             String approverId,
             String remarks) {
 
-        AuditReports audit = getAudit(id);
+        SalesAuditReports audit = getAudit(id);
 
         Employee approver =
                 getEmployee(approverId);
@@ -296,11 +296,11 @@ public class AuditService {
     }
 
     @Transactional
-    public AuditReports returnAudit(
+    public SalesAuditReports returnAudit(
             Long id,
             String remarks) {
 
-        AuditReports audit = getAudit(id);
+        SalesAuditReports audit = getAudit(id);
 
         audit.setApprovalStatus(
                 AuditApprovalStatus.RETURNED
@@ -316,9 +316,9 @@ public class AuditService {
     }
 
     @Transactional
-    public AuditReports cancelAudit(Long id) {
+    public SalesAuditReports cancelAudit(Long id) {
 
-        AuditReports audit = getAudit(id);
+        SalesAuditReports audit = getAudit(id);
 
         audit.setAuditStatus(
                 AuditStatus.CANCELLED
@@ -328,9 +328,9 @@ public class AuditService {
     }
 
     @Transactional
-    public AuditReports completeAudit(Long id) {
+    public SalesAuditReports completeAudit(Long id) {
 
-        AuditReports audit = getAudit(id);
+        SalesAuditReports audit = getAudit(id);
 
         audit.setAuditStatus(
                 AuditStatus.COMPLETED
@@ -344,7 +344,7 @@ public class AuditService {
     // APPROVAL
     // =====================================================
 
-    public List<AuditReports> getAuditsByApprovalStatus(
+    public List<SalesAuditReports> getAuditsByApprovalStatus(
             AuditApprovalStatus status) {
 
         return auditRepository
@@ -552,7 +552,7 @@ public class AuditService {
             Long auditId,
             AuditChecklistItem data) {
 
-        AuditReports audit = getAudit(auditId);
+        SalesAuditReports audit = getAudit(auditId);
 
         data.setAuditReport(audit);
 
@@ -640,7 +640,7 @@ public class AuditService {
             Long auditId,
             AuditIssue data) {
 
-        AuditReports audit =
+        SalesAuditReports audit =
                 getAudit(auditId);
 
         data.setAuditReport(audit);
@@ -871,7 +871,7 @@ public class AuditService {
 
     public String sendAuditNotification(Long auditId) {
 
-        AuditReports audit = getAudit(auditId);
+        SalesAuditReports audit = getAudit(auditId);
 
         return "Audit notification sent for audit "
                 + audit.getId();
@@ -895,7 +895,7 @@ public class AuditService {
         return getEmployeeOverdueAudits(employeeId);
     }
 
-    private List<AuditReports> getEmployeeUpcomingAudits(
+    private List<SalesAuditReports> getEmployeeUpcomingAudits(
             String employeeId) {
 
         return auditRepository

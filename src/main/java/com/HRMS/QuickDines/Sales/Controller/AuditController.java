@@ -6,10 +6,8 @@ import com.HRMS.QuickDines.Sales.model.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -24,7 +22,7 @@ public class AuditController {
 
     @PostMapping("/audits")
     public ResponseEntity<?> createAudit(
-            @RequestBody AuditReports audit) {
+            @RequestBody SalesAuditReports audit) {
 
         return ResponseEntity.ok(service.createAudit(audit));
     }
@@ -44,7 +42,7 @@ public class AuditController {
     @PutMapping("/audits/{id}")
     public ResponseEntity<?> updateAudit(
             @PathVariable Long id,
-            @RequestBody AuditReports audit) {
+            @RequestBody SalesAuditReports audit) {
 
         return ResponseEntity.ok(
                 service.updateAudit(id, audit)

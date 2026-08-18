@@ -3,7 +3,7 @@ package com.HRMS.QuickDines.Sales.repo;
 import com.HRMS.QuickDines.Sales.Entity.AuditApprovalStatus;
 import com.HRMS.QuickDines.Sales.Entity.AuditStatus;
 import com.HRMS.QuickDines.Sales.Entity.AuditType;
-import com.HRMS.QuickDines.Sales.model.AuditReports;
+import com.HRMS.QuickDines.Sales.model.SalesAuditReports;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,27 +11,27 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Repository
-public interface SalesAuditReportsRepository extends JpaRepository<AuditReports, Long> {
+public interface SalesAuditReportsRepository extends JpaRepository<SalesAuditReports, Long> {
     // =====================================================
     // EMPLOYEE
     // =====================================================
 
-    List<AuditReports> findByEmployee_EmployeeId(String employeeId);
+    List<SalesAuditReports> findByEmployee_EmployeeId(String employeeId);
 
-    List<AuditReports> findByEmployee_EmployeeIdAndAuditStatus(
+    List<SalesAuditReports> findByEmployee_EmployeeIdAndAuditStatus(
             String employeeId,
             AuditStatus auditStatus
     );
 
-    List<AuditReports> findByEmployee_EmployeeIdAndAuditDate(
+    List<SalesAuditReports> findByEmployee_EmployeeIdAndAuditDate(
             String employeeId,
             LocalDate auditDate
     );
-    List<AuditReports>
+    List<SalesAuditReports>
     findByEmployee_EmployeeIdAndAuditDateGreaterThanEqual(
             String employeeId,
             LocalDate auditDate);
-    List<AuditReports> findByEmployee_EmployeeIdAndOverdue(
+    List<SalesAuditReports> findByEmployee_EmployeeIdAndOverdue(
             String employeeId,
             Boolean overdue);
 
@@ -39,7 +39,7 @@ public interface SalesAuditReportsRepository extends JpaRepository<AuditReports,
     // TYPE
     // =====================================================
 
-    List<AuditReports> findByAuditType(
+    List<SalesAuditReports> findByAuditType(
             AuditType auditType
     );
 
@@ -47,18 +47,18 @@ public interface SalesAuditReportsRepository extends JpaRepository<AuditReports,
     // RESTAURANT
     // =====================================================
 
-    List<AuditReports> findByRestaurant_Id(
+    List<SalesAuditReports> findByRestaurant_Id(
             Long restaurantId
     );
 
-    List<AuditReports> findTopByRestaurant_IdOrderByAuditDateDesc(
+    List<SalesAuditReports> findTopByRestaurant_IdOrderByAuditDateDesc(
             Long restaurantId
     );
 
-    List<AuditReports> findByRestaurant_IdOrderByAuditDateDesc(
+    List<SalesAuditReports> findByRestaurant_IdOrderByAuditDateDesc(
             Long restaurantId
     );
-    List<AuditReports>
+    List<SalesAuditReports>
     findByRestaurant_IdAndOverdue(
             Long restaurantId,
             Boolean overdue);
@@ -67,18 +67,18 @@ public interface SalesAuditReportsRepository extends JpaRepository<AuditReports,
     // BUS
     // =====================================================
 
-    List<AuditReports> findByBusService_Id(
+    List<SalesAuditReports> findByBusService_Id(
             Long busId
     );
 
-    List<AuditReports> findTopByBusService_IdOrderByAuditDateDesc(
+    List<SalesAuditReports> findTopByBusService_IdOrderByAuditDateDesc(
             Long busId
     );
 
-    List<AuditReports> findByBusService_IdOrderByAuditDateDesc(
+    List<SalesAuditReports> findByBusService_IdOrderByAuditDateDesc(
             Long busId
     );
-    List<AuditReports>
+    List<SalesAuditReports>
     findByBusService_IdAndOverdue(
             Long busId,
             Boolean overdue);
@@ -86,11 +86,11 @@ public interface SalesAuditReportsRepository extends JpaRepository<AuditReports,
     // STATUS
     // =====================================================
 
-    List<AuditReports> findByAuditStatus(
+    List<SalesAuditReports> findByAuditStatus(
             AuditStatus status
     );
 
-    List<AuditReports> findByEmployee_EmployeeIdAndAuditStatusNot(
+    List<SalesAuditReports> findByEmployee_EmployeeIdAndAuditStatusNot(
             String employeeId,
             AuditStatus status
     );
@@ -99,7 +99,7 @@ public interface SalesAuditReportsRepository extends JpaRepository<AuditReports,
     // APPROVAL
     // =====================================================
 
-    List<AuditReports> findByApprovalStatus(
+    List<SalesAuditReports> findByApprovalStatus(
             AuditApprovalStatus approvalStatus
     );
 
@@ -107,17 +107,17 @@ public interface SalesAuditReportsRepository extends JpaRepository<AuditReports,
     // OVERDUE
     // =====================================================
 
-    List<AuditReports> findByOverdueTrue();
+    List<SalesAuditReports> findByOverdueTrue();
 
-    List<AuditReports> findByEmployee_EmployeeIdAndOverdueTrue(
+    List<SalesAuditReports> findByEmployee_EmployeeIdAndOverdueTrue(
             String employeeId
     );
 
-    List<AuditReports> findByRestaurant_IdAndOverdueTrue(
+    List<SalesAuditReports> findByRestaurant_IdAndOverdueTrue(
             Long restaurantId
     );
 
-    List<AuditReports> findByBusService_IdAndOverdueTrue(
+    List<SalesAuditReports> findByBusService_IdAndOverdueTrue(
             Long busId
     );
 
@@ -125,7 +125,7 @@ public interface SalesAuditReportsRepository extends JpaRepository<AuditReports,
     // DATE
     // =====================================================
 
-    List<AuditReports> findByAuditDate(
+    List<SalesAuditReports> findByAuditDate(
             LocalDate auditDate
     );
 
@@ -133,7 +133,7 @@ public interface SalesAuditReportsRepository extends JpaRepository<AuditReports,
     // APPROVAL + STATUS
     // =====================================================
 
-    List<AuditReports> findByApprovalStatusAndAuditStatus(
+    List<SalesAuditReports> findByApprovalStatusAndAuditStatus(
             AuditApprovalStatus approvalStatus,
             AuditStatus auditStatus
     );
