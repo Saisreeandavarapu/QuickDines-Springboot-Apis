@@ -21,7 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-public class SecurityConfig{
+public class SecurityConfig {
 
 
     private final JwtAuthenticationFilter jwtFilter;
@@ -29,9 +29,8 @@ public class SecurityConfig{
     private final UserDetailsService userDetailsService;
 
 
-
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
 
         return new BCryptPasswordEncoder();
 
@@ -50,11 +49,11 @@ public class SecurityConfig{
     }
 
 
-
     @Bean
     public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration configuration)throws Exception{return configuration.getAuthenticationManager();}
-
+            AuthenticationConfiguration configuration) throws Exception {
+        return configuration.getAuthenticationManager();
+    }
 
 
 //    @Bean
@@ -75,29 +74,68 @@ public class SecurityConfig{
 //                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 //        return http.build();
 //    }
-@Bean
-public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-    http
-            .csrf(csrf -> csrf.disable())
+//@Bean
+//public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+//
+//    http
+//            .csrf(csrf -> csrf.disable())
+//
+//            .cors(Customizer.withDefaults())
+//
+//            .authenticationProvider(authenticationProvider())
+//
+//            .sessionManagement(session ->
+//                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+//            )
+//
+//            .authorizeHttpRequests(auth -> auth
+//                    .anyRequest().permitAll()
+//            );
+//
+//    return http.build();
+//}
+//
+//
+//    }
 
-            .cors(Customizer.withDefaults())
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-            .authenticationProvider(authenticationProvider())
+        http
+                .csrf(csrf -> csrf.disable())
 
-            .sessionManagement(session ->
-                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
+                .cors(Customizer.withDefaults())
 
-            .authorizeHttpRequests(auth -> auth
-                    .anyRequest().permitAll()
-            );
+                .authenticationProvider(authenticationProvider())
 
-    return http.build();
-}
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
+                        )
+                )
 
+                .authorizeHttpRequests(auth -> auth
 
+                        // Public APIs
+                        .requestMatchers(
+                                "/",
+                                "/error",
+                                "/api/auth/**"
+                        ).permitAll()
+
+                        // Everything else requires JWT
+                        .anyRequest().authenticated()
+                )
+
+                .addFilterBefore(
+                        jwtFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
+
+        return http.build();
     }
+}
 
 
 
