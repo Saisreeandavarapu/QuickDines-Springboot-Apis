@@ -958,9 +958,13 @@ public class AuthenticationService {
 
     public List<LoginHistory> getSuccessfulLogins(String employeeId) {
 
-        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found"));
+        Employee employee = employeeRepository.findByEmployeeId(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        return historyRepository.findSuccessfulLogins(employee.getEmployeeId());
+        return historyRepository.findByEmployeeAndLoginStatus(
+                employee.getEmployeeId(),
+                LoginStatus.SUCCESS
+        );
     }
 
 
@@ -968,7 +972,10 @@ public class AuthenticationService {
 
         Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        return historyRepository.findFailedLogins(employee.getEmployeeId());
+        return historyRepository.findByEmployeeAndLoginStatus(
+                employee.getEmployeeId(),
+                LoginStatus.FAILED
+        );
     }
 
 
