@@ -15,13 +15,7 @@ import java.util.Optional;
 @Repository
 public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Integer> {
 
-    List<LoginHistory> findByLoginStatus(LoginStatus loginStatus);
 
-    List<LoginHistory> findByUsersId(Long userId);
-
-    List<LoginHistory> findByUsersIdAndLoginStatus(
-            Long userId,
-            LoginStatus loginStatus);
 
     List<LoginHistory> findByLoginDateBetween(
             LocalDate fromDate,
@@ -49,7 +43,6 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Inte
 
     List<LoginHistory> findByEmployee(String employeeId);
 
-   // List<LoginHistory> findFailedLogins(String employeeId);
 
     @Query("""
     SELECT l
