@@ -16,8 +16,11 @@ import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
 import com.HRMS.QuickDines.Organization.model.Department;
 import com.HRMS.QuickDines.Organization.repo.DepartmentRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -52,10 +55,10 @@ public class AuthenticationService {
 
     // Repositories
 
-    private final UserRepository userRepository;
+    //private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
-    private final UserRoleRepository userRoleRepository;
+    // private final UserRoleRepository userRoleRepository;
     private final OtpVerificationRepository otpRepository;
     private final RefreshTokenRepository tokenRepository;
     private final LoginHistoryRepository historyRepository;
@@ -68,3277 +71,962 @@ public class AuthenticationService {
 
     private String getLoggedInEmployeeId() {
 
-        Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null ||
-                !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated()) {
 
-            throw new RuntimeException(
-                    "User is not authenticated");
+            throw new RuntimeException("User is not authenticated");
         }
 
         return authentication.getName();
     }
 
+    private String convertToJson(Object object) {
+
+        try {
+
+            if (object == null) {
+                return null;
+            }
+
+            return objectMapper.writeValueAsString(object);
+
+        } catch (JsonProcessingException e) {
+
+            throw new RuntimeException("Unable to convert data to JSON", e);
+        }
+    }
+
+
+    // =========================================================
+    // CLIENT INFORMATION
+    // =========================================================
+
+    private String getIpAddress() {
+
+        try {
+            return clientInfoService.getClientInfo().getIpAddress();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+
+    private String getBrowser() {
+
+        try {
+            return clientInfoService.getClientInfo().getBrowser();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+
+    private String getOperatingSystem() {
+
+        try {
+            return clientInfoService.getClientInfo().getOperatingSystem();
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     // Email Service
 
     private final EmailService emailService;
 
-    //------------------------------------
-    // REGISTRATION
-    //------------------------------------
 
-    public String registerSuperAdmin(Users request) {
+    @Transactional
+    public LoginResponse login(LoginRequest request, HttpServletRequest httpRequest) {
 
         // =====================================================
-        // 1. CHECK EMAIL
+        // 1. FIND EMPLOYEE
         // =====================================================
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists.");
+        Employee employee = employeeRepository.findByEmployeeId(request.getEmployeeId()).orElseThrow(() -> new RuntimeException("Invalid employee ID or password"));
+
+
+        // =====================================================
+        // 2. CHECK EMPLOYEE STATUS
+        // =====================================================
+
+        if (employee.getStatus() != null && employee.getStatus().equalsIgnoreCase("INACTIVE")) {
+
+            throw new RuntimeException("Employee account is inactive");
         }
 
 
         // =====================================================
-        // 2. SET ROLE
+        // 3. VERIFY PASSWORD
         // =====================================================
 
-        request.setRole("SUPER_ADMIN");
+        boolean passwordValid = passwordEncoder.matches(request.getPassword(), employee.getPassword());
 
+        if (!passwordValid) {
 
-        // =====================================================
-        // 3. GENERATE ADMIN EMPLOYEE ID
-        // =====================================================
-
-        long adminCount = userRoleRepository.countByRole_RoleNameAndStatus(
-                "SUPER_ADMIN",
-                "ACTIVE"
-        );
-
-        long nextNumber = adminCount + 1;
-
-        int currentYear = LocalDate.now().getYear();
-
-        String employeeCode = String.format(
-                "QD-ADMIN-%d-%03d",
-                currentYear,
-                nextNumber
-        );
-
-        request.setEmployeeId(employeeCode);
-
-
-        // =====================================================
-        // 4. ENCRYPT PASSWORD
-        // =====================================================
-
-        request.setPassword(
-                passwordEncoder.encode(request.getPassword())
-        );
-
-
-        // =====================================================
-        // 5. DEFAULT ACCOUNT VALUES
-        // =====================================================
-
-        request.setRole("SUPER_ADMIN");
-        request.setActive(true);
-        request.setVerified(false);
-        request.setAccountLocked(false);
-        request.setAccountExpired(false);
-        request.setCredentialsExpired(false);
-        request.setLoginAttempts(0);
-        request.setCreatedAt(LocalDateTime.now());
-
-
-        // =====================================================
-        // 6. SAVE USER
-        // =====================================================
-
-        Users savedUser = userRepository.save(request);
-
-
-        // =====================================================
-        // 7. ASSIGN SUPER ADMIN ROLE
-        // =====================================================
-
-        Role role = roleRepository
-                .findByRoleName("SUPER_ADMIN")
-                .orElseThrow(() ->
-                        new RuntimeException("SUPER_ADMIN role not found")
-                );
-
-        UserRole userRole = new UserRole();
-
-        userRole.setUsers(savedUser);
-        userRole.setRole(role);
-        userRole.setAssignedBy("SYSTEM");
-        userRole.setAssignedDate(LocalDateTime.now());
-        userRole.setStatus("ACTIVE");
-        userRole.setCreatedAt(LocalDateTime.now());
-
-        userRoleRepository.save(userRole);
-
-        userRoleRepository.save(userRole);
-
-
-        // =====================================================
-        // 8. GENERATE OTP
-        // =====================================================
-
-        String otp = String.valueOf(
-                new Random().nextInt(900000) + 100000
-        );
-
-
-        // =====================================================
-        // 9. SAVE OTP
-        // =====================================================
-
-        OtpVerification verification = new OtpVerification();
-
-        verification.setEmail(savedUser.getEmail());
-        verification.setMobileNumber(savedUser.getMobileNumber());
-        verification.setOtp(otp);
-        verification.setOtpType("REGISTER OTP");
-        verification.setVerificationStatus("PENDING");
-        verification.setExpiryTime(
-                LocalDateTime.now().plusMinutes(10)
-        );
-        verification.setCreatedAt(LocalDateTime.now());
-
-        otpRepository.save(verification);
-
-
-        // =====================================================
-        // 10. REGISTRATION EMAIL
-        // =====================================================
-
-        emailService.sendMail(
-                savedUser.getEmail(),
-
-                "Registration Successful",
-
-                "Hello " + savedUser.getFirstName()
-                        + ",\n\n"
-                        + "Your Super Admin account has been created successfully.\n\n"
-                        + "Employee ID : " + savedUser.getEmployeeId()
-                        + "\nRole : SUPER_ADMIN\n\n"
-                        + "Thank You.\n"
-                        + "QuickDines Team"
-        );
-
-
-        // =====================================================
-        // 11. WELCOME EMAIL + OTP
-        // =====================================================
-
-        emailService.sendMail(
-
-                savedUser.getEmail(),
-
-                "Welcome to QuickDines",
-
-                "Welcome " + savedUser.getFirstName()
-                        + "!\n\n"
-                        + "We're excited to have you onboard.\n\n"
-                        + "Please verify your account using the OTP below.\n\n"
-                        + "OTP : " + otp
-                        + "\n\n"
-                        + "OTP is valid for 10 minutes."
-        );
-
-
-        // =====================================================
-        // 12. AUDIT LOG
-        // =====================================================
-
-        String performedBy = getLoggedInEmployeeId();
-
-        auditLogsService.logCreate(
-                "SUPER_ADMIN",
-                savedUser.getEmployeeId(),
-                performedBy,
-                savedUser.getEmployeeId(),
-                "SUPER_ADMIN account created successfully for employee ID: "
-                        + savedUser.getEmployeeId()
-        );
-
-
-        auditLogsService.logActivity(
-                savedUser.getEmployeeId(),
-                "REGISTER_SUPER_ADMIN",
-                "AUTHENTICATION",
-                "SUPER_ADMIN account registered successfully. Employee ID: "
-                        + savedUser.getEmployeeId(),
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        auditLogsService.logInfo(
-                "AUTHENTICATION",
-                "AuthService",
-                "SUPER_ADMIN registration completed successfully. Employee ID: "
-                        + savedUser.getEmployeeId()
-        );
-
-
-        // =====================================================
-        // 13. RESPONSE
-        // =====================================================
-
-        return "SUPER_ADMIN registered successfully. Employee ID: "
-                + savedUser.getEmployeeId();
-    }
-
-
-
-    //------------------------------------
-// LOGIN
-//------------------------------------
-
-    public LoginResponse login(
-            LoginRequest request,
-            HttpServletRequest httpRequest) {
-
-        // =====================================================
-        // 1. AUTHENTICATE USER
-        // =====================================================
-
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmployeeId(),
-                        request.getPassword()
-                )
-        );
-
-
-        // =====================================================
-        // 2. GET USER
-        // =====================================================
-
-        Users user = userRepository
-                .findByEmployeeId(request.getEmployeeId())
-                .orElseThrow(() ->
-                        new RuntimeException("User Not Found"));
-
-
-        // =====================================================
-        // 3. GENERATE JWT TOKEN
-        // =====================================================
-
-        String token =
-                jwtService.generateToken(
-                        user.getEmployeeId()
-                );
-
-
-        // =====================================================
-        // 4. UPDATE LAST LOGIN TIME
-        // =====================================================
-
-        user.setLastLogin(LocalDateTime.now());
-
-        userRepository.save(user);
-
-
-        // =====================================================
-        // 5. GET USER AGENT
-        // =====================================================
-
-        String userAgent =
-                httpRequest.getHeader("User-Agent");
-
-
-        // =====================================================
-        // 6. GET BROWSER NAME
-        // =====================================================
-
-        String browserName = "Unknown Browser";
-
-        if (userAgent != null) {
-
-            String agent =
-                    userAgent.toLowerCase();
-
-            if (agent.contains("edg")) {
-
-                browserName = "Microsoft Edge";
-
-            } else if (agent.contains("opr")
-                    || agent.contains("opera")) {
-
-                browserName = "Opera";
-
-            } else if (agent.contains("chrome")) {
-
-                browserName = "Google Chrome";
-
-            } else if (agent.contains("firefox")) {
-
-                browserName = "Mozilla Firefox";
-
-            } else if (agent.contains("safari")) {
-
-                browserName = "Safari";
-            }
+            throw new RuntimeException("Invalid employee ID or password");
         }
 
 
         // =====================================================
-        // 7. GET OPERATING SYSTEM
+        // 4. SAVE LOGIN HISTORY
         // =====================================================
 
-        String operatingSystem =
-                "Unknown OS";
+        LoginHistory history = new LoginHistory();
 
-        if (userAgent != null) {
+        history.setEmployee(employee);
 
-            String agent =
-                    userAgent.toLowerCase();
-
-            if (agent.contains("windows")) {
-
-                operatingSystem = "Windows";
-
-            } else if (agent.contains("mac os")
-                    || agent.contains("macintosh")) {
-
-                operatingSystem = "Mac OS";
-
-            } else if (agent.contains("android")) {
-
-                operatingSystem = "Android";
-
-            } else if (agent.contains("iphone")
-                    || agent.contains("ipad")
-                    || agent.contains("ios")) {
-
-                operatingSystem = "iOS";
-
-            } else if (agent.contains("linux")) {
-
-                operatingSystem = "Linux";
-            }
-        }
-
-
-        // =====================================================
-        // 8. GET IP ADDRESS
-        // =====================================================
-
-        String ipAddress =
-                httpRequest.getHeader("X-Forwarded-For");
-
-        if (ipAddress == null
-                || ipAddress.isEmpty()
-                || "unknown".equalsIgnoreCase(ipAddress)) {
-
-            ipAddress =
-                    httpRequest.getHeader("X-Real-IP");
-        }
-
-        if (ipAddress == null
-                || ipAddress.isEmpty()
-                || "unknown".equalsIgnoreCase(ipAddress)) {
-
-            ipAddress =
-                    httpRequest.getRemoteAddr();
-        }
-
-        // X-Forwarded-For can contain multiple IPs
-        if (ipAddress != null
-                && ipAddress.contains(",")) {
-
-            ipAddress =
-                    ipAddress.split(",")[0].trim();
-        }
-
-
-        // =====================================================
-        // 9. GET DEVICE NAME
-        // =====================================================
-
-        String deviceName =
-                "Unknown Device";
-
-        if (operatingSystem.equals("Windows")
-                || operatingSystem.equals("Mac OS")
-                || operatingSystem.equals("Linux")) {
-
-            deviceName = "Desktop";
-
-        } else if (operatingSystem.equals("Android")
-                || operatingSystem.equals("iOS")) {
-
-            deviceName = "Mobile";
-        }
-
-
-        // =====================================================
-        // 10. SAVE DEVICE DETAILS
-        // =====================================================
-
-        UserDevice device =
-                new UserDevice();
-
-        device.setUsers(user);
-        device.setDeviceName(deviceName);
-        device.setBrowserName(browserName);
-        device.setOperatingSystem(operatingSystem);
-        device.setIpAddress(ipAddress);
-        device.setDeviceStatus("ACTIVE");
-        device.setLastLogin(LocalDateTime.now());
-        device.setCreatedAt(LocalDateTime.now());
-
-        deviceRepository.save(device);
-
-
-        // =====================================================
-        // 11. SAVE LOGIN HISTORY
-        // =====================================================
-
-        LoginHistory history =
-                new LoginHistory();
-
-        history.setUsers(user);
         history.setLoginDate(LocalDate.now());
+
         history.setLoginTime(LocalTime.now());
-        history.setIpAddress(ipAddress);
-        history.setBrowserName(browserName);
-        history.setOperatingSystem(operatingSystem);
-        history.setLoginStatus(LoginStatus.valueOf("SUCCESS"));
-        history.setRemarks("Login Successful");
-        history.setCreatedAt(LocalDateTime.now());
+
+        history.setIpAddress(getIpAddress());
+
+        history.setBrowserName(getBrowser());
+
+        history.setOperatingSystem(getOperatingSystem());
+
+        history.setLoginStatus(LoginStatus.SUCCESS);
+
+        history.setRemarks("Login successful");
 
         historyRepository.save(history);
 
 
         // =====================================================
-        // 12. ACTIVITY LOG
+        // 5. SAVE / UPDATE USER DEVICE
         // =====================================================
 
-        auditLogsService.logActivity(
+        String deviceId = httpRequest.getHeader("X-Device-Id");
 
-                user.getEmployeeId(),
+        if (deviceId == null || deviceId.isBlank()) {
 
-                "LOGIN",
-
-                "AUTHENTICATION",
-
-                "Employee logged into the system successfully",
-
-                ActivityStatus.SUCCESS,
-
-                ipAddress,
-
-                browserName,
-
-                operatingSystem
-        );
-
-
-        // =====================================================
-        // 13. AUDIT LOG
-        // =====================================================
-
-        auditLogsService.createAuditLog(
-
-                "AUTHENTICATION",
-
-                user.getEmployeeId(),
-
-                AuditActionType.LOGIN,
-
-                user.getEmployeeId(),
-
-                user.getEmployeeId(),
-
-                "Employee logged into the system successfully",
-
-                null,
-
-                null,
-
-                ipAddress,
-
-                deviceName
-        );
-
-
-        // =====================================================
-        // 14. SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.createSystemLog(
-
-                SystemLogLevel.INFO,
-
-                "AUTHENTICATION",
-
-                "AuthService",
-
-                "/auth/login",
-
-                "POST",
-
-                200,
-
-                "Login successful. Employee ID: "
-                        + user.getEmployeeId(),
-
-                null,
-
-                "HRMS-SERVER"
-        );
-
-
-        // =====================================================
-        // 15. SEND DEVICE LOGIN ALERT EMAIL
-        // =====================================================
-
-        emailService.sendMail(
-
-                user.getEmail(),
-
-                "New Device Login Alert",
-
-                "A new login was detected in your account."
-
-                        + "\n\n"
-
-                        + "Employee ID : "
-                        + user.getEmployeeId()
-
-                        + "\n"
-
-                        + "Date : "
-                        + LocalDate.now()
-
-                        + "\n"
-
-                        + "Time : "
-                        + LocalTime.now()
-
-                        + "\n"
-
-                        + "IP Address : "
-                        + ipAddress
-
-                        + "\n"
-
-                        + "Browser : "
-                        + browserName
-
-                        + "\n"
-
-                        + "Operating System : "
-                        + operatingSystem
-
-                        + "\n"
-
-                        + "Device : "
-                        + deviceName
-        );
-
-
-        // =====================================================
-        // 16. RETURN LOGIN RESPONSE
-        // =====================================================
-
-        return LoginResponse.builder()
-
-                .token(token)
-
-                .message("Login Successful")
-
-                .build();
-    }
-
-
-    //------------------------------------
-// LOGOUT
-//------------------------------------
-
-    public String logout(HttpServletRequest request) {
-
-        // =====================================================
-        // 1. GET JWT TOKEN FROM HEADER
-        // =====================================================
-
-        String authHeader =
-                request.getHeader("Authorization");
-
-        if (authHeader == null
-                || !authHeader.startsWith("Bearer ")) {
-
-            throw new RuntimeException("Invalid Token.");
-        }
-
-        String jwtToken =
-                authHeader.substring(7);
-
-
-        // =====================================================
-        // 2. EXTRACT EMPLOYEE ID
-        // =====================================================
-
-        String employeeId =
-                jwtService.extractUsername(jwtToken);
-
-
-        // =====================================================
-        // 3. GET USER
-        // =====================================================
-
-        Users user =
-                userRepository
-                        .findByEmployeeId(employeeId)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "User Not Found"));
-
-
-        // =====================================================
-        // 4. GET USER AGENT
-        // =====================================================
-
-        String userAgent =
-                request.getHeader("User-Agent");
-
-
-        // =====================================================
-        // 5. GET BROWSER NAME
-        // =====================================================
-
-        String browserName =
-                "Unknown Browser";
-
-        if (userAgent != null) {
-
-            String agent =
-                    userAgent.toLowerCase();
-
-            if (agent.contains("edg")) {
-
-                browserName =
-                        "Microsoft Edge";
-
-            } else if (agent.contains("opr")
-                    || agent.contains("opera")) {
-
-                browserName =
-                        "Opera";
-
-            } else if (agent.contains("chrome")) {
-
-                browserName =
-                        "Google Chrome";
-
-            } else if (agent.contains("firefox")) {
-
-                browserName =
-                        "Mozilla Firefox";
-
-            } else if (agent.contains("safari")) {
-
-                browserName =
-                        "Safari";
-            }
+            deviceId = "UNKNOWN";
         }
 
 
-        // =====================================================
-        // 6. GET OPERATING SYSTEM
-        // =====================================================
+        UserDevice device = deviceRepository.findByEmployeeAndDeviceId(employee, deviceId).orElse(new UserDevice());
 
-        String operatingSystem =
-                "Unknown OS";
 
-        if (userAgent != null) {
+        device.setEmployee(employee);
 
-            String agent =
-                    userAgent.toLowerCase();
+        device.setDeviceId(deviceId);
 
-            if (agent.contains("windows")) {
+        device.setDeviceName(httpRequest.getHeader("X-Device-Name"));
 
-                operatingSystem =
-                        "Windows";
+        device.setBrowserName(getBrowser());
 
-            } else if (agent.contains("mac os")
-                    || agent.contains("macintosh")) {
+        device.setOperatingSystem(getOperatingSystem());
 
-                operatingSystem =
-                        "Mac OS";
+        device.setIpAddress(getIpAddress());
 
-            } else if (agent.contains("android")) {
+        device.setLastLogin(LocalDateTime.now());
 
-                operatingSystem =
-                        "Android";
-
-            } else if (agent.contains("iphone")
-                    || agent.contains("ipad")
-                    || agent.contains("ios")) {
-
-                operatingSystem =
-                        "iOS";
-
-            } else if (agent.contains("linux")) {
-
-                operatingSystem =
-                        "Linux";
-            }
-        }
-
-
-        // =====================================================
-        // 7. GET IP ADDRESS
-        // =====================================================
-
-        String ipAddress =
-                request.getHeader("X-Forwarded-For");
-
-        if (ipAddress == null
-                || ipAddress.isEmpty()
-                || "unknown".equalsIgnoreCase(ipAddress)) {
-
-            ipAddress =
-                    request.getHeader("X-Real-IP");
-        }
-
-        if (ipAddress == null
-                || ipAddress.isEmpty()
-                || "unknown".equalsIgnoreCase(ipAddress)) {
-
-            ipAddress =
-                    request.getRemoteAddr();
-        }
-
-        // X-Forwarded-For can contain multiple IPs
-        if (ipAddress != null
-                && ipAddress.contains(",")) {
-
-            ipAddress =
-                    ipAddress.split(",")[0].trim();
-        }
-
-
-        // =====================================================
-        // 8. GET DEVICE NAME
-        // =====================================================
-
-        String deviceName =
-                "Unknown Device";
-
-        if (operatingSystem.equals("Windows")
-                || operatingSystem.equals("Mac OS")
-                || operatingSystem.equals("Linux")) {
-
-            deviceName =
-                    "Desktop";
-
-        } else if (operatingSystem.equals("Android")
-                || operatingSystem.equals("iOS")) {
-
-            deviceName =
-                    "Mobile";
-        }
-
-
-        // =====================================================
-        // 9. UPDATE LOGIN HISTORY
-        // =====================================================
-
-        LoginHistory history =
-                (LoginHistory) historyRepository
-                        .findTopByUsersOrderByIdDesc(user)
-                        .orElse(null);
-
-        if (history != null) {
-
-            history.setLogoutTime(
-                    LocalTime.now());
-
-            historyRepository.save(history);
-        }
-
-
-        // =====================================================
-        // 10. UPDATE DEVICE STATUS
-        // =====================================================
-
-        UserDevice device =
-                (UserDevice) deviceRepository
-                        .findTopByUsersOrderByIdDesc(user)
-                        .orElse(null);
-
-        if (device != null) {
-
-            device.setDeviceStatus(
-                    "LOGGED OUT");
-
-            deviceRepository.save(device);
-        }
-
-
-        // =====================================================
-        // 11. REVOKE REFRESH TOKEN
-        // =====================================================
-
-        RefreshToken refreshToken =
-                (RefreshToken) tokenRepository
-                        .findByUsers(user).orElse(null);
-
-        if (refreshToken != null) {
-
-            refreshToken.setRevoked(true);
-
-            tokenRepository.save(refreshToken);
-        }
-
-
-        // =====================================================
-        // 12. ACTIVITY LOG
-        // =====================================================
-
-        auditLogsService.logActivity(
-
-                user.getEmployeeId(),
-
-                "LOGOUT",
-
-                "AUTHENTICATION",
-
-                "Employee logged out of the system successfully",
-
-                ActivityStatus.SUCCESS,
-
-                ipAddress,
-
-                browserName,
-
-                operatingSystem
-        );
-
-
-        // =====================================================
-        // 13. AUDIT LOG
-        // =====================================================
-
-        auditLogsService.createAuditLog(
-
-                "AUTHENTICATION",
-
-                null,
-
-                AuditActionType.LOGOUT,
-
-                user.getEmployeeId(),
-
-                user.getEmployeeId(),
-
-                "Employee logged out of the system successfully",
-
-                null,
-
-                null,
-
-                ipAddress,
-
-                deviceName
-        );
-
-
-        // =====================================================
-        // 14. SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.createSystemLog(
-
-                SystemLogLevel.INFO,
-
-                "AUTHENTICATION",
-
-                "AuthService",
-
-                "/auth/logout",
-
-                "POST",
-
-                200,
-
-                "Logout successful. Employee ID: "
-                        + user.getEmployeeId()
-                        + ", IP: "
-                        + ipAddress
-                        + ", Browser: "
-                        + browserName
-                        + ", OS: "
-                        + operatingSystem,
-
-                null,
-
-                "HRMS-SERVER"
-        );
-
-
-        // =====================================================
-        // 15. OPTIONAL LOGOUT EMAIL
-        // =====================================================
-
-//    emailService.sendMail(
-//
-//            user.getEmail(),
-//
-//            "Logout Successful",
-//
-//            "You have successfully logged out of QuickDines."
-//    );
-
-
-        // =====================================================
-        // 16. RETURN RESPONSE
-        // =====================================================
-
-        return "Logout Successful.";
-    }
-
-
-
-    //------------------------------------
-// PASSWORD APIs
-//------------------------------------
-
-    public String forgotPassword(String email) {
-
-        // Check User Exists
-        Users user = (Users) userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new RuntimeException("User Not Found"));
-
-        // Generate OTP
-        String otp = String.valueOf(
-                new Random().nextInt(900000) + 100000);
-
-        // Save OTP Details
-        OtpVerification otpVerification =
-                new OtpVerification();
-
-        otpVerification.setUsers(user);
-        otpVerification.setEmail(user.getEmail());
-        otpVerification.setMobileNumber(user.getMobileNumber());
-        otpVerification.setOtp(otp);
-        otpVerification.setOtpType("PASSWORD RESET OTP");
-        otpVerification.setVerificationStatus("PENDING");
-        otpVerification.setExpiryTime(
-                LocalDateTime.now().plusMinutes(10));
-        otpVerification.setCreatedAt(
-                LocalDateTime.now());
-
-        otpRepository.save(otpVerification);
-
-
-        // Send Email
-        emailService.sendMail(
-
-                user.getEmail(),
-
-                "QuickDines Forgot Password OTP",
-
-                "Hello " + user.getFirstName()
-
-                        + "\n\n"
-
-                        + "Your password reset OTP is : "
-                        + otp
-
-                        + "\n\n"
-
-                        + "OTP is valid for 10 minutes."
-
-                        + "\n\n"
-
-                        + "Do not share this OTP with anyone."
-        );
-
-
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-
-        auditLogsService.logActivity(
-
-                user.getEmployeeId(),
-
-                "FORGOT_PASSWORD",
-
-                "AUTHENTICATION",
-
-                "Password reset OTP generated and sent successfully",
-
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-
-// =====================================================
-// AUDIT LOG
-// =====================================================
-
-
-        auditLogsService.createAuditLog(
-
-                "AUTHENTICATION",
-
-                user.getEmployeeId(),
-
-                AuditActionType.UPDATE,
-
-                user.getEmployeeId(),
-
-                user.getEmployeeId(),
-
-                "Password reset OTP requested",
-
-                null,
-                null,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-
-                "AUTHENTICATION",
-
-                "AuthService",
-
-                "Forgot password OTP generated successfully. "
-                        + "Employee ID: "
-                        + user.getEmployeeId()
-        );
-
-
-        return "Forgot Password OTP sent successfully.";
-    }
-
-
-    public String resetPassword(
-            String email,
-            String otp,
-            String newPassword) {
-
-        // Check User Exists
-        Users user = (Users) userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new RuntimeException("User Not Found"));
-
-
-        // Check OTP Exists
-        OtpVerification otpVerification =
-                otpRepository
-                        .findByEmailAndOtp(email, otp)
-                        .orElseThrow(() ->
-                                new RuntimeException("Invalid OTP"));
-
-
-        // Check OTP Expiry
-        if (otpVerification
-                .getExpiryTime()
-                .isBefore(LocalDateTime.now())) {
-
-            // =================================================
-            // ACTIVITY LOG - FAILED
-            // =================================================
-
-            auditLogsService.logActivity(
-
-                    user.getEmployeeId(),
-
-                    "RESET_PASSWORD",
-
-                    "AUTHENTICATION",
-
-                    "Password reset failed because OTP expired",
-
-                    ActivityStatus.FAILED,
-
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
-
-
-            // =================================================
-            // SYSTEM LOG - ERROR
-            // =================================================
-
-            auditLogsService.logError(
-
-                    "AUTHENTICATION",
-
-                    "AuthService",
-
-                    "Password reset failed. OTP expired for employee: "
-                            + user.getEmployeeId(),
-
-                    null
-            );
-
-
-            throw new RuntimeException("OTP Expired");
-        }
-
-
-        // Encrypt Password
-        String encodedPassword =
-                passwordEncoder.encode(newPassword);
-
-
-        // Update Password
-        user.setPassword(encodedPassword);
-
-        userRepository.save(user);
-
-
-        // Update OTP Status
-        otpVerification.setVerificationStatus(
-                "VERIFIED");
-
-        otpRepository.save(otpVerification);
-
-
-        // Send Password Reset Mail
-        emailService.sendMail(
-
-                user.getEmail(),
-
-                "Password Reset Successful",
-
-                "Hello " + user.getFirstName()
-
-                        + "\n\n"
-
-                        + "Your password has been reset successfully."
-
-                        + "\n\n"
-
-                        + "If this was not you, please contact support immediately."
-        );
-
-
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-
-        auditLogsService.logActivity(
-
-                user.getEmployeeId(),
-
-                "RESET_PASSWORD",
-
-                "AUTHENTICATION",
-
-                "Password reset successfully using OTP",
-
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-
-        auditLogsService.createAuditLog(
-
-                "AUTHENTICATION",
-
-                user.getEmployeeId(),
-
-                AuditActionType.UPDATE,
-
-                user.getEmployeeId(),
-
-                user.getEmployeeId(),
-
-                "Employee password reset successfully",
-
-                null,
-                "PASSWORD_RESET",
-
-                null,
-                null
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-
-                "AUTHENTICATION",
-
-                "AuthService",
-
-                "Password reset successful. Employee ID: "
-                        + user.getEmployeeId()
-        );
-
-
-        return "Password Updated Successfully.";
-    }
-
-
-    public String changePassword(
-            ChangePasswordRequest request) {
-
-        // Check User Exists
-        Users user =
-                (Users) userRepository
-                        .findByEmail(request.getEmail())
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "User Not Found"));
-
-
-        // Check Old Password
-        if (!passwordEncoder.matches(
-                request.getOldPassword(),
-                user.getPassword())) {
-
-
-            // =================================================
-            // ACTIVITY LOG - FAILED
-            // =================================================
-
-            auditLogsService.logActivity(
-
-                    user.getEmployeeId(),
-
-                    "CHANGE_PASSWORD",
-
-                    "AUTHENTICATION",
-
-                    "Password change failed because old password is incorrect",
-
-                    ActivityStatus.FAILED,
-
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
-
-
-            // =================================================
-            // SYSTEM LOG - WARNING
-            // =================================================
-
-            auditLogsService.logWarning(
-
-                    "AUTHENTICATION",
-
-                    "AuthService",
-
-                    "Incorrect old password during password change. "
-                            + "Employee ID: "
-                            + user.getEmployeeId()
-            );
-
-
-            throw new RuntimeException(
-                    "Old Password is Incorrect");
-        }
-
-
-        // Check New Password
-        if (!request.getNewPassword()
-                .equals(request.getConfirmPassword())) {
-
-
-            // =================================================
-            // ACTIVITY LOG - FAILED
-            // =================================================
-
-            auditLogsService.logActivity(
-
-                    user.getEmployeeId(),
-
-                    "CHANGE_PASSWORD",
-
-                    "AUTHENTICATION",
-
-                    "Password change failed because passwords do not match",
-
-                    ActivityStatus.FAILED,
-
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
-
-
-            // =================================================
-            // SYSTEM LOG - WARNING
-            // =================================================
-
-            auditLogsService.logWarning(
-
-                    "AUTHENTICATION",
-
-                    "AuthService",
-
-                    "Password confirmation mismatch for employee: "
-                            + user.getEmployeeId()
-            );
-
-
-            throw new RuntimeException(
-                    "Passwords do not match");
-        }
-
-
-        // Prevent Same Password
-        if (passwordEncoder.matches(
-                request.getNewPassword(),
-                user.getPassword())) {
-
-
-            // =================================================
-            // ACTIVITY LOG - FAILED
-            // =================================================
-
-            auditLogsService.logActivity(
-
-                    user.getEmployeeId(),
-
-                    "CHANGE_PASSWORD",
-
-                    "AUTHENTICATION",
-
-                    "Password change failed because new password "
-                            + "is the same as old password",
-
-                    ActivityStatus.FAILED,
-
-                    clientInfoService.getClientInfo().getIpAddress(),
-                    clientInfoService.getClientInfo().getBrowser(),
-                    clientInfoService.getClientInfo().getOperatingSystem()
-            );
-
-
-            // =================================================
-            // SYSTEM LOG - WARNING
-            // =================================================
-
-            auditLogsService.logWarning(
-
-                    "AUTHENTICATION",
-
-                    "AuthService",
-
-                    "Employee attempted to reuse previous password. "
-                            + "Employee ID: "
-                            + user.getEmployeeId()
-            );
-
-
-            throw new RuntimeException(
-                    "New password cannot be the same as the old password");
-        }
-
-
-        // Encrypt Password
-        String encodedPassword =
-                passwordEncoder.encode(
-                        request.getNewPassword());
-
-
-        user.setPassword(encodedPassword);
-
-
-        // Update Database
-        userRepository.save(user);
-
-
-        // Send Password Changed Email
-        emailService.sendMail(
-
-                user.getEmail(),
-
-                "Password Changed Successfully",
-
-                "Hello " + user.getFirstName()
-
-                        + "\n\n"
-
-                        + "Your QuickDines account password "
-                        + "has been changed successfully."
-
-                        + "\n\n"
-
-                        + "If you did not perform this action, "
-                        + "please contact the administrator immediately."
-        );
-
-
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-
-        auditLogsService.logActivity(
-
-                user.getEmployeeId(),
-
-                "CHANGE_PASSWORD",
-
-                "AUTHENTICATION",
-
-                "Employee password changed successfully",
-
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-
-        auditLogsService.createAuditLog(
-
-                "AUTHENTICATION",
-
-                user.getEmployeeId(),
-
-                AuditActionType.UPDATE,
-
-                user.getEmployeeId(),
-
-                user.getEmployeeId(),
-
-                "Employee password changed successfully",
-
-                null,
-                "PASSWORD_CHANGED",
-
-                clientInfoService.getClientInfo().getIpAddress(),
-
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-
-                "AUTHENTICATION",
-
-                "AuthService",
-
-                "Password changed successfully. Employee ID: "
-                        + user.getEmployeeId()
-        );
-
-
-        return "Password Changed Successfully.";
-    }
-
-    //------------------------------------
-    // OTP APIs
-    //------------------------------------
-
-    public String sendOTP(String email) {
-
-        Users user = (Users) userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User Not Found"));
-        // Generate 6 digit OTP
-        String otp = String.valueOf(new Random().nextInt(900000) + 100000);
-        OtpVerification verification = new OtpVerification();
-        verification.setUsers(user);
-        verification.setEmail(user.getEmail());
-        verification.setMobileNumber(user.getMobileNumber());
-        verification.setOtp(otp);
-        verification.setOtpType("EMAIL OTP");
-        verification.setVerificationStatus("PENDING");
-        verification.setExpiryTime(LocalDateTime.now().plusMinutes(10));
-        verification.setCreatedAt(LocalDateTime.now());
-        otpRepository.save(verification);
-        // Send Mail
-        emailService.sendMail(
-                user.getEmail(),
-
-                "QuickDines OTP Verification",
-
-                "Your OTP is : "
-                        + otp
-                        + "\n\nOTP is valid for 10 minutes.");
-        return "OTP Sent Successfully.";
-    }
-    public String verifyOTP(String email,
-                            String otp) {
-        OtpVerification verification = otpRepository.findByEmailAndOtp(email,otp).orElseThrow(() -> new RuntimeException("Invalid OTP"));
-        // Check Expiry
-        if (verification.getExpiryTime().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException(
-                    "OTP Expired");}
-        // Update Status
-        verification.setVerificationStatus("VERIFIED");
-        otpRepository.save(verification);
-        return "OTP Verified Successfully.";
-    }
-
-    public String resendOTP(String email) {
-
-        Users user = (Users) userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User Not Found"));
-        String otp = String.valueOf(new Random().nextInt(900000) + 100000);
-        OtpVerification verification = new OtpVerification();
-        verification.setUsers(user);
-        verification.setEmail(user.getEmail());
-        verification.setMobileNumber(user.getMobileNumber());
-        verification.setOtp(otp);
-        verification.setOtpType("EMAIL OTP");
-        verification.setVerificationStatus("PENDING");
-        verification.setExpiryTime(LocalDateTime.now().plusMinutes(10));
-        verification.setCreatedAt(LocalDateTime.now());
-        otpRepository.save(verification);
-        emailService.sendMail(
-
-                user.getEmail(),
-
-                "QuickDines Resend OTP",
-
-                "Your New OTP is : "
-                        + otp
-                        + "\n\nOTP is valid for 10 minutes.");
-        return "OTP Resent Successfully.";}
-
-
-
-    //------------------------------------
-    // JWT APIs
-    //------------------------------------
-
-    public LoginResponse refreshToken(String refreshToken) {
-
-        // Check Refresh Token
-        RefreshToken token = tokenRepository.findByToken(refreshToken).orElseThrow(() -> new RuntimeException("Invalid Refresh Token"));
-        // Check Token Expiry
-        if (token.getExpiryDate()
-                .isBefore(LocalDateTime.now())) {
-
-            throw new RuntimeException(
-                    "Refresh Token Expired");
-        }
-        // Check Token Status
-        if (token.isRevoked()) {
-
-            throw new RuntimeException(
-                    "Refresh Token Revoked");
-        }
-        // Get User
-        Users user = token.getUsers();
-        // Generate New JWT Access Token
-        String accessToken = jwtService.generateToken(user.getEmployeeId());
-        // Optional - Generate New Refresh Token
-        String newRefreshToken =
-                UUID.randomUUID().toString();
-        token.setToken(newRefreshToken);
-        token.setExpiryDate(LocalDateTime.now().plusDays(7));
-        tokenRepository.save(token);
-        // Optional Email Notification
-        emailService.sendMail(
-                user.getEmail(),
-
-                "Refresh Token Generated",
-
-                "A new access token has been generated successfully.");
-        // Return Response
-        return LoginResponse.builder()
-
-                .message("New Token Generated")
-                .token(accessToken)
-                .refreshToken(newRefreshToken)
-
-                .build();
-    }
-
-
-
-    //------------------------------------
-    // PROFILE APIs
-    //------------------------------------
-
-    public Users getProfile(String employeeId) {return userRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("User Not Found"));}
-
-
-
-
-
-    public String updateProfile(String employeeId,Users request) {
-
-        Users user = userRepository.findById(Long.valueOf(employeeId)).orElseThrow(() -> new RuntimeException("User Not Found"));
-
-
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setMobileNumber(request.getMobileNumber());
-        user.setProfileImage(request.getProfileImage());
-        userRepository.save(user);
-        // Send Profile Updated Email
-        emailService.sendMail(
-
-                user.getEmail(),
-
-                "Profile Updated Successfully",
-
-                "Hello " + user.getFirstName()
-
-                        + "\n\n"
-
-                        + "Your QuickDines profile has been updated successfully.");
-        return "Profile Updated Successfully.";}
-
-
-
-    //------------------------------------
-    // LOGIN HISTORY
-    //------------------------------------
-
-    public List<LoginHistory> getLoginHistory(){
-
-        return historyRepository.findAll();
-
-    }
-
-
-
-    //------------------------------------
-    // DEVICES
-    //------------------------------------
-
-    public List<UserDevice> getDevices(){
-
-        return deviceRepository.findAll();
-
-    }
-
-
-    public String removeDevice(Long id) {
-
-        // Check whether the device exists
-        UserDevice device = (UserDevice) deviceRepository.findById(id).orElseThrow(() -> new RuntimeException("Device Not Found"));
-
-        // Update device status
-
-        device.setDeviceStatus("REMOVED");
-
-        // Save changes
+        device.setDeviceStatus("ACTIVE");
 
         deviceRepository.save(device);
-        // Get user details
-        Users user = device.getUsers();
-        // Send email notification
-        emailService.sendMail(
 
-                user.getEmail(),
 
-                "Device Removed Successfully",
+        // =====================================================
+// 6. CREATE LOGIN RESPONSE
+// =====================================================
 
-                "Hello " + user.getFirstName()
-                        + "\n\n"
-                        + "One of your registered devices has been removed successfully."
-                        + "\n\n"
-                        + "If this action was not performed by you, please contact the administrator immediately.");
-        return "Device Removed Successfully.";
+        LoginResponse response = LoginResponse.builder().employeeId(employee.getEmployeeId()).email(employee.getEmail()).role(employee.getRole() != null ? employee.getRole().getRoleName() : null).build();
+
+        return response;
     }
 
 
-
-    //------------------------------------
-    // USERS
-    //------------------------------------
-
-    //------------------------------------
-// CREATE USER
-//------------------------------------
-
-    public String createUser(Users request) {
-
-        request.setPassword(passwordEncoder.encode(request.getPassword()));
-        request.setActive(true);
-        request.setVerified(true);
-        request.setAccountLocked(false);
-        request.setAccountExpired(false);
-        request.setCredentialsExpired(false);
-        request.setLoginAttempts(0);
-        request.setCreatedAt(LocalDateTime.now());
-
-        userRepository.save(request);
-
-        emailService.sendMail(
-                request.getEmail(),
-                "Account Created Successfully",
-
-                "Hello " + request.getFirstName()
-                        + "\n\n"
-                        + "Your QuickDines account has been created successfully."
-                        + "\n\n"
-                        + "Role : " + request.getRole()
-        );
-
+    @Transactional
+    public String logout(HttpServletRequest httpRequest) {
 
         // =====================================================
-        // ACTIVITY LOG
+        // 1. GET SESSION
         // =====================================================
 
-        auditLogsService.logActivity(
+        HttpSession session = httpRequest.getSession(false);
 
-                request.getEmployeeId(),
+        if (session == null) {
 
-                "CREATE_USER",
-
-                "USER_MANAGEMENT",
-
-                "New user account created successfully. Employee ID: "
-                        + request.getEmployeeId(),
-
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-        String performedBy = getLoggedInEmployeeId();
-        auditLogsService.createAuditLog(
-
-                "USER_MANAGEMENT",
-
-                request.getEmployeeId(),
-
-                AuditActionType.CREATE,
-
-                performedBy,
-
-                request.getEmployeeId(),
-
-                "User created successfully",
-
-                null,
-
-                "{"
-                        + "\"employeeId\":\"" + request.getEmployeeId() + "\","
-                        + "\"email\":\"" + request.getEmail() + "\","
-                        + "\"role\":\"" + request.getRole() + "\","
-                        + "\"active\":" + request.isActive()
-                        + "}",
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-
-                "USER_MANAGEMENT",
-
-                "UserService",
-
-                "User created successfully. Employee ID: "
-                        + request.getEmployeeId()
-        );
-
-
-        return "User Created Successfully.";
-    }
-
-    //------------------------------------
-// BLOCK USER
-//------------------------------------
-
-    public String blockUser(Long id) {
-
-        Users user = userRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("User Not Found"));
-
-        // OLD INFORMATION
-        String oldValue =
-                "{"
-                        + "\"active\":" + user.isActive() + ","
-                        + "\"accountLocked\":" + user.isAccountLocked()
-                        + "}";
-
-
-        user.setAccountLocked(true);
-        user.setActive(false);
-
-        userRepository.save(user);
-
-
-        emailService.sendMail(
-
-                user.getEmail(),
-
-                "Account Blocked",
-
-                "Hello " + user.getFirstName()
-                        + "\n\n"
-                        + "Your QuickDines account has been blocked by the administrator."
-        );
-
-
-        // NEW INFORMATION
-        String newValue =
-                "{"
-                        + "\"active\":" + user.isActive() + ","
-                        + "\"accountLocked\":" + user.isAccountLocked()
-                        + "}";
-
-
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-        String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logActivity(
-
-                user.getEmployeeId(),
-
-                "BLOCK_USER",
-
-                "USER_MANAGEMENT",
-
-                "User account blocked successfully. Employee ID: "
-                        + user.getEmployeeId(),
-
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-
-        auditLogsService.createAuditLog(
-
-                "USER_MANAGEMENT",
-
-                user.getEmployeeId(),
-
-                AuditActionType.UPDATE,
-
-                performedBy,
-
-                user.getEmployeeId(),
-
-                "User account blocked",
-
-                oldValue,
-
-                newValue,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-
-                "USER_MANAGEMENT",
-
-                "UserService",
-
-                "User account blocked successfully. User ID: "
-                        + id
-        );
-
-
-        return "User Blocked Successfully.";
-    }
-
-
-    //------------------------------------
-// UNBLOCK USER
-//------------------------------------
-
-    public String unblockUser(Long id) {
-
-        Users user = userRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("User Not Found"));
-
-
-        // OLD INFORMATION
-        String oldValue =
-                "{"
-                        + "\"active\":" + user.isActive() + ","
-                        + "\"accountLocked\":" + user.isAccountLocked()
-                        + "}";
-
-
-        user.setAccountLocked(false);
-        user.setActive(true);
-
-        userRepository.save(user);
-
-
-        emailService.sendMail(
-
-                user.getEmail(),
-
-                "Account Unblocked",
-
-                "Hello " + user.getFirstName()
-                        + "\n\n"
-                        + "Your QuickDines account has been unblocked successfully."
-        );
-
-
-        // NEW INFORMATION
-        String newValue =
-                "{"
-                        + "\"active\":" + user.isActive() + ","
-                        + "\"accountLocked\":" + user.isAccountLocked()
-                        + "}";
-
-
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-
-        auditLogsService.logActivity(
-
-                user.getEmployeeId(),
-
-                "UNBLOCK_USER",
-
-                "USER_MANAGEMENT",
-
-                "User account unblocked successfully. Employee ID: "
-                        + user.getEmployeeId(),
-
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-        String performedBy = getLoggedInEmployeeId();
-        auditLogsService.createAuditLog(
-
-                "USER_MANAGEMENT",
-
-                user.getEmployeeId(),
-
-                AuditActionType.UPDATE,
-
-                performedBy,
-
-                user.getEmployeeId(),
-
-                "User account unblocked",
-
-                oldValue,
-
-                newValue,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-
-                "USER_MANAGEMENT",
-
-                "UserService",
-
-                "User account unblocked successfully. User ID: "
-                        + id
-        );
-
-
-        return "User Unblocked Successfully.";
-    }
-
-    //------------------------------------
-// DELETE USER
-//------------------------------------
-
-    public String deleteUser(Long id) {
-
-        Users user = userRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("User Not Found"));
-
-
-        // OLD INFORMATION
-        String oldValue =
-                "{"
-                        + "\"active\":" + user.isActive()
-                        + "}";
-
-
-        user.setActive(false);
-
-        userRepository.save(user);
-
-
-        emailService.sendMail(
-
-                user.getEmail(),
-
-                "Account Deleted",
-
-                "Hello " + user.getFirstName()
-                        + "\n\n"
-                        + "Your QuickDines account has been deleted by the administrator."
-        );
-
-
-        // NEW INFORMATION
-        String newValue =
-                "{"
-                        + "\"active\":" + user.isActive()
-                        + "}";
-
-
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-
-        auditLogsService.logActivity(
-
-                user.getEmployeeId(),
-
-                "DELETE_USER",
-
-                "USER_MANAGEMENT",
-
-                "User account deleted successfully. Employee ID: "
-                        + user.getEmployeeId(),
-
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-        String performedBy = getLoggedInEmployeeId();
-        auditLogsService.createAuditLog(
-
-                "USER_MANAGEMENT",
-
-                user.getEmployeeId(),
-
-                AuditActionType.DELETE,
-
-                performedBy,
-
-                user.getEmployeeId(),
-
-                "User account deleted",
-
-                oldValue,
-
-                newValue,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-
-                "USER_MANAGEMENT",
-
-                "UserService",
-
-                "User account deleted successfully. User ID: "
-                        + id
-        );
-
-
-        return "User Deleted Successfully.";
-    }
-
-
-//------------------------------------
-// ROLES
-//------------------------------------
-
-    public String createRole(Role role) {
-
-        if (roleRepository.existsByRoleName(role.getRoleName())) {
-            throw new RuntimeException("Role already exists");
+            return "No active login session";
         }
 
-        role.setCreatedAt(LocalDateTime.now());
 
-        roleRepository.save(role);
+        // =====================================================
+        // 2. GET EMPLOYEE ID
+        // =====================================================
 
+        String employeeId = (String) session.getAttribute("employeeId");
 
+        if (employeeId == null) {
 
+            return "No active login session";
+        }
 
 
         // =====================================================
-//         ACTIVITY LOG
-       //  =====================================================
+        // 3. FIND EMPLOYEE
+        // =====================================================
 
-        auditLogsService.logActivity(
-
-                getLoggedInEmployeeId(),
-
-                "CREATE_ROLE",
-
-                "ROLE_MANAGEMENT",
-
-                "Role created successfully. Role ID: "
-                        + role.getId()
-                        + ", Role Name: "
-                        + role.getRoleName(),
-
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-
-                clientInfoService.getClientInfo().getBrowser(),
-
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found"));
 
 
         // =====================================================
-        // AUDIT LOG
+        // 4. FIND ACTIVE LOGIN HISTORY
         // =====================================================
-        String performedBy = getLoggedInEmployeeId();
-        auditLogsService.createAuditLog(
 
-                "ROLE_MANAGEMENT",
-
-                performedBy,
-
-                AuditActionType.CREATE,
-
-              getLoggedInEmployeeId(),
-
-                getLoggedInEmployeeId(),
-
-                "Role created successfully",
-
-                null,
-
-                "{"
-                        + "\"roleId\":\"" + role.getId() + "\","
-                        + "\"roleName\":\"" + role.getRoleName() + "\","
-                        + "\"description\":\"" + role.getDescription() + "\""
-                        + "}",
-
-                clientInfoService.getClientInfo().getIpAddress(),
-
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        LoginHistory history = historyRepository.findTopByEmployeeAndLogoutTimeIsNullOrderByIdDesc(employee).orElseThrow(() -> new RuntimeException("Active login history not found"));
 
 
         // =====================================================
-        // SYSTEM LOG
+        // 5. SAVE LOGOUT TIME
         // =====================================================
 
-        auditLogsService.logInfo(
+        history.setLogoutTime(LocalTime.now());
 
-                "ROLE_MANAGEMENT",
+        history.setRemarks("Logout successful");
 
-                "RoleService",
-
-                "Role created successfully. Role ID: "
-                        + role.getId()
-                        + ", Role Name: "
-                        + role.getRoleName()
-        );
+        historyRepository.save(history);
 
 
-        return "Role Created Successfully.";
+        // =====================================================
+        // 6. UPDATE DEVICE STATUS
+        // =====================================================
+
+        String deviceId = httpRequest.getHeader("X-Device-Id");
+
+        if (deviceId != null && !deviceId.isBlank()) {
+
+            deviceRepository.findByEmployeeAndDeviceId(employee, deviceId).ifPresent(device -> {
+
+                device.setDeviceStatus("INACTIVE");
+
+                deviceRepository.save(device);
+            });
+        }
+
+
+        // =====================================================
+        // 7. INVALIDATE SESSION
+        // =====================================================
+
+        session.invalidate();
+
+
+        return "Logout Successful";
     }
 
 
-    public List<Role> getRoles(){
 
-        List<Role> roles = roleRepository.findAllWithPermissions();
+
+
+    @Transactional
+    public String forgotPassword(String email) {
+
+        // =====================================================
+        // 1. FIND EMPLOYEE
+        // =====================================================
+
+        Employee employee = employeeRepository.findByEmail(email);
+
+        if (employee == null) {
+
+            throw new RuntimeException("Employee with this email does not exist");
+        }
 
 
         // =====================================================
-        // ACTIVITY LOG
+        // 2. GENERATE OTP
         // =====================================================
 
-        auditLogsService.logActivity(
-
-                getLoggedInEmployeeId(),
-
-                "GET_ROLES",
-
-                "ROLE_MANAGEMENT",
-
-                "All roles retrieved successfully. Total roles: "
-                        + roles.size(),
-
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-
-                clientInfoService.getClientInfo().getBrowser(),
-
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        String otp = String.format("%06d", new Random().nextInt(1000000));
 
 
         // =====================================================
-        // SYSTEM LOG
+        // 3. SAVE OTP
         // =====================================================
 
-        auditLogsService.logInfo(
+        OtpVerification otpVerification = new OtpVerification();
 
-                "ROLE_MANAGEMENT",
+        otpVerification.setEmployee(employee);
 
-                "RoleService",
+        otpVerification.setEmail(employee.getEmail());
 
-                "All roles retrieved successfully. Total roles: "
-                        + roles.size()
-        );
+        otpVerification.setOtp(otp);
+
+        otpVerification.setOtpType("PASSWORD_RESET");
+
+        otpVerification.setExpiryTime(LocalDateTime.now().plusMinutes(5));
+
+        otpVerification.setVerificationStatus("PENDING");
+
+        otpRepository.save(otpVerification);
 
 
-        return roles;
+        String subject = "QuickDines HRMS - Password Reset OTP";
+
+        String body = """
+                Dear %s,
+                
+                We received a request to reset your password for your
+                QuickDines HRMS account.
+                
+                Your One-Time Password (OTP) is:
+                
+                %s
+                
+                This OTP is valid for 5 minutes.
+                
+                For your security:
+                • Do not share this OTP with anyone.
+                • QuickDines HRMS will never ask you to share your OTP.
+                • If you did not request a password reset, please ignore this email
+                  or contact your HR administrator.
+                
+                Regards,
+                
+                QuickDines HRMS
+                Human Resources Team
+                
+                This is an automated email. Please do not reply to this email.
+                """.formatted(employee.getFirstName(), otp);
+
+
+        emailService.sendMail(employee.getEmail(), subject, body);
+
+
+        return "Password reset OTP sent successfully";
     }
 
 
-    public Role getRole(Long id){
+    @Transactional
+    public String resetPassword(ResetPasswordRequest request) {
 
-        Role role =
-                roleRepository.findById(Math.toIntExact(id))
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Role Not Found"));
+        // =====================================================
+        // 1. FIND OTP
+        // =====================================================
+
+        OtpVerification otpVerification = otpRepository.findTopByEmailAndOtpTypeAndVerificationStatusOrderByCreatedAtDesc(request.getEmail(), "PASSWORD_RESET", "PENDING").orElseThrow(() -> new RuntimeException("OTP not found or already used"));
 
 
         // =====================================================
-        // ACTIVITY LOG
+        // 2. CHECK OTP
         // =====================================================
 
-        auditLogsService.logActivity(
+        if (!otpVerification.getOtp().equals(request.getOtp())) {
 
-                getLoggedInEmployeeId(),
-
-                "GET_ROLE",
-
-                "ROLE_MANAGEMENT",
-
-                "Role retrieved successfully. Role ID: "
-                        + id,
-
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-
-                clientInfoService.getClientInfo().getBrowser(),
-
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+            throw new RuntimeException("Invalid OTP");
+        }
 
 
         // =====================================================
-        // SYSTEM LOG
+        // 3. CHECK OTP EXPIRY
         // =====================================================
 
-        auditLogsService.logInfo(
+        if (LocalDateTime.now().isAfter(otpVerification.getExpiryTime())) {
 
-                "ROLE_MANAGEMENT",
-
-                "RoleService",
-
-                "Role retrieved successfully. Role ID: "
-                        + id
-        );
+            throw new RuntimeException("OTP has expired");
+        }
 
 
-        return role;
+        // =====================================================
+        // 4. FIND EMPLOYEE
+        // =====================================================
+
+        Employee employee = employeeRepository.findByEmail(request.getEmail());
+
+        if (employee == null) {
+
+            throw new RuntimeException("Employee not found");
+        }
+
+
+        // =====================================================
+        // 5. ENCODE NEW PASSWORD
+        // =====================================================
+
+        String encodedPassword = passwordEncoder.encode(request.getNewPassword());
+
+
+        employee.setPassword(encodedPassword);
+
+        employeeRepository.save(employee);
+
+
+        // =====================================================
+        // 6. MARK OTP AS USED
+        // =====================================================
+
+        otpVerification.setVerificationStatus("VERIFIED");
+
+        otpRepository.save(otpVerification);
+
+
+        // =====================================================
+        // 7. SEND CONFIRMATION EMAIL
+        // =====================================================
+
+        String subject = "QuickDines HRMS - Password Changed Successfully";
+
+        String body = """
+                Dear %s,
+                
+                Your QuickDines HRMS account password has been changed
+                successfully.
+                
+                If you made this change, no further action is required.
+                
+                If you did not change your password, please contact your
+                HR administrator immediately to secure your account.
+                
+                For security reasons, please do not share your password
+                or any verification code with anyone.
+                
+                Regards,
+                
+                QuickDines HRMS
+                Human Resources Team
+                
+                This is an automated email. Please do not reply to this email.
+                """.formatted(employee.getFirstName());
+
+        emailService.sendMail(employee.getEmail(), subject, body);
+
+
+        return "Password reset successfully";
     }
 
 
-    public String updateRole(Long id, Role request) {
+    @Transactional
+    public String changePassword(ChangePasswordRequest request) {
 
-        Role role =
-                roleRepository.findById(Math.toIntExact(id))
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Role Not Found"));
+        // =====================================================
+        // 1. GET LOGGED-IN EMPLOYEE
+        // =====================================================
+
+        String employeeId = getLoggedInEmployeeId();
 
 
         // =====================================================
-        // OLD VALUE JSON
+        // 2. FIND EMPLOYEE
         // =====================================================
 
-        String oldValue =
-                "{"
-                        + "\"roleId\":\"" + role.getId() + "\","
-                        + "\"roleName\":\"" + role.getRoleName() + "\","
-                        + "\"description\":\"" + role.getDescription() + "\""
-                        + "}";
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found"));
 
+
+        // =====================================================
+        // 3. VERIFY CURRENT PASSWORD
+        // =====================================================
+
+        boolean valid = passwordEncoder.matches(request.getOldPassword(), employee.getPassword());
+
+        if (!valid) {
+
+            throw new RuntimeException("Current password is incorrect");
+        }
+
+
+        // =====================================================
+        // 4. ENCODE NEW PASSWORD
+        // =====================================================
+
+        employee.setPassword(passwordEncoder.encode(request.getNewPassword()));
+
+
+        // =====================================================
+        // 5. SAVE
+        // =====================================================
+
+        employeeRepository.save(employee);
+
+
+        // =====================================================
+        // 6. SEND EMAIL
+        // =====================================================
+
+        emailService.sendMail(employee.getEmail(), "QuickDines HRMS - Password Changed Successfully", """
+                Dear %s,
+                
+                Your QuickDines HRMS account password has been changed
+                successfully.
+                
+                If you made this change, no further action is required.
+                
+                If you did not perform this action, please contact your
+                HR administrator immediately to secure your account.
+                
+                For your security, please do not share your password
+                or verification codes with anyone.
+                
+                Regards,
+                
+                QuickDines HRMS
+                Human Resources Team
+                
+                This is an automated email. Please do not reply to this email.
+                """.formatted(employee.getFirstName()));
+
+
+        return "Password changed successfully";
+    }
+
+
+    // =========================================================
+    // OTP
+    // =========================================================
+
+    @Transactional
+    public String sendOTP(String email) {
+
+        // =====================================================
+        // 1. FIND EMPLOYEE
+        // =====================================================
+
+        Employee employee = employeeRepository.findByEmail(email);
+
+        if (employee == null) {
+
+            throw new RuntimeException("Employee with this email does not exist");
+        }
+
+
+        // =====================================================
+        // 2. GENERATE OTP
+        // =====================================================
+
+        String otp = String.format("%06d", new Random().nextInt(1000000));
+
+
+        // =====================================================
+        // 3. SAVE OTP
+        // =====================================================
+
+        OtpVerification verification = new OtpVerification();
+
+        verification.setEmployee(employee);
+
+        verification.setEmail(employee.getEmail());
+
+        verification.setOtp(otp);
+
+        verification.setOtpType("GENERAL");
+
+        verification.setExpiryTime(LocalDateTime.now().plusMinutes(5));
+
+        verification.setVerificationStatus("PENDING");
+
+        otpRepository.save(verification);
+
+
+        // =====================================================
+        // 4. SEND EMAIL
+        // =====================================================
+
+        emailService.sendMail(employee.getEmail(), "QuickDines HRMS - OTP Verification", """
+                Dear %s,
+                
+                Your One-Time Password (OTP) for QuickDines HRMS
+                verification is:
+                
+                %s
+                
+                This OTP is valid for 5 minutes.
+                
+                For your security:
+                - Do not share this OTP with anyone.
+                - QuickDines HRMS will never ask you to share your OTP.
+                - If you did not request this OTP, please contact your
+                  HR administrator immediately.
+                
+                Regards,
+                
+                QuickDines HRMS
+                Human Resources Team
+                
+                This is an automated email. Please do not reply to this email.
+                """.formatted(employee.getFirstName(), otp));
+
+        return "OTP sent successfully";
+    }
+
+
+    @Transactional
+    public String verifyOTP(String email, String otp) {
+
+        // =====================================================
+        // 1. FIND LATEST OTP
+        // =====================================================
+
+        OtpVerification verification = otpRepository.findTopByEmailAndOtpTypeAndVerificationStatusOrderByCreatedAtDesc(email, "GENERAL", "PENDING").orElseThrow(() -> new RuntimeException("OTP not found or already verified"));
+
+
+        // =====================================================
+        // 2. CHECK OTP
+        // =====================================================
+
+        if (!verification.getOtp().equals(otp)) {
+
+            verification.setVerificationStatus("FAILED");
+
+            otpRepository.save(verification);
+
+            throw new RuntimeException("Invalid OTP");
+        }
+
+
+        // =====================================================
+        // 3. CHECK EXPIRY
+        // =====================================================
+
+        if (LocalDateTime.now().isAfter(verification.getExpiryTime())) {
+
+            verification.setVerificationStatus("EXPIRED");
+
+            otpRepository.save(verification);
+
+            throw new RuntimeException("OTP has expired");
+        }
+
+
+        // =====================================================
+        // 4. MARK VERIFIED
+        // =====================================================
+
+        verification.setVerificationStatus("VERIFIED");
+
+        otpRepository.save(verification);
+
+
+        return "OTP verified successfully";
+    }
+
+    @Transactional
+    public String resendOTP(String email) {
+
+        // =====================================================
+        // 1. FIND EMPLOYEE
+        // =====================================================
+
+        Employee employee = employeeRepository.findByEmail(email);
+
+        if (employee == null) {
+
+            throw new RuntimeException("Employee with this email does not exist");
+        }
+
+
+        // =====================================================
+        // 2. INVALIDATE OLD OTP
+        // =====================================================
+
+        List<OtpVerification> oldOtps = otpRepository.findByEmailAndOtpTypeAndVerificationStatus(email, "GENERAL", "PENDING");
+
+        for (OtpVerification oldOtp : oldOtps) {
+
+            oldOtp.setVerificationStatus("REPLACED");
+        }
+
+        otpRepository.saveAll(oldOtps);
+
+
+        // =====================================================
+        // 3. GENERATE NEW OTP
+        // =====================================================
+
+        String otp = String.format("%06d", new Random().nextInt(1000000));
+
+
+        // =====================================================
+        // 4. SAVE NEW OTP
+        // =====================================================
+
+        OtpVerification verification = new OtpVerification();
+
+        verification.setEmployee(employee);
+
+        verification.setEmail(employee.getEmail());
+
+        verification.setOtp(otp);
+
+        verification.setOtpType("GENERAL");
+
+        verification.setExpiryTime(LocalDateTime.now().plusMinutes(5));
+
+        verification.setVerificationStatus("PENDING");
+
+        otpRepository.save(verification);
+
+
+        // =====================================================
+        // 5. SEND NEW OTP
+        // =====================================================
+
+        emailService.sendMail(employee.getEmail(), "QuickDines HRMS - New OTP Verification", """
+                Dear %s,
+                
+                Your new One-Time Password (OTP) for QuickDines HRMS
+                verification is:
+                
+                %s
+                
+                Your previous OTP is no longer valid.
+                
+                This OTP is valid for 5 minutes.
+                
+                For your security:
+                - Do not share this OTP with anyone.
+                - QuickDines HRMS will never ask you to share your OTP.
+                - If you did not request this OTP, please contact your
+                  HR administrator immediately.
+                
+                Regards,
+                
+                QuickDines HRMS
+                Human Resources Team
+                
+                This is an automated email. Please do not reply to this email.
+                """.formatted(employee.getFirstName(), otp));
+
+
+        return "OTP resent successfully";
+    }
+
+
+    // =========================================================
+    // ROLE
+    // =========================================================
+
+    public Role createRole(Role request) {
+
+        Role role = new Role();
 
         role.setRoleName(request.getRoleName());
-
         role.setDescription(request.getDescription());
 
-        role.setUpdatedAt(LocalDateTime.now());
-
-        roleRepository.save(role);
-
-
-        // =====================================================
-        // NEW VALUE JSON
-        // =====================================================
-
-        String newValue =
-                "{"
-                        + "\"roleId\":\"" + role.getId() + "\","
-                        + "\"roleName\":\"" + role.getRoleName() + "\","
-                        + "\"description\":\"" + role.getDescription() + "\""
-                        + "}";
+        return roleRepository.save(role);
+    }
 
 
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
+    public List<Role> getRoles() {
 
-        auditLogsService.logActivity(
-
-                getLoggedInEmployeeId(),
-
-                "UPDATE_ROLE",
-
-                "ROLE_MANAGEMENT",
-
-                "Role updated successfully. Role ID: "
-                        + id,
-
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-
-                clientInfoService.getClientInfo().getBrowser(),
-
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        return roleRepository.findAll();
+    }
 
 
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-        String performedBy = getLoggedInEmployeeId();
-        auditLogsService.createAuditLog(
+    public Role getRole(Long id) {
 
-                "ROLE_MANAGEMENT",
-
-                performedBy,
-
-                AuditActionType.UPDATE,
-
-              getLoggedInEmployeeId(),
-
-                getLoggedInEmployeeId(),
-
-                "Role updated successfully",
-
-                oldValue,
-
-                newValue,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
+        return roleRepository.findById(id).orElseThrow(() -> new RuntimeException("Role not found with id: " + id));
+    }
 
 
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
+    public Role updateRole(Long id, Role request) {
 
-        auditLogsService.logInfo(
+        Role role = roleRepository.findById(id).orElseThrow(() -> new RuntimeException("Role not found with id: " + id));
 
-                "ROLE_MANAGEMENT",
+        role.setRoleName(request.getRoleName());
+        role.setDescription(request.getDescription());
 
-                "RoleService",
-
-                "Role updated successfully. Role ID: "
-                        + id
-                        + ", New Role Name: "
-                        + role.getRoleName()
-        );
-
-
-        return "Role Updated Successfully.";
+        return roleRepository.save(role);
     }
 
 
     public String deleteRole(Long id) {
 
-        Role role =
-                roleRepository.findById(Math.toIntExact(id))
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Role Not Found"));
-
-
-        // =====================================================
-        // OLD VALUE JSON
-        // =====================================================
-
-        String oldValue =
-                "{"
-                        + "\"roleId\":\"" + role.getId() + "\","
-                        + "\"roleName\":\"" + role.getRoleName() + "\","
-                        + "\"description\":\"" + role.getDescription() + "\""
-                        + "}";
-
+        Role role = roleRepository.findById(id).orElseThrow(() -> new RuntimeException("Role not found with id: " + id));
 
         roleRepository.delete(role);
 
-
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-
-        auditLogsService.logActivity(
-
-                getLoggedInEmployeeId(),
-
-                "DELETE_ROLE",
-
-                "ROLE_MANAGEMENT",
-
-                "Role deleted successfully. Role ID: "
-                        + id,
-
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-
-                clientInfoService.getClientInfo().getBrowser(),
-
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-        String performedBy = getLoggedInEmployeeId();
-        auditLogsService.createAuditLog(
-
-                "ROLE_MANAGEMENT",
-
-                performedBy,
-
-                AuditActionType.DELETE,
-
-                getLoggedInEmployeeId(),
-
-               getLoggedInEmployeeId(),
-
-                "Role deleted successfully",
-
-                oldValue,
-
-                null,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-
-                "ROLE_MANAGEMENT",
-
-                "RoleService",
-
-                "Role deleted successfully. Role ID: "
-                        + id
-        );
-
-
-        return "Role Deleted Successfully.";
+        return "Role deleted successfully";
     }
 
 
+    // =========================================================
+    // ROLE - PERMISSIONS
+    // =========================================================
 
+    public List<Permission> getRolePermissions(Long roleId) {
 
+        Role role = roleRepository.findById(roleId).orElseThrow(() -> new RuntimeException("Role not found with id: " + roleId));
 
-//------------------------------------
-// USER ROLES
-//------------------------------------
-
-    public String assignRole(String userId, Long roleId) {
-
-        // =====================================================
-        // GET USER
-        // =====================================================
-
-        Users user = userRepository.findById(Long.valueOf(userId))
-                .orElseThrow(() ->
-                        new RuntimeException("User Not Found"));
-
-
-        // =====================================================
-        // GET ROLE
-        // =====================================================
-
-        Role role = roleRepository.findById(Math.toIntExact(roleId))
-                .orElseThrow(() ->
-                        new RuntimeException("Role Not Found"));
-
-
-        // =====================================================
-        // CREATE USER ROLE
-        // =====================================================
-
-        UserRole userRole = new UserRole();
-
-        userRole.setUsers(user);
-        userRole.setRole(role);
-
-        userRole.setAssignedBy("SUPER_ADMIN");
-        userRole.setAssignedDate(LocalDateTime.now());
-        userRole.setStatus("ACTIVE");
-        userRole.setCreatedAt(LocalDateTime.now());
-
-        userRoleRepository.save(userRole);
-
-
-        // =====================================================
-        // UPDATE USER ROLE
-        // =====================================================
-
-        user.setRole(role.getRoleName());
-
-        userRepository.save(user);
-
-
-        // =====================================================
-        // SEND MAIL
-        // =====================================================
-
-        emailService.sendMail(
-                user.getEmail(),
-                "Role Assigned Successfully",
-
-                "Hello " + user.getFirstName()
-                        + "\n\n"
-                        + "Your role has been assigned successfully."
-                        + "\n\n"
-                        + "Assigned Role : "
-                        + role.getRoleName()
-        );
-
-
-        // =====================================================
-        // LOGGED-IN USER
-        // =====================================================
-
-        String performedBy = getLoggedInEmployeeId();
-
-
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-
-        auditLogsService.logCreate(
-                "USER_ROLE",
-                userRole.getId().toString(),
-                performedBy,
-                user.getEmployeeId(),
-                "Role '" + role.getRoleName()
-                        + "' assigned to user '"
-                        + userId + "'"
-        );
-
-
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-
-        auditLogsService.logActivity(
-                String.valueOf(userId),
-                "ASSIGN_ROLE",
-                "USER_ROLE",
-                "Role '" + role.getRoleName()
-                        + "' assigned successfully",
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-                "USER_ROLE",
-                "RoleService",
-                "Role assigned successfully. User ID: "
-                        + userId
-                        + ", Role: "
-                        + role.getRoleName()
-        );
-
-
-        return "Role Assigned Successfully.";
+        return role.getPermissions();
     }
 
 
-    public String removeRole(String userId) {
+    public Role assignPermission(Long roleId, Long permissionId) {
 
-        // =====================================================
-        // GET USER
-        // =====================================================
+        Role role = roleRepository.findById(roleId).orElseThrow(() -> new RuntimeException("Role not found"));
 
-        Users user = userRepository.findById(Long.valueOf(userId))
-                .orElseThrow(() ->
-                        new RuntimeException("User Not Found"));
+        Permission permission = permissionRepository.findById(permissionId).orElseThrow(() -> new RuntimeException("Permission not found"));
 
+        if (!role.getPermissions().contains(permission)) {
+            role.getPermissions().add(permission);
+        }
 
-        // =====================================================
-        // GET USER ROLE
-        // =====================================================
-
-        UserRole userRole =
-                (UserRole) userRoleRepository.findByUsers(user)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Role Not Assigned"));
-
-
-        String oldRole = userRole.getRole().getRoleName();
-
-
-        // =====================================================
-        // SOFT DELETE
-        // =====================================================
-
-        userRole.setStatus("REMOVED");
-
-        userRoleRepository.save(userRole);
-
-
-        // =====================================================
-        // REMOVE ROLE FROM USER
-        // =====================================================
-
-        user.setRole(null);
-
-        userRepository.save(user);
-
-
-        // =====================================================
-        // SEND MAIL
-        // =====================================================
-
-        emailService.sendMail(
-                user.getEmail(),
-                "Role Removed Successfully",
-
-                "Hello " + user.getFirstName()
-                        + "\n\n"
-                        + "Your role has been removed successfully."
-        );
-
-
-        // =====================================================
-        // LOGGED-IN USER
-        // =====================================================
-
-        String performedBy = getLoggedInEmployeeId();
-
-
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-
-        auditLogsService.logDelete(
-                "USER_ROLE",
-                userRole.getId().toString(),
-                performedBy,
-                userId,
-                "Role '" + oldRole
-                        + "' removed from user '"
-                        + userId + "'"
-        );
-
-
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-
-        auditLogsService.logActivity(
-                userId,
-                "REMOVE_ROLE",
-                "USER_ROLE",
-                "Role '" + oldRole
-                        + "' removed successfully",
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-                "USER_ROLE",
-                "RoleService",
-                "Role removed successfully. User ID: "
-                        + userId
-                        + ", Role: "
-                        + oldRole
-        );
-
-
-        return "Role Removed Successfully.";
-    }
-
-    public Permission createPermission(Permission permission) {
-
-        Permission savedPermission =
-                permissionRepository.save(permission);
-
-
-        // =====================================================
-        // LOGGED-IN USER
-        // =====================================================
-
-        String performedBy = getLoggedInEmployeeId();
-
-
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-
-        auditLogsService.logCreate(
-                "PERMISSION",
-                savedPermission.getId().toString(),
-                performedBy,
-                null,
-                "Permission created successfully. Permission: "
-                        + savedPermission.getPermissionName()
-        );
-
-
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-
-        auditLogsService.logActivity(
-                null,
-                "CREATE_PERMISSION",
-                "PERMISSION",
-                "Permission created successfully: "
-                        + savedPermission.getPermissionName(),
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-                "PERMISSION",
-                "PermissionService",
-                "Permission created successfully. Permission: "
-                        + savedPermission.getPermissionName()
-        );
-
-
-        return savedPermission;
+        return roleRepository.save(role);
     }
 
 
-// =========================================================
-// GET ALL PERMISSIONS
-// =========================================================
+    public Role removePermission(Long roleId, Long permissionId) {
+
+        Role role = roleRepository.findById(roleId).orElseThrow(() -> new RuntimeException("Role not found"));
+
+        Permission permission = permissionRepository.findById(permissionId).orElseThrow(() -> new RuntimeException("Permission not found"));
+
+        role.getPermissions().remove(permission);
+
+        return roleRepository.save(role);
+    }
+
+
+    // =========================================================
+    // PERMISSIONS
+    // =========================================================
+
+    public Permission createPermission(Permission request) {
+
+        Permission permission = new Permission();
+
+        permission.setPermissionName(request.getPermissionName());
+
+        permission.setModuleName(request.getModuleName());
+
+        permission.setDescription(request.getDescription());
+
+        return permissionRepository.save(permission);
+    }
+
 
     public List<Permission> getPermissions() {
 
-        List<Permission> permissions =
-                permissionRepository.findAll();
-
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-        String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logActivity(
-                performedBy,
-                "GET_ALL_PERMISSIONS",
-                "PERMISSION",
-                "All permissions retrieved successfully. Total permissions: "
-                        + permissions.size(),
-                ActivityStatus.SUCCESS,
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-                "PERMISSION",
-                "PermissionService",
-                "All permissions retrieved successfully. Total permissions: "
-                        + permissions.size()
-        );
-
-        return permissions;
+        return permissionRepository.findAll();
     }
-
 
 
     public Permission getPermission(Long id) {
 
-        Permission permission =
-                permissionRepository.findById(
-                                Math.toIntExact(id))
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Permission Not Found"));
-
-
-        auditLogsService.logActivity(
-                permission.getId().toString(),
-                "VIEW_PERMISSION",
-                "PERMISSION",
-                "Permission viewed. Permission ID: "
-                        + id,
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        auditLogsService.logInfo(
-                "PERMISSION",
-                "PermissionService",
-                "Permission retrieved successfully. Permission ID: "
-                        + id
-        );
-
-
-        return permission;
+        return permissionRepository.findById(id).orElseThrow(() -> new RuntimeException("Permission not found with id: " + id));
     }
-    public Permission updatePermission(
-            Long id,
-            Permission request) {
-
-        Permission permission =
-                permissionRepository.findById(Math.toIntExact(id))
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Permission Not Found"));
 
 
-        // =====================================================
-        // OLD VALUES
-        // =====================================================
+    public Permission updatePermission(Long id, Permission request) {
 
-        String oldValue =
-                "{"
-                        + "\"permissionName\":\""
-                        + permission.getPermissionName()
-                        + "\","
-                        + "\"moduleName\":\""
-                        + permission.getModuleName()
-                        + "\","
-                        + "\"description\":\""
-                        + permission.getDescription()
-                        + "\""
-                        + "}";
+        Permission permission = permissionRepository.findById(id).orElseThrow(() -> new RuntimeException("Permission not found"));
 
+        permission.setPermissionName(request.getPermissionName());
 
-        // =====================================================
-        // UPDATE
-        // =====================================================
+        permission.setModuleName(request.getModuleName());
 
-        permission.setPermissionName(
-                request.getPermissionName());
+        permission.setDescription(request.getDescription());
 
-        permission.setModuleName(
-                request.getModuleName());
-
-        permission.setDescription(
-                request.getDescription());
-
-
-        Permission updatedPermission =
-                permissionRepository.save(permission);
-
-
-        // =====================================================
-        // NEW VALUES
-        // =====================================================
-
-        String newValue =
-                "{"
-                        + "\"permissionName\":\""
-                        + updatedPermission.getPermissionName()
-                        + "\","
-                        + "\"moduleName\":\""
-                        + updatedPermission.getModuleName()
-                        + "\","
-                        + "\"description\":\""
-                        + updatedPermission.getDescription()
-                        + "\""
-                        + "}";
-
-
-        // =====================================================
-        // LOGGED-IN USER
-        // =====================================================
-
-        String performedBy = getLoggedInEmployeeId();
-
-
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-
-        auditLogsService.logUpdate(
-                "PERMISSION",
-                updatedPermission.getId().toString(),
-                performedBy,
-                permission.getId().toString(),
-                "Permission updated successfully",
-                oldValue,
-                newValue
-        );
-
-
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-
-        auditLogsService.logActivity(
-                null,
-                "UPDATE_PERMISSION",
-                "PERMISSION",
-                "Permission updated successfully. Permission ID: "
-                        + id,
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-                "PERMISSION",
-                "PermissionService",
-                "Permission updated successfully. Permission ID: "
-                        + id
-        );
-
-
-        return updatedPermission;
+        return permissionRepository.save(permission);
     }
+
 
     public String deletePermission(Long id) {
 
-        Permission permission =
-                permissionRepository.findById(
-                                Math.toIntExact(id))
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Permission Not Found"));
-
-
-        String permissionName =
-                permission.getPermissionName();
-
+        Permission permission = permissionRepository.findById(id).orElseThrow(() -> new RuntimeException("Permission not found"));
 
         permissionRepository.delete(permission);
 
-
-        // =====================================================
-        // LOGGED-IN USER
-        // =====================================================
-
-        String performedBy = getLoggedInEmployeeId();
-
-
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-
-        auditLogsService.logDelete(
-                "PERMISSION",
-                id.toString(),
-              performedBy,
-                null,
-                "Permission deleted successfully: "
-                        + permissionName
-        );
-
-
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-
-        auditLogsService.logActivity(
-                performedBy,
-                "DELETE_PERMISSION",
-                "PERMISSION",
-                "Permission deleted successfully: "
-                        + permissionName,
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo(
-                "PERMISSION",
-                "PermissionService",
-                "Permission deleted successfully. Permission ID: "
-                        + id
-        );
-
-
-        return "Permission Deleted Successfully";
+        return "Permission deleted successfully";
     }
 
-    public List<Permission> getModulePermissions(
-            String moduleName) {
 
-        List<Permission> permissions =
-                permissionRepository.findByModuleName(
-                        moduleName);
+    public List<Permission> getModulePermissions(String moduleName) {
 
-        String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logActivity(
-                performedBy,
-                "VIEW_MODULE_PERMISSIONS",
-                "PERMISSION",
-                "Permissions viewed for module: "
-                        + moduleName,
-                ActivityStatus.SUCCESS,
-
-                clientInfoService.getClientInfo().getIpAddress(),
-                clientInfoService.getClientInfo().getBrowser(),
-                clientInfoService.getClientInfo().getOperatingSystem()
-        );
-
-
-        auditLogsService.logInfo(
-                "PERMISSION",
-                "PermissionService",
-                "Module permissions retrieved. Module: "
-                        + moduleName
-        );
-
-
-        return permissions;
-    }
-
-// =========================================================
-    // GET USERS BY STATUS
-    // =========================================================
-
-    public List<Users> getUsersByStatus(
-            UserStatus status) {
-
-        return userRepository.findByStatus(status);
+        return permissionRepository.findByModuleName(moduleName);
     }
 
 
     // =========================================================
-    // GET USERS BY ROLE
+    // LOGIN HISTORY
     // =========================================================
 
-    public List<Users> getUsersByRole(
-            String role) {
+    public List<LoginHistory> getLoginHistory() {
 
-        return userRepository
-                .findByRole(role);
+        return historyRepository.findAll();
+    }
+
+
+    public List<LoginHistory> getEmployeeLoginHistory(String employeeId) {
+
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        return historyRepository.findByEmployee(employee.getEmployeeId());
+    }
+
+
+    public List<LoginHistory> getSuccessfulLogins(String employeeId) {
+
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        return historyRepository.findSuccessfulLogins(employee.getEmployeeId());
+    }
+
+
+    public List<LoginHistory> getFailedLogins(String employeeId) {
+
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        return historyRepository.findFailedLogins(employee.getEmployeeId());
+    }
+
+
+    public List<LoginHistory> getLoginHistoryByDateRange(String fromDate, String toDate) {
+
+        LocalDate start = LocalDate.parse(fromDate);
+
+        LocalDate end = LocalDate.parse(toDate);
+
+        return historyRepository.findByLoginDateBetween(start, end);
     }
 
 
     // =========================================================
-    // GET USERS BY STATUS + ROLE
+    // DEVICES
     // =========================================================
 
-    public List<Users> getUsersByStatusAndRole(
-            UserStatus status,
-            String role) {
+    public List<UserDevice> getEmployeeDevices(String employeeId) {
 
-        return userRepository.findByStatusAndRole(status, role);
-    }
-    // =========================================================
-    // GET BY LOGIN STATUS
-    // =========================================================
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found"));
 
-    public List<LoginHistory> getByLoginStatus(
-            LoginStatus status) {
-
-        return historyRepository
-                .findByLoginStatus(status);
+        return deviceRepository.findByEmployee(employee.getEmployeeId());
     }
 
 
-    // =========================================================
-    // GET USER LOGIN HISTORY
-    // =========================================================
+    public String logoutDevice(Long id) {
 
-    public List<LoginHistory> getUserLoginHistory(
-            Long userId) {
+        UserDevice device = (UserDevice) deviceRepository.findById(id).orElseThrow(() -> new RuntimeException("Device not found"));
 
-        return historyRepository
-                .findByUsersId(userId);
+        device.setDeviceStatus("LOGGED_OUT");
+
+        deviceRepository.save(device);
+
+        return "Device logged out successfully";
     }
 
 
-    // =========================================================
-    // USER + LOGIN STATUS
-    // =========================================================
+    public String blockDevice(Long id) {
 
-    public List<LoginHistory> getUserLoginHistoryByStatus(
-            Long userId,
-            LoginStatus status) {
+        UserDevice device = (UserDevice) deviceRepository.findById(id).orElseThrow(() -> new RuntimeException("Device not found"));
 
-        return historyRepository
-                .findByUsersIdAndLoginStatus(
-                        userId,
-                        status);
+        device.setDeviceStatus("BLOCKED");
+
+        deviceRepository.save(device);
+
+        return "Device blocked successfully";
     }
 
 
-    // =========================================================
-    // LOGIN HISTORY BY DATE RANGE
-    // =========================================================
+    public String removeDevice(Long id) {
 
-    public List<LoginHistory> getLoginHistoryByDateRange(
-            LocalDate fromDate,
-            LocalDate toDate) {
+        UserDevice device = (UserDevice) deviceRepository.findById(id).orElseThrow(() -> new RuntimeException("Device not found"));
 
-        return historyRepository
-                .findByLoginDateBetween(
-                        fromDate,
-                        toDate);
+        deviceRepository.delete(device);
+
+        return "Device removed successfully";
     }
 
-    public List<LoginHistory> searchLoginHistory(
-            String search) {
-
-        if (search == null || search.trim().isEmpty()) {
-            return historyRepository.findAll();
-        }
-
-        return historyRepository
-                .searchLoginHistory(search.trim());
-    }
-
-
-    public List<Permission> createAllPermission(List<Permission> permission) {
-        return permissionRepository.saveAll(permission);
-    }
 }
 
 

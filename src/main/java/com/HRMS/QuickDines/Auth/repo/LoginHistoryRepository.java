@@ -2,7 +2,7 @@ package com.HRMS.QuickDines.Auth.repo;
 
 import com.HRMS.QuickDines.Auth.Entity.LoginStatus;
 import com.HRMS.QuickDines.Auth.model.LoginHistory;
-import com.HRMS.QuickDines.Auth.model.Users;
+import com.HRMS.QuickDines.Employee.model.Employee;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,7 +14,7 @@ import java.util.Optional;
 
 @Repository
 public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Integer> {
-    Optional<Object> findTopByUsersOrderByIdDesc(Users user);
+
     List<LoginHistory> findByLoginStatus(LoginStatus loginStatus);
 
     List<LoginHistory> findByUsersId(Long userId);
@@ -46,4 +46,12 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Inte
     List<LoginHistory> searchLoginHistory(
             @Param("search") String search
     );
+
+    List<LoginHistory> findByEmployee(String employeeId);
+
+    List<LoginHistory> findFailedLogins(String employeeId);
+
+    List<LoginHistory> findSuccessfulLogins(String employeeId);
+
+    Optional<LoginHistory> findTopByEmployeeAndLogoutTimeIsNullOrderByIdDesc(Employee employee);
 }

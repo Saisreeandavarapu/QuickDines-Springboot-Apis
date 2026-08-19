@@ -1,6 +1,8 @@
 package com.HRMS.QuickDines.Employee.Controller;
 
 import com.HRMS.QuickDines.Employee.DTO.ApprovalRequestdto;
+import com.HRMS.QuickDines.Employee.DTO.EmployeeApprovalRequest;
+import com.HRMS.QuickDines.Employee.DTO.EmployeeCreateRequest;
 import com.HRMS.QuickDines.Employee.Service.EmployeeService;
 import com.HRMS.QuickDines.Employee.model.*;
 import com.HRMS.QuickDines.Workflow.model.ApprovalRequest;
@@ -25,12 +27,13 @@ public class EmployeeController {
     //-------------------------
 
     @PostMapping("/create")
-    @PreAuthorize("hasAuthority(EMPLOYEE_CREATE)")
+    @PreAuthorize("hasAuthority('EMPLOYEE_CREATE')")
     public ResponseEntity<?> createEmployee(
-            @RequestBody Employee employee){
+            @RequestBody EmployeeCreateRequest request) {
 
         return ResponseEntity.ok(
-                service.createEmployee(employee));
+                service.createEmployee(request)
+        );
     }
 
 
@@ -995,6 +998,90 @@ public class EmployeeController {
                 service
                         .getRejectedEmployees()
         );
+    }
+
+
+    // =====================================================
+    // HR APPROVAL
+    // =====================================================
+
+    @PutMapping("/hr/{employeeId}")
+    @PreAuthorize("hasAuthority('EMPLOYEE_APPROVAL_HR')")
+    public ResponseEntity<?> hrApproval(
+            @PathVariable Long employeeId,
+            @RequestBody EmployeeApprovalRequest request) {
+
+        return ResponseEntity.ok(
+                service.hrApproval(
+                        employeeId,
+                        request));
+    }
+
+
+    // =====================================================
+    // ADMIN APPROVAL
+    // =====================================================
+
+    @PutMapping("/admin/{employeeId}")
+    @PreAuthorize("hasAuthority('EMPLOYEE_APPROVAL_ADMIN')")
+    public ResponseEntity<?> adminApproval(
+            @PathVariable Long employeeId,
+            @RequestBody EmployeeApprovalRequest request) {
+
+        return ResponseEntity.ok(
+                service.adminApproval(
+                        employeeId,
+                        request));
+    }
+
+
+    // =====================================================
+    // DEPARTMENT HEAD APPROVAL
+    // =====================================================
+
+    @PutMapping("/department-head/{employeeId}")
+    @PreAuthorize("hasAuthority('EMPLOYEE_APPROVAL_DEPARTMENT_HEAD')")
+    public ResponseEntity<?> departmentHeadApproval(
+            @PathVariable Long employeeId,
+            @RequestBody EmployeeApprovalRequest request) {
+
+        return ResponseEntity.ok(
+                service.departmentHeadApproval(
+                        employeeId,
+                        request));
+    }
+
+
+    // =====================================================
+    // FINAL APPROVAL
+    // =====================================================
+
+    @PutMapping("/final/{employeeId}")
+    @PreAuthorize("hasAuthority('EMPLOYEE_APPROVAL_FINAL')")
+    public ResponseEntity<?> finalApproval(
+            @PathVariable Long employeeId) {
+
+        return ResponseEntity.ok(
+                service.finalApproval(
+                        employeeId));
+    }
+
+
+
+
+
+    // =====================================================
+    // WELCOME MAIL
+    // =====================================================
+
+    @PostMapping("/welcome-mail/{employeeId}")
+    @PreAuthorize("hasAuthority('EMPLOYEE_WELCOME_MAIL')")
+    public ResponseEntity<?> sendWelcomeMail(
+            @PathVariable Long employeeId) {
+
+        return ResponseEntity.ok(
+                service.sendWelcomeMail(
+                        employeeId));
     }
 
 //    //-------------------------

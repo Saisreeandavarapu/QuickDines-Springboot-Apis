@@ -1,7 +1,6 @@
 package com.HRMS.QuickDines.Auth.repo;
 
 import com.HRMS.QuickDines.Auth.model.RefreshToken;
-import com.HRMS.QuickDines.Auth.model.Users;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

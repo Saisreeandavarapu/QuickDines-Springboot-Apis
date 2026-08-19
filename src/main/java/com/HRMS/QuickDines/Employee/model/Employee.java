@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Employee.model;
 
+import com.HRMS.QuickDines.Auth.model.Role;
 import com.HRMS.QuickDines.Company.model.Branch;
 import com.HRMS.QuickDines.Company.model.Company;
 import com.HRMS.QuickDines.Organization.model.Department;
@@ -35,6 +36,9 @@ public class Employee {
     @ManyToOne
     @JoinColumn(name = "department_id")
     private Department department;
+    @ManyToOne
+    @JoinColumn(name = "role_id")
+    private Role role;
 
     private String firstName;
     private String lastName;
@@ -43,6 +47,7 @@ public class Employee {
     private String gender;
     private LocalDate dateOfBirth;
     private LocalDate joiningDate;
+    private String password;
 
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -100,5 +105,7 @@ public class Employee {
             cascade = CascadeType.ALL,
             orphanRemoval = true)
     private EmployeeApproval approval;
+
+
 
 }

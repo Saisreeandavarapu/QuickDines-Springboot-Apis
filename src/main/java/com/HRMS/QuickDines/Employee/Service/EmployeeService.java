@@ -1,9 +1,15 @@
 package com.HRMS.QuickDines.Employee.Service;
 
 import com.HRMS.QuickDines.AdvanceServices.CloudinaryService;
+import com.HRMS.QuickDines.AdvanceServices.EmailService;
 import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
+import com.HRMS.QuickDines.Auth.model.Role;
+import com.HRMS.QuickDines.Auth.repo.RoleRepository;
+import com.HRMS.QuickDines.Company.model.Branch;
+import com.HRMS.QuickDines.Company.model.Company;
 import com.HRMS.QuickDines.Company.repo.BranchRepository;
-import com.HRMS.QuickDines.Employee.DTO.ApprovalRequestdto;
+import com.HRMS.QuickDines.Company.repo.CompanyRepository;
+import com.HRMS.QuickDines.Employee.DTO.*;
 import com.HRMS.QuickDines.Employee.Entity.ApprovalStatus;
 import com.HRMS.QuickDines.Employee.model.*;
 import com.HRMS.QuickDines.Employee.repo.*;
@@ -12,7 +18,6 @@ import com.HRMS.QuickDines.Organization.model.Designation;
 import com.HRMS.QuickDines.Organization.repo.DepartmentRepository;
 import com.HRMS.QuickDines.Organization.repo.DesignationRepository;
 import com.HRMS.QuickDines.Organization.repo.TeamRepository;
-import com.HRMS.QuickDines.Workflow.model.ApprovalRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
@@ -51,10 +56,13 @@ public class EmployeeService {
     private final EmployeeAddressRepository employeeAddressRepository;
     private final EmployeePromotionRepository employeePromotionRepository;
     private final EmployeeTransferRepository employeeTransferRepository;
-    private final DesignationRepository  designationRepository;
+    private final DesignationRepository designationRepository;
     private final TeamRepository teamRepository;
     private final BranchRepository branchRepository;
     private final EmployeeApprovalRepository employeeApprovalRepository;
+    private final CompanyRepository companyRepository;
+    private final RoleRepository roleRepository;
+    private final EmailService emailService;
 
     private final AuditLogsService auditLogsService;
     private final ClientInfoService clientInfoService;
@@ -73,10 +81,7 @@ public class EmployeeService {
 
         } catch (JsonProcessingException e) {
 
-            throw new RuntimeException(
-                    "Unable to convert data to JSON",
-                    e
-            );
+            throw new RuntimeException("Unable to convert data to JSON", e);
         }
     }
 
@@ -87,16 +92,11 @@ public class EmployeeService {
 
     private String getLoggedInEmployeeId() {
 
-        Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null ||
-                !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated()) {
 
-            throw new RuntimeException(
-                    "User is not authenticated");
+            throw new RuntimeException("User is not authenticated");
         }
 
         return authentication.getName();
@@ -110,9 +110,7 @@ public class EmployeeService {
     private String getIpAddress() {
 
         try {
-            return clientInfoService
-                    .getClientInfo()
-                    .getIpAddress();
+            return clientInfoService.getClientInfo().getIpAddress();
         } catch (Exception e) {
             return null;
         }
@@ -122,9 +120,7 @@ public class EmployeeService {
     private String getBrowser() {
 
         try {
-            return clientInfoService
-                    .getClientInfo()
-                    .getBrowser();
+            return clientInfoService.getClientInfo().getBrowser();
         } catch (Exception e) {
             return null;
         }
@@ -134,116 +130,558 @@ public class EmployeeService {
     private String getOperatingSystem() {
 
         try {
-            return clientInfoService
-                    .getClientInfo()
-                    .getOperatingSystem();
+            return clientInfoService.getClientInfo().getOperatingSystem();
         } catch (Exception e) {
             return null;
         }
     }
 
 
+    @Transactional
+    public String createEmployee(EmployeeCreateRequest request) {
 
-    public String createEmployee(Employee employee) {
+        // =====================================================
+        // 1. FETCH MASTER DATA
+        // =====================================================
 
-        // Fetch Department
-        Department department = departmentRepository
-                .findById(Long.valueOf(employee.getDepartment().getId()))
-                .orElseThrow(() ->
-                        new RuntimeException("Department not found"));
+        Company company = companyRepository.findById(request.getCompanyId()).orElseThrow(() -> new RuntimeException("Company not found"));
 
-        // Department code (example: HR, DEV, SALES)
-        String departmentCode = department.getDepartmentCode().toUpperCase();
+        Branch branch = branchRepository.findById(request.getBranchId()).orElseThrow(() -> new RuntimeException("Branch not found"));
 
-        // Generate employee sequence number
-        Long count = employeeRepository.count() + 1;
+        Department department = departmentRepository.findById(request.getDepartmentId()).orElseThrow(() -> new RuntimeException("Department not found"));
 
-        // Generate Employee Code
-        String employeeCode = "QD-"
-                + departmentCode + "-"
-                + LocalDate.now().getYear()
-                + "-"
-                + String.format("%03d", count);
+        Role role = roleRepository.findById(request.getRoleId()).orElseThrow(() -> new RuntimeException("Role not found"));
 
-        employee.setEmployeeId(employeeCode);
+
+        // =====================================================
+        // 2. CREATE EMPLOYEE
+        // =====================================================
+
+        Employee employee = new Employee();
+
+        employee.setCompany(company);
+        employee.setBranch(branch);
+        employee.setDepartment(department);
+        employee.setRole(role);
+
+        employee.setFirstName(request.getFirstName());
+        employee.setLastName(request.getLastName());
+        employee.setEmail(request.getEmail());
+        employee.setMobileNumber(request.getMobileNumber());
+        employee.setGender(request.getGender());
+        employee.setDateOfBirth(request.getDateOfBirth());
+        employee.setJoiningDate(request.getJoiningDate());
+        employee.setPassword(request.getPassword());
+
         employee.setStatus("ACTIVE");
 
-        // Save Employee
+
+        // =====================================================
+        // 3. REPORTING MANAGER
+        // =====================================================
+
+        if (request.getReportingManagerId() != null) {
+
+            Employee manager = employeeRepository.findById(request.getReportingManagerId()).orElseThrow(() -> new RuntimeException("Reporting manager not found"));
+
+            employee.setEmployee(manager);
+        }
+
+
+//        // =====================================================
+//        // 4. USER ACCOUNT
+//        // =====================================================
+//
+//        if (request.getUserId() != null) {
+//
+//            Users user = usersRepository.findById(request.getUserId())
+//                    .orElseThrow(() ->
+//                            new RuntimeException("User not found"));
+//
+//            employee.setUser(user);
+//        }
+
+
+        // =====================================================
+        // 5. GENERATE EMPLOYEE ID
+        // =====================================================
+
+        Long count = employeeRepository.count() + 1;
+
+        String departmentCode = department.getDepartmentCode().toUpperCase();
+
+        String employeeCode = "QD-" + departmentCode + "-" + LocalDate.now().getYear() + "-" + String.format("%03d", count);
+
+        employee.setEmployeeId(employeeCode);
+
+
+        // =====================================================
+        // 6. SAVE EMPLOYEE FIRST
+        // =====================================================
+
         Employee savedEmployee = employeeRepository.save(employee);
 
 
-        // Create Employee Profile
-        EmployeeProfile profile = new EmployeeProfile();
+        // =====================================================
+        // 7. PROFILE
+        // =====================================================
 
-        profile.setEmployee(savedEmployee);
+        if (request.getProfile() != null) {
 
-        // You can set default values if required
-        profile.setProfileCompletion(0);
-        profile.setProfileStatus("INCOMPLETE");
+            EmployeeProfileRequest data = request.getProfile();
 
-        // Save Employee Profile
-        employeeProfileRepository.save(profile);
+            EmployeeProfile profile = new EmployeeProfile();
+
+            profile.setEmployee(savedEmployee);
+
+            profile.setProfileImage(data.getProfileImage());
+            profile.setFatherName(data.getFatherName());
+            profile.setMotherName(data.getMotherName());
+            profile.setMaritalStatus(data.getMaritalStatus());
+            profile.setBloodGroup(data.getBloodGroup());
+            profile.setNationality(data.getNationality());
+            profile.setEmergencyContact(data.getEmergencyContact());
+            profile.setAlternateMobile(data.getAlternateMobile());
+            profile.setAddress(data.getAddress());
+            profile.setCity(data.getCity());
+            profile.setState(data.getState());
+            profile.setPincode(data.getPincode());
+            profile.setCountry(data.getCountry());
+
+            profile.setProfileCompletion(0);
+            profile.setProfileStatus("INCOMPLETE");
+
+            employeeProfileRepository.save(profile);
+        }
+
+
+        // =====================================================
+        // 8. ADDRESSES
+        // =====================================================
+
+        if (request.getAddresses() != null) {
+
+            for (EmployeeAddressRequest data : request.getAddresses()) {
+
+                EmployeeAddress address = new EmployeeAddress();
+
+                address.setEmployee(savedEmployee);
+
+                address.setAddressType(data.getAddressType());
+                address.setAddressLine1(data.getAddressLine1());
+                address.setAddressLine2(data.getAddressLine2());
+                address.setCity(data.getCity());
+                address.setDistrict(data.getDistrict());
+                address.setState(data.getState());
+                address.setCountry(data.getCountry());
+                address.setPostalCode(data.getPostalCode());
+
+                employeeAddressRepository.save(address);
+            }
+        }
+
+
+        // =====================================================
+        // 9. CONTACTS
+        // =====================================================
+
+        if (request.getContacts() != null) {
+
+            for (EmployeeContactRequest data : request.getContacts()) {
+
+                EmployeeContacts contact = new EmployeeContacts();
+
+                contact.setEmployee(savedEmployee);
+
+                contact.setEmergencyContactName(data.getEmergencyContactName());
+
+                contact.setRelation(data.getRelation());
+
+                contact.setMobileNumber(data.getMobileNumber());
+
+                contact.setAlternateNumber(data.getAlternateNumber());
+
+                employeeContactRepository.save(contact);
+            }
+        }
+
+
+        // =====================================================
+        // 10. BANK DETAILS
+        // =====================================================
+
+        if (request.getBankDetails() != null) {
+
+            EmployeeBankDetailsRequest data = request.getBankDetails();
+
+            EmployeeBankDetails bank = new EmployeeBankDetails();
+
+            bank.setEmployee(savedEmployee);
+
+            bank.setAccountHolderName(data.getAccountHolderName());
+
+            bank.setBankName(data.getBankName());
+
+            bank.setAccountNumber(data.getAccountNumber());
+
+            bank.setIfscCode(data.getIfscCode());
+
+            bank.setBranchName(data.getBranchName());
+
+            bank.setUpiId(data.getUpiId());
+
+            bank.setAccountStatus(data.getAccountStatus());
+
+            employeeBankRepository.save(bank);
+        }
+
+
+        // =====================================================
+        // 11. DOCUMENTS
+        // =====================================================
+
+        if (request.getDocuments() != null) {
+
+            EmployeeDocumentsRequest data = request.getDocuments();
+
+            EmployeeDocuments documents = new EmployeeDocuments();
+
+            documents.setEmployee(savedEmployee);
+
+            documents.setAadhaarNumber(data.getAadhaarNumber());
+
+            documents.setPanNumber(data.getPanNumber());
+
+            documents.setPassportNumber(data.getPassportNumber());
+
+            documents.setResumeUrl(data.getResumeUrl());
+
+            documents.setAadhaarDocument(data.getAadhaarDocument());
+
+            documents.setPanDocument(data.getPanDocument());
+
+            documents.setDegreeCertificate(data.getDegreeCertificate());
+
+            documents.setPgCertificate(data.getPgCertificate());
+
+            documents.setOfferLetter(data.getOfferLetter());
+
+            documents.setJoiningLetter(data.getJoiningLetter());
+
+            documents.setSalarySlips(data.getSalarySlips());
+
+            documents.setExperienceLetter(data.getExperienceLetter());
+
+            documents.setStatus(data.getStatus());
+
+            employeeDocumentRepository.save(documents);
+        }
+
+
+        // =====================================================
+        // 12. CERTIFICATIONS
+        // =====================================================
+
+        if (request.getCertifications() != null) {
+
+            for (EmployeeCertificationRequest data : request.getCertifications()) {
+
+                EmployeeCertification certification = new EmployeeCertification();
+
+                certification.setEmployee(savedEmployee);
+
+                certification.setCertificationName(data.getCertificationName());
+
+                certification.setIssuingOrganization(data.getIssuingOrganization());
+
+                certification.setCertificateNumber(data.getCertificateNumber());
+
+                certification.setIssueDate(data.getIssueDate());
+
+                certification.setExpiryDate(data.getExpiryDate());
+
+                certification.setCredentialUrl(data.getCredentialUrl());
+
+                certification.setAttachmentUrl(data.getAttachmentUrl());
+
+                certification.setStatus(data.getStatus());
+
+                employeeCertificationRepository.save(certification);
+            }
+        }
+
+
+        // =====================================================
+        // 13. EXPERIENCE
+        // =====================================================
+
+        if (request.getExperiences() != null) {
+
+            for (EmployeeExperienceRequest data : request.getExperiences()) {
+
+                EmployeeExperience experience = new EmployeeExperience();
+
+                experience.setEmployee(savedEmployee);
+
+                experience.setCompanyName(data.getCompanyName());
+
+                experience.setDesignation(data.getDesignation());
+
+                experience.setEmploymentType(data.getEmploymentType());
+
+                experience.setStartDate(data.getStartDate());
+
+                experience.setEndDate(data.getEndDate());
+
+                experience.setTotalExperience(data.getTotalExperience());
+
+                experience.setCurrentCompany(data.getCurrentCompany());
+
+                experience.setSalary(data.getSalary());
+
+                experience.setReasonForLeaving(data.getReasonForLeaving());
+
+                employeeExperienceRepository.save(experience);
+            }
+        }
+
+
+        // =====================================================
+        // 14. FAMILY MEMBERS
+        // =====================================================
+
+        if (request.getFamilyMembers() != null) {
+
+            for (EmployeeFamilyMemberRequest data : request.getFamilyMembers()) {
+
+                EmployeeFamilyMember family = new EmployeeFamilyMember();
+
+                family.setEmployee(savedEmployee);
+
+                family.setMemberName(data.getMemberName());
+
+                family.setRelationship(data.getRelationship());
+
+                family.setDateOfBirth(data.getDateOfBirth());
+
+                family.setOccupation(data.getOccupation());
+
+                family.setMobileNumber(data.getMobileNumber());
+
+                family.setDependent(data.getDependent());
+
+                family.setNominee(data.getNominee());
+
+                employeeFamilyMemberRepository.save(family);
+            }
+        }
+
+
+        // =====================================================
+        // 15. LANGUAGES
+        // =====================================================
+
+        if (request.getLanguages() != null) {
+
+            for (EmployeeLanguageRequest data : request.getLanguages()) {
+
+                EmployeeLanguage language = new EmployeeLanguage();
+
+                language.setEmployee(savedEmployee);
+
+                language.setLanguageName(data.getLanguageName());
+
+                language.setReadLevel(data.getReadLevel());
+
+                language.setWriteLevel(data.getWriteLevel());
+
+                language.setSpeakLevel(data.getSpeakLevel());
+
+                language.setNativeLanguage(data.getNativeLanguage());
+
+                employeeLanguageRepository.save(language);
+            }
+        }
+
+
+        // =====================================================
+        // 16. SKILLS
+        // =====================================================
+
+        if (request.getSkills() != null) {
+
+            for (EmployeeSkillRequest data : request.getSkills()) {
+
+                EmployeeSkill skill = new EmployeeSkill();
+
+                skill.setEmployee(savedEmployee);
+
+                skill.setSkillName(data.getSkillName());
+
+                skill.setSkillCategory(data.getSkillCategory());
+
+                skill.setProficiencyLevel(data.getProficiencyLevel());
+
+                skill.setExperienceYears(data.getExperienceYears());
+
+                skill.setLastUsed(data.getLastUsed());
+
+                skill.setCertificationAvailable(data.getCertificationAvailable());
+
+                skill.setRemarks(data.getRemarks());
+
+                employeeSkillRepository.save(skill);
+            }
+        }
+
+
+//        // =====================================================
+//        // 17. APPROVAL
+//        // =====================================================
+//
+        // =====================================================
+// 17. EMPLOYEE APPROVAL
+// =====================================================
+
+        EmployeeApproval approval = new EmployeeApproval();
+
+        approval.setEmployee(savedEmployee);
+
+
+// =====================================================
+// CHECK WHETHER SUPER ADMIN ALREADY EXISTS
+// =====================================================
+
+        boolean superAdminExists = employeeRepository.existsByRole_RoleNameIgnoreCase("SUPER_ADMIN");
+
+
+// =====================================================
+// SUPER ADMIN LOGIC
+// =====================================================
+
+        if ("SUPER_ADMIN".equalsIgnoreCase(role.getRoleName())) {
+
+            if (!superAdminExists) {
+
+                // =================================================
+                // FIRST SUPER ADMIN
+                // =================================================
+                // No Super Admin exists yet.
+                // Automatically approve.
+
+                approval.setHrStatus(ApprovalStatus.APPROVED);
+
+                approval.setAdminStatus(ApprovalStatus.APPROVED);
+
+                approval.setDepartmentHeadStatus(ApprovalStatus.APPROVED);
+
+                approval.setFinalStatus(ApprovalStatus.APPROVED);
+
+                approval.setFinalApprovedAt(LocalDateTime.now());
+
+                employee.setStatus("ACTIVE");
+
+            } else {
+
+                // =================================================
+                // ANOTHER SUPER ADMIN
+                // =================================================
+                // Super Admin already exists.
+                // Therefore this new Super Admin requires
+                // normal approval.
+
+                approval.setHrStatus(ApprovalStatus.PENDING);
+
+                approval.setAdminStatus(ApprovalStatus.PENDING);
+
+                approval.setDepartmentHeadStatus(ApprovalStatus.PENDING);
+
+                approval.setFinalStatus(ApprovalStatus.PENDING);
+
+                employee.setStatus("PENDING_APPROVAL");
+            }
+
+        } else {
+
+            // =====================================================
+            // NORMAL EMPLOYEE / OTHER ROLE
+            // =====================================================
+            // Always follows normal approval process.
+
+            approval.setHrStatus(ApprovalStatus.PENDING);
+
+            approval.setAdminStatus(ApprovalStatus.PENDING);
+
+            approval.setDepartmentHeadStatus(ApprovalStatus.PENDING);
+
+            approval.setFinalStatus(ApprovalStatus.PENDING);
+
+            employee.setStatus("PENDING_APPROVAL");
+        }
+
+
+// =====================================================
+// ACCOUNT STATUS
+// =====================================================
+
+        approval.setAccountCreated(false);
+        approval.setWelcomeMailSent(false);
+
+
+// =====================================================
+// SAVE EMPLOYEE STATUS
+// =====================================================
+
+        employeeRepository.save(employee);
+
+
+// =====================================================
+// SAVE APPROVAL
+// =====================================================
+
+        employeeApprovalRepository.save(approval);
+
+
+        // =====================================================
+        // 18. RETURN
+        // =====================================================
+
 
         // =====================================================
         // AUDIT LOG
         // =====================================================
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logCreate(
-                "EMPLOYEE",
-                savedEmployee.getEmployeeId(),
-                performedBy,
-                savedEmployee.getEmployeeId(),
-                "Employee created successfully"
-        );
+        auditLogsService.logCreate("EMPLOYEE", savedEmployee.getEmployeeId(), performedBy, savedEmployee.getEmployeeId(), "Employee created successfully");
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(
-                savedEmployee.getEmployeeId(),
-                "CREATE_EMPLOYEE",
-                "EMPLOYEE",
-                "New employee created: "
-                        + savedEmployee.getEmployeeId(),
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(savedEmployee.getEmployeeId(), "CREATE_EMPLOYEE", "EMPLOYEE", "New employee created: " + savedEmployee.getEmployeeId(), ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo(
-                "EMPLOYEE",
-                "EmployeeService",
-                "Employee created successfully: "
-                        + savedEmployee.getEmployeeId()
-        );
+        auditLogsService.logInfo("EMPLOYEE", "EmployeeService", "Employee created successfully: " + savedEmployee.getEmployeeId());
 
         return "Employee Created Successfully";
 
     }
 
 
-
-    public List<Employee> getAllEmployees(){
+    public List<Employee> getAllEmployees() {
 
         return employeeRepository.findAll();
     }
 
 
-
-    public Employee getEmployee(Long id){
+    public Employee getEmployee(Long id) {
 
         return employeeRepository.findById(id).get();
     }
-
-
 
 
     public String updateEmployee(Long id, Employee employee) {
@@ -252,9 +690,7 @@ public class EmployeeService {
         // FETCH EXISTING EMPLOYEE
         // =========================================================
 
-        Employee existingEmployee = employeeRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Employee not found"));
+        Employee existingEmployee = employeeRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee not found"));
 
 
         // =========================================================
@@ -301,43 +737,21 @@ public class EmployeeService {
         // AUDIT LOG
         // =========================================================
 
-        auditLogsService.logUpdate(
-                "EMPLOYEE",
-                existingEmployee.getEmployeeId(),
-                performedBy,
-                existingEmployee.getEmployeeId(),
-                "Employee information updated",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("EMPLOYEE", existingEmployee.getEmployeeId(), performedBy, existingEmployee.getEmployeeId(), "Employee information updated", oldValue, newValue);
 
 
         // =========================================================
         // ACTIVITY LOG
         // =========================================================
 
-        auditLogsService.logActivity(
-                existingEmployee.getEmployeeId(),
-                "UPDATE_EMPLOYEE",
-                "EMPLOYEE",
-                "Employee information updated",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(existingEmployee.getEmployeeId(), "UPDATE_EMPLOYEE", "EMPLOYEE", "Employee information updated", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
 
         // =========================================================
         // SYSTEM LOG
         // =========================================================
 
-        auditLogsService.logInfo(
-                "EMPLOYEE",
-                "EmployeeService",
-                "Employee updated: "
-                        + existingEmployee.getEmployeeId()
-        );
+        auditLogsService.logInfo("EMPLOYEE", "EmployeeService", "Employee updated: " + existingEmployee.getEmployeeId());
 
 
         return "Employee Updated Successfully";
@@ -354,42 +768,21 @@ public class EmployeeService {
 
             ObjectMapper objectMapper = new ObjectMapper();
 
-            Map<String, Object> employeeData =
-                    new LinkedHashMap<>();
+            Map<String, Object> employeeData = new LinkedHashMap<>();
 
-            employeeData.put(
-                    "employeeId",
-                    employee.getEmployeeId()
-            );
+            employeeData.put("employeeId", employee.getEmployeeId());
 
-            employeeData.put(
-                    "firstName",
-                    employee.getFirstName()
-            );
+            employeeData.put("firstName", employee.getFirstName());
 
-            employeeData.put(
-                    "lastName",
-                    employee.getLastName()
-            );
+            employeeData.put("lastName", employee.getLastName());
 
-            employeeData.put(
-                    "email",
-                    employee.getEmail()
-            );
+            employeeData.put("email", employee.getEmail());
 
-            employeeData.put(
-                    "mobileNumber",
-                    employee.getMobileNumber()
-            );
+            employeeData.put("mobileNumber", employee.getMobileNumber());
 
-            employeeData.put(
-                    "status",
-                    employee.getStatus()
-            );
+            employeeData.put("status", employee.getStatus());
 
-            employeeData.put(
-                    "departmentId",
-                    employee.getDepartment().getDepartmentCode()
+            employeeData.put("departmentId", employee.getDepartment().getDepartmentCode()
 
             );
 
@@ -397,74 +790,41 @@ public class EmployeeService {
 
         } catch (JsonProcessingException e) {
 
-            throw new RuntimeException(
-                    "Unable to convert employee data to JSON",
-                    e
-            );
+            throw new RuntimeException("Unable to convert employee data to JSON", e);
         }
     }
 
 
-
-
-
-
     public String deleteEmployee(Long id) {
 
-        Employee employee =
-                employeeRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Employee not found"));
+        Employee employee = employeeRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        String employeeCode =
-                employee.getEmployeeId();
+        String employeeCode = employee.getEmployeeId();
 
 
         employeeRepository.delete(employee);
 
         String performedBy = getLoggedInEmployeeId();
         // AUDIT
-        auditLogsService.logDelete(
-                "EMPLOYEE",
-                employeeCode,
-                performedBy,
-                employeeCode,
-                "Employee deleted"
-        );
+        auditLogsService.logDelete("EMPLOYEE", employeeCode, performedBy, employeeCode, "Employee deleted");
 
 
         // ACTIVITY
-        auditLogsService.logActivity(
-                employeeCode,
-                "DELETE_EMPLOYEE",
-                "EMPLOYEE",
-                "Employee deleted: " + employeeCode,
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeCode, "DELETE_EMPLOYEE", "EMPLOYEE", "Employee deleted: " + employeeCode, ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
 
         // SYSTEM
-        auditLogsService.logInfo(
-                "EMPLOYEE",
-                "EmployeeService",
-                "Employee deleted: " + employeeCode
-        );
+        auditLogsService.logInfo("EMPLOYEE", "EmployeeService", "Employee deleted: " + employeeCode);
 
 
         return "Employee Deleted";
     }
 
 
-
-    public Employee getEmployeeDetails(Long id){
+    public Employee getEmployeeDetails(Long id) {
 
         return employeeProfileRepository.findById(id).orElseThrow().getEmployee();
     }
-
 
 
     public String uploadDocument(Long employeeId, MultipartFile file, String documentType) {
@@ -525,31 +885,11 @@ public class EmployeeService {
         employeeDocumentRepository.save(documents);
 
 
-        auditLogsService.logCreate(
-                "EMPLOYEE_DOCUMENT",
-                employee.getEmployeeId(),
-                performedBy,
-                employee.getEmployeeId(),
-                documentType + " document uploaded"
-        );
+        auditLogsService.logCreate("EMPLOYEE_DOCUMENT", employee.getEmployeeId(), performedBy, employee.getEmployeeId(), documentType + " document uploaded");
 
-        auditLogsService.logActivity(
-                employee.getEmployeeId(),
-                "UPLOAD_DOCUMENT",
-                "EMPLOYEE_DOCUMENT",
-                documentType + " document uploaded",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employee.getEmployeeId(), "UPLOAD_DOCUMENT", "EMPLOYEE_DOCUMENT", documentType + " document uploaded", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_DOCUMENT",
-                "EmployeeService",
-                documentType + " document uploaded for "
-                        + employee.getEmployeeId()
-        );
+        auditLogsService.logInfo("EMPLOYEE_DOCUMENT", "EmployeeService", documentType + " document uploaded for " + employee.getEmployeeId());
         return documentType + " Uploaded Successfully";
 
     }
@@ -572,35 +912,15 @@ public class EmployeeService {
         // AUDIT
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logDelete(
-                "DOCUMENT",
-                document.getEmployee().getEmployeeId(),
-                performedBy,
-                document.getEmployee().getEmployeeId(),
-                "Employee documents deleted"
-        );
+        auditLogsService.logDelete("DOCUMENT", document.getEmployee().getEmployeeId(), performedBy, document.getEmployee().getEmployeeId(), "Employee documents deleted");
 
 
         // ACTIVITY
-        auditLogsService.logActivity(
-                document.getEmployee().getEmployeeId(),
-                "DELETE_DOCUMENTS",
-                "DOCUMENT",
-                "Employee documents deleted",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(document.getEmployee().getEmployeeId(), "DELETE_DOCUMENTS", "DOCUMENT", "Employee documents deleted", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
 
         // SYSTEM
-        auditLogsService.logInfo(
-                "DOCUMENT",
-                "DocumentService",
-                "Documents deleted for employee "
-                        +  document.getEmployee().getEmployeeId()
-        );
+        auditLogsService.logInfo("DOCUMENT", "DocumentService", "Documents deleted for employee " + document.getEmployee().getEmployeeId());
         return "Document Deleted Successfully";
 
     }
@@ -617,30 +937,11 @@ public class EmployeeService {
         employeeProfileRepository.save(profile);
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "EMPLOYEE_PROFILE",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Employee profile created"
-        );
+        auditLogsService.logCreate("EMPLOYEE_PROFILE", employeeId, performedBy, employeeId, "Employee profile created");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "CREATE_PROFILE",
-                "EMPLOYEE_PROFILE",
-                "Employee profile created",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "CREATE_PROFILE", "EMPLOYEE_PROFILE", "Employee profile created", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_PROFILE",
-                "EmployeeService",
-                "Employee profile created for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_PROFILE", "EmployeeService", "Employee profile created for " + employeeId);
         return "Employee Profile Created Successfully";
     }
 
@@ -653,7 +954,7 @@ public class EmployeeService {
     }
 
 
-    public String updateProfile(String  employeeId, EmployeeProfile profile) {
+    public String updateProfile(String employeeId, EmployeeProfile profile) {
 
         EmployeeProfile existingProfile = employeeProfileRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee Profile Not Found"));
 
@@ -690,33 +991,11 @@ public class EmployeeService {
         employeeProfileRepository.save(existingProfile);
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logUpdate(
-                "DOCUMENT",
-                existingProfile.getEmployee().getEmployeeId(),
-                performedBy,
-                existingProfile.getEmployee().getEmployeeId(),
-                "Employee documents updated",
-                "Previous documents",
-                "Updated documents"
-        );
+        auditLogsService.logUpdate("DOCUMENT", existingProfile.getEmployee().getEmployeeId(), performedBy, existingProfile.getEmployee().getEmployeeId(), "Employee documents updated", "Previous documents", "Updated documents");
 
-        auditLogsService.logActivity(
-                existingProfile.getEmployee().getEmployeeId(),
-                "UPDATE_DOCUMENTS",
-                "DOCUMENT",
-                "Employee documents updated",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(existingProfile.getEmployee().getEmployeeId(), "UPDATE_DOCUMENTS", "DOCUMENT", "Employee documents updated", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "DOCUMENT",
-                "DocumentService",
-                "Documents updated for employee "
-                        + existingProfile.getEmployee().getEmployeeId()
-        );
+        auditLogsService.logInfo("DOCUMENT", "DocumentService", "Documents updated for employee " + existingProfile.getEmployee().getEmployeeId());
 
         return "Employee Profile Updated Successfully";
     }
@@ -732,30 +1011,11 @@ public class EmployeeService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logDelete(
-                "EMPLOYEE_PROFILE",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Employee profile deleted"
-        );
+        auditLogsService.logDelete("EMPLOYEE_PROFILE", employeeId, performedBy, employeeId, "Employee profile deleted");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "DELETE_PROFILE",
-                "EMPLOYEE_PROFILE",
-                "Employee profile deleted",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "DELETE_PROFILE", "EMPLOYEE_PROFILE", "Employee profile deleted", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_PROFILE",
-                "EmployeeService",
-                "Employee profile deleted for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_PROFILE", "EmployeeService", "Employee profile deleted for " + employeeId);
         return "Employee Profile Deleted Successfully";
     }
 
@@ -764,8 +1024,7 @@ public class EmployeeService {
 // BANK DETAILS
 //=========================================
 
-    public String createBankDetails(String employeeId,
-                                    EmployeeBankDetails bankDetails) {
+    public String createBankDetails(String employeeId, EmployeeBankDetails bankDetails) {
 
         Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
@@ -775,45 +1034,24 @@ public class EmployeeService {
         employeeBankRepository.save(bankDetails);
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "EMPLOYEE_BANK",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Bank details created"
-        );
+        auditLogsService.logCreate("EMPLOYEE_BANK", employeeId, performedBy, employeeId, "Bank details created");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "CREATE_BANK_DETAILS",
-                "EMPLOYEE_BANK",
-                "Bank details created",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "CREATE_BANK_DETAILS", "EMPLOYEE_BANK", "Bank details created", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_BANK",
-                "EmployeeService",
-                "Bank details created for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_BANK", "EmployeeService", "Bank details created for " + employeeId);
         return "Bank Details Added Successfully";
     }
 
 
     public EmployeeBankDetails getBankDetails(String employeeId) {
 
-        return employeeBankRepository.findByEmployeeId(employeeId).orElseThrow(() ->
-                        new RuntimeException("Bank Details Not Found"));
+        return employeeBankRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Bank Details Not Found"));
     }
 
 
     public String updateBankDetails(String employeeId, EmployeeBankDetails bankDetails) {
 
-        EmployeeBankDetails existingDetails = employeeBankRepository.findByEmployeeId(employeeId).orElseThrow(() ->
-                                new RuntimeException("Bank Details Not Found"));
+        EmployeeBankDetails existingDetails = employeeBankRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Bank Details Not Found"));
 
         existingDetails.setAccountHolderName(bankDetails.getAccountHolderName());
 
@@ -836,32 +1074,11 @@ public class EmployeeService {
 
         String performedBy = getLoggedInEmployeeId();
         String oldValue = convertToJson(existingDetails);
-        auditLogsService.logUpdate(
-                "EMPLOYEE_BANK",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Bank details updated",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("EMPLOYEE_BANK", employeeId, performedBy, employeeId, "Bank details updated", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                employeeId,
-                "UPDATE_BANK_DETAILS",
-                "EMPLOYEE_BANK",
-                "Bank details updated",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "UPDATE_BANK_DETAILS", "EMPLOYEE_BANK", "Bank details updated", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_BANK",
-                "EmployeeService",
-                "Bank details updated for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_BANK", "EmployeeService", "Bank details updated for " + employeeId);
 
         return "Bank Details Updated Successfully";
     }
@@ -869,8 +1086,7 @@ public class EmployeeService {
 
     public String deleteBankDetails(String employeeId) {
 
-        EmployeeBankDetails bankDetails = employeeBankRepository.findByEmployeeId(employeeId).orElseThrow(() ->
-                                new RuntimeException("Bank Details Not Found"));
+        EmployeeBankDetails bankDetails = employeeBankRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Bank Details Not Found"));
 
         employeeBankRepository.delete(bankDetails);
         String oldValue = convertToJson(bankDetails);
@@ -879,30 +1095,11 @@ public class EmployeeService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logDelete(
-                "EMPLOYEE_BANK",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Bank details deleted"
-        );
+        auditLogsService.logDelete("EMPLOYEE_BANK", employeeId, performedBy, employeeId, "Bank details deleted");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "DELETE_BANK_DETAILS",
-                "EMPLOYEE_BANK",
-                "Bank details deleted",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "DELETE_BANK_DETAILS", "EMPLOYEE_BANK", "Bank details deleted", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_BANK",
-                "EmployeeService",
-                "Bank details deleted for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_BANK", "EmployeeService", "Bank details deleted for " + employeeId);
         return "Bank Details Deleted Successfully";
     }
 
@@ -917,30 +1114,11 @@ public class EmployeeService {
         employeeContactRepository.save(contacts);
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "EMPLOYEE_CONTACT",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Emergency contact created"
-        );
+        auditLogsService.logCreate("EMPLOYEE_CONTACT", employeeId, performedBy, employeeId, "Emergency contact created");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "CREATE_CONTACT",
-                "EMPLOYEE_CONTACT",
-                "Emergency contact created",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "CREATE_CONTACT", "EMPLOYEE_CONTACT", "Emergency contact created", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_CONTACT",
-                "EmployeeService",
-                "Emergency contact created for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_CONTACT", "EmployeeService", "Emergency contact created for " + employeeId);
         return "Emergency Contact Added Successfully";
     }
 
@@ -966,32 +1144,11 @@ public class EmployeeService {
         String newValue = convertToJson(existingContact);
         String performedBy = getLoggedInEmployeeId();
         String oldValue = convertToJson(existingContact);
-        auditLogsService.logUpdate(
-                "EMPLOYEE_CONTACT",
-                id,
-                performedBy,
-                id,
-                "Emergency contact updated",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("EMPLOYEE_CONTACT", id, performedBy, id, "Emergency contact updated", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                id,
-                "UPDATE_CONTACT",
-                "EMPLOYEE_CONTACT",
-                "Emergency contact updated",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(id, "UPDATE_CONTACT", "EMPLOYEE_CONTACT", "Emergency contact updated", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_CONTACT",
-                "EmployeeService",
-                "Emergency contact updated for " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_CONTACT", "EmployeeService", "Emergency contact updated for " + id);
 
         return "Emergency Contact Updated Successfully";
     }
@@ -1019,30 +1176,11 @@ public class EmployeeService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "EMPLOYEE_DESIGNATION",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Employee designation created"
-        );
+        auditLogsService.logCreate("EMPLOYEE_DESIGNATION", employeeId, performedBy, employeeId, "Employee designation created");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "CREATE_DESIGNATION",
-                "EMPLOYEE_DESIGNATION",
-                "Employee designation created",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "CREATE_DESIGNATION", "EMPLOYEE_DESIGNATION", "Employee designation created", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_DESIGNATION",
-                "EmployeeService",
-                "Designation created for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_DESIGNATION", "EmployeeService", "Designation created for " + employeeId);
         return "Employee Designation Added Successfully";
     }
 
@@ -1069,32 +1207,11 @@ public class EmployeeService {
         String newValue = convertToJson(existingDesignation);
         String performedBy = getLoggedInEmployeeId();
         String oldValue = convertToJson(existingDesignation);
-        auditLogsService.logUpdate(
-                "EMPLOYEE_DESIGNATION",
-                id,
-                performedBy,
-                id,
-                "Employee designation updated",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("EMPLOYEE_DESIGNATION", id, performedBy, id, "Employee designation updated", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                id,
-                "UPDATE_DESIGNATION",
-                "EMPLOYEE_DESIGNATION",
-                "Employee designation updated",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(id, "UPDATE_DESIGNATION", "EMPLOYEE_DESIGNATION", "Employee designation updated", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_DESIGNATION",
-                "EmployeeService",
-                "Designation updated for " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_DESIGNATION", "EmployeeService", "Designation updated for " + id);
         return "Employee Designation Updated Successfully";
     }
 
@@ -1111,30 +1228,11 @@ public class EmployeeService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logDelete(
-                "EMPLOYEE_DESIGNATION",
-                String.valueOf(designation.getId()),
-                performedBy,
-                designation.getEmployee().getEmployeeId(),
-                "Employee designation deleted"
-        );
+        auditLogsService.logDelete("EMPLOYEE_DESIGNATION", String.valueOf(designation.getId()), performedBy, designation.getEmployee().getEmployeeId(), "Employee designation deleted");
 
-        auditLogsService.logActivity(
-                designation.getEmployee().getEmployeeId(),
-                "DELETE_DESIGNATION",
-                "EMPLOYEE_DESIGNATION",
-                "Employee designation deleted",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(designation.getEmployee().getEmployeeId(), "DELETE_DESIGNATION", "EMPLOYEE_DESIGNATION", "Employee designation deleted", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_DESIGNATION",
-                "EmployeeService",
-                "Designation deleted"
-        );
+        auditLogsService.logInfo("EMPLOYEE_DESIGNATION", "EmployeeService", "Designation deleted");
 
         return "Employee Designation Deleted Successfully";
     }
@@ -1155,45 +1253,24 @@ public class EmployeeService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "EMPLOYEE_EXIT",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Employee exit management created"
-        );
+        auditLogsService.logCreate("EMPLOYEE_EXIT", employeeId, performedBy, employeeId, "Employee exit management created");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "CREATE_EXIT",
-                "EMPLOYEE_EXIT",
-                "Employee exit management created",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "CREATE_EXIT", "EMPLOYEE_EXIT", "Employee exit management created", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_EXIT",
-                "EmployeeService",
-                "Exit management created for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_EXIT", "EmployeeService", "Exit management created for " + employeeId);
         return "Employee Exit Management Created Successfully";
     }
 
 
     public EmployeeExitManagement getExitManagement(String employeeId) {
 
-        return employeeExitRepository.findByEmployeeId(employeeId).orElseThrow(() ->
-                        new RuntimeException("Exit Management Details Not Found"));
+        return employeeExitRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Exit Management Details Not Found"));
     }
 
 
     public String updateExitManagement(String employeeId, EmployeeExitManagement exitManagement) {
 
-        EmployeeExitManagement existingExit = employeeExitRepository.findByEmployeeId(employeeId).orElseThrow(() ->
-                                new RuntimeException("Exit Management Details Not Found"));
+        EmployeeExitManagement existingExit = employeeExitRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Exit Management Details Not Found"));
 
         existingExit.setResignationDate(exitManagement.getResignationDate());
 
@@ -1211,32 +1288,11 @@ public class EmployeeService {
         String newValue = convertToJson(existingExit);
         String performedBy = getLoggedInEmployeeId();
         String oldValue = convertToJson(existingExit);
-        auditLogsService.logUpdate(
-                "EMPLOYEE_EXIT",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Employee exit management updated",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("EMPLOYEE_EXIT", employeeId, performedBy, employeeId, "Employee exit management updated", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                employeeId,
-                "UPDATE_EXIT",
-                "EMPLOYEE_EXIT",
-                "Employee exit management updated",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "UPDATE_EXIT", "EMPLOYEE_EXIT", "Employee exit management updated", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_EXIT",
-                "EmployeeService",
-                "Exit management updated for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_EXIT", "EmployeeService", "Exit management updated for " + employeeId);
 
         return "Employee Exit Management Updated Successfully";
     }
@@ -1253,30 +1309,11 @@ public class EmployeeService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logDelete(
-                "EMPLOYEE_EXIT",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Employee exit management deleted"
-        );
+        auditLogsService.logDelete("EMPLOYEE_EXIT", employeeId, performedBy, employeeId, "Employee exit management deleted");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "DELETE_EXIT",
-                "EMPLOYEE_EXIT",
-                "Employee exit management deleted",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "DELETE_EXIT", "EMPLOYEE_EXIT", "Employee exit management deleted", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_EXIT",
-                "EmployeeService",
-                "Exit management deleted for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_EXIT", "EmployeeService", "Exit management deleted for " + employeeId);
 
         return "Employee Exit Management Deleted Successfully";
     }
@@ -1286,38 +1323,18 @@ public class EmployeeService {
 
     public String createSkill(String employeeId, EmployeeSkill employeeSkill) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
         employeeSkill.setEmployee(employee);
 
         employeeSkillRepository.save(employeeSkill);
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "EMPLOYEE_SKILL",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Employee skill created"
-        );
+        auditLogsService.logCreate("EMPLOYEE_SKILL", employeeId, performedBy, employeeId, "Employee skill created");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "CREATE_SKILL",
-                "EMPLOYEE_SKILL",
-                "Employee skill created",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "CREATE_SKILL", "EMPLOYEE_SKILL", "Employee skill created", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_SKILL",
-                "EmployeeService",
-                "Skill created for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_SKILL", "EmployeeService", "Skill created for " + employeeId);
 
         return "Employee Skill Added Successfully";
     }
@@ -1329,14 +1346,12 @@ public class EmployeeService {
 
     public EmployeeSkill getSkill(Long id) {
 
-        return employeeSkillRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Skill Not Found"));
+        return employeeSkillRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Skill Not Found"));
     }
 
     public String updateSkill(Long id, EmployeeSkill employeeSkill) {
 
-        EmployeeSkill existingSkill = employeeSkillRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Skill Not Found"));
+        EmployeeSkill existingSkill = employeeSkillRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Skill Not Found"));
 
         existingSkill.setSkillName(employeeSkill.getSkillName());
         existingSkill.setSkillCategory(employeeSkill.getSkillCategory());
@@ -1356,40 +1371,18 @@ public class EmployeeService {
         String newValue = convertToJson(existingSkill);
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logUpdate(
-                "EMPLOYEE_SKILL",
-                String.valueOf(id),
-                performedBy,
-                existingSkill.getEmployee().getEmployeeId(),
-                "Employee skill updated",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("EMPLOYEE_SKILL", String.valueOf(id), performedBy, existingSkill.getEmployee().getEmployeeId(), "Employee skill updated", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                existingSkill.getEmployee().getEmployeeId(),
-                "UPDATE_SKILL",
-                "EMPLOYEE_SKILL",
-                "Employee skill updated",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(existingSkill.getEmployee().getEmployeeId(), "UPDATE_SKILL", "EMPLOYEE_SKILL", "Employee skill updated", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_SKILL",
-                "EmployeeService",
-                "Skill updated: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_SKILL", "EmployeeService", "Skill updated: " + id);
 
         return "Employee Skill Updated Successfully";
     }
 
     public String deleteSkill(Long id) {
 
-        EmployeeSkill existingSkill = employeeSkillRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Skill Not Found"));
+        EmployeeSkill existingSkill = employeeSkillRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Skill Not Found"));
 
         employeeSkillRepository.delete(existingSkill);
 
@@ -1399,30 +1392,11 @@ public class EmployeeService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logDelete(
-                "EMPLOYEE_SKILL",
-                String.valueOf(id),
-                performedBy,
-                employeeId,
-                "Employee skill deleted"
-        );
+        auditLogsService.logDelete("EMPLOYEE_SKILL", String.valueOf(id), performedBy, employeeId, "Employee skill deleted");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "DELETE_SKILL",
-                "EMPLOYEE_SKILL",
-                "Employee skill deleted",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "DELETE_SKILL", "EMPLOYEE_SKILL", "Employee skill deleted", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_SKILL",
-                "EmployeeService",
-                "Skill deleted: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_SKILL", "EmployeeService", "Skill deleted: " + id);
 
         return "Employee Skill Deleted Successfully";
     }
@@ -1433,38 +1407,18 @@ public class EmployeeService {
 
     public String createCertification(String employeeId, EmployeeCertification employeeCertification) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
         employeeCertification.setEmployee(employee);
 
         employeeCertificationRepository.save(employeeCertification);
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "EMPLOYEE_CERTIFICATION",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Employee certification created"
-        );
+        auditLogsService.logCreate("EMPLOYEE_CERTIFICATION", employeeId, performedBy, employeeId, "Employee certification created");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "CREATE_CERTIFICATION",
-                "EMPLOYEE_CERTIFICATION",
-                "Employee certification created",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "CREATE_CERTIFICATION", "EMPLOYEE_CERTIFICATION", "Employee certification created", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_CERTIFICATION",
-                "EmployeeService",
-                "Certification created for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_CERTIFICATION", "EmployeeService", "Certification created for " + employeeId);
 
         return "Employee Certification Added Successfully";
     }
@@ -1476,40 +1430,28 @@ public class EmployeeService {
 
     public EmployeeCertification getCertification(Long id) {
 
-        return employeeCertificationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Certification Not Found"));
+        return employeeCertificationRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Certification Not Found"));
     }
 
-    public String updateCertification(Long id,
-                                      EmployeeCertification employeeCertification) {
+    public String updateCertification(Long id, EmployeeCertification employeeCertification) {
 
-        EmployeeCertification existingCertification =
-                employeeCertificationRepository.findById(id)
-                        .orElseThrow(() -> new RuntimeException("Employee Certification Not Found"));
+        EmployeeCertification existingCertification = employeeCertificationRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Certification Not Found"));
 
-        existingCertification.setCertificationName(
-                employeeCertification.getCertificationName());
+        existingCertification.setCertificationName(employeeCertification.getCertificationName());
 
-        existingCertification.setIssuingOrganization(
-                employeeCertification.getIssuingOrganization());
+        existingCertification.setIssuingOrganization(employeeCertification.getIssuingOrganization());
 
-        existingCertification.setCertificateNumber(
-                employeeCertification.getCertificateNumber());
+        existingCertification.setCertificateNumber(employeeCertification.getCertificateNumber());
 
-        existingCertification.setIssueDate(
-                employeeCertification.getIssueDate());
+        existingCertification.setIssueDate(employeeCertification.getIssueDate());
 
-        existingCertification.setExpiryDate(
-                employeeCertification.getExpiryDate());
+        existingCertification.setExpiryDate(employeeCertification.getExpiryDate());
 
-        existingCertification.setCredentialUrl(
-                employeeCertification.getCredentialUrl());
+        existingCertification.setCredentialUrl(employeeCertification.getCredentialUrl());
 
-        existingCertification.setAttachmentUrl(
-                employeeCertification.getAttachmentUrl());
+        existingCertification.setAttachmentUrl(employeeCertification.getAttachmentUrl());
 
-        existingCertification.setStatus(
-                employeeCertification.getStatus());
+        existingCertification.setStatus(employeeCertification.getStatus());
 
         employeeCertificationRepository.save(existingCertification);
         String newValue = convertToJson(existingCertification);
@@ -1517,74 +1459,31 @@ public class EmployeeService {
         String employeeId = existingCertification.getEmployee().getEmployeeId();
         String oldValue = convertToJson(existingCertification);
 
-        auditLogsService.logUpdate(
-                "EMPLOYEE_CERTIFICATION",
-                String.valueOf(id),
-                performedBy,
-                employeeId,
-                "Employee certification updated",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("EMPLOYEE_CERTIFICATION", String.valueOf(id), performedBy, employeeId, "Employee certification updated", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                employeeId,
-                "UPDATE_CERTIFICATION",
-                "EMPLOYEE_CERTIFICATION",
-                "Employee certification updated",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "UPDATE_CERTIFICATION", "EMPLOYEE_CERTIFICATION", "Employee certification updated", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_CERTIFICATION",
-                "EmployeeService",
-                "Certification updated: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_CERTIFICATION", "EmployeeService", "Certification updated: " + id);
 
         return "Employee Certification Updated Successfully";
     }
 
     public String deleteCertification(Long id) {
 
-        EmployeeCertification existingCertification =
-                employeeCertificationRepository.findById(id)
-                        .orElseThrow(() -> new RuntimeException("Employee Certification Not Found"));
+        EmployeeCertification existingCertification = employeeCertificationRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Certification Not Found"));
 
         employeeCertificationRepository.delete(existingCertification);
-        String employeeId =
-                existingCertification.getEmployee().getEmployeeId();
+        String employeeId = existingCertification.getEmployee().getEmployeeId();
 
         employeeCertificationRepository.delete(existingCertification);
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logDelete(
-                "EMPLOYEE_CERTIFICATION",
-                String.valueOf(id),
-                performedBy,
-                employeeId,
-                "Employee certification deleted"
-        );
+        auditLogsService.logDelete("EMPLOYEE_CERTIFICATION", String.valueOf(id), performedBy, employeeId, "Employee certification deleted");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "DELETE_CERTIFICATION",
-                "EMPLOYEE_CERTIFICATION",
-                "Employee certification deleted",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "DELETE_CERTIFICATION", "EMPLOYEE_CERTIFICATION", "Employee certification deleted", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_CERTIFICATION",
-                "EmployeeService",
-                "Certification deleted: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_CERTIFICATION", "EmployeeService", "Certification deleted: " + id);
 
         return "Employee Certification Deleted Successfully";
     }
@@ -1593,11 +1492,9 @@ public class EmployeeService {
 // EMPLOYEE EXPERIENCE
 //=================================
 
-    public String createExperience(String employeeId,
-                                   EmployeeExperience employeeExperience) {
+    public String createExperience(String employeeId, EmployeeExperience employeeExperience) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
         employeeExperience.setEmployee(employee);
 
@@ -1605,30 +1502,11 @@ public class EmployeeService {
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "EMPLOYEE_EXPERIENCE",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Employee experience created"
-        );
+        auditLogsService.logCreate("EMPLOYEE_EXPERIENCE", employeeId, performedBy, employeeId, "Employee experience created");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "CREATE_EXPERIENCE",
-                "EMPLOYEE_EXPERIENCE",
-                "Employee experience created",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "CREATE_EXPERIENCE", "EMPLOYEE_EXPERIENCE", "Employee experience created", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_EXPERIENCE",
-                "EmployeeService",
-                "Experience created for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_EXPERIENCE", "EmployeeService", "Experience created for " + employeeId);
 
         return "Employee Experience Added Successfully";
     }
@@ -1640,15 +1518,12 @@ public class EmployeeService {
 
     public EmployeeExperience getExperience(Long id) {
 
-        return employeeExperienceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Experience Not Found"));
+        return employeeExperienceRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Experience Not Found"));
     }
 
-    public String updateExperience(Long id,
-                                   EmployeeExperience employeeExperience) {
+    public String updateExperience(Long id, EmployeeExperience employeeExperience) {
 
-        EmployeeExperience existingExperience = employeeExperienceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Experience Not Found"));
+        EmployeeExperience existingExperience = employeeExperienceRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Experience Not Found"));
 
         existingExperience.setCompanyName(employeeExperience.getCompanyName());
         existingExperience.setDesignation(employeeExperience.getDesignation());
@@ -1673,73 +1548,31 @@ public class EmployeeService {
         String performedBy = getLoggedInEmployeeId();
         String employeeId = existingExperience.getEmployee().getEmployeeId();
 
-        auditLogsService.logUpdate(
-                "EMPLOYEE_EXPERIENCE",
-                String.valueOf(id),
-                performedBy,
-                employeeId,
-                "Employee experience updated",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("EMPLOYEE_EXPERIENCE", String.valueOf(id), performedBy, employeeId, "Employee experience updated", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                employeeId,
-                "UPDATE_EXPERIENCE",
-                "EMPLOYEE_EXPERIENCE",
-                "Employee experience updated",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "UPDATE_EXPERIENCE", "EMPLOYEE_EXPERIENCE", "Employee experience updated", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_EXPERIENCE",
-                "EmployeeService",
-                "Experience updated: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_EXPERIENCE", "EmployeeService", "Experience updated: " + id);
 
         return "Employee Experience Updated Successfully";
     }
 
     public String deleteExperience(Long id) {
 
-        EmployeeExperience existingExperience = employeeExperienceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Experience Not Found"));
+        EmployeeExperience existingExperience = employeeExperienceRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Experience Not Found"));
 
         employeeExperienceRepository.delete(existingExperience);
-        String employeeId =
-                existingExperience.getEmployee().getEmployeeId();
+        String employeeId = existingExperience.getEmployee().getEmployeeId();
 
         employeeExperienceRepository.delete(existingExperience);
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logDelete(
-                "EMPLOYEE_EXPERIENCE",
-                String.valueOf(id),
-                performedBy,
-                employeeId,
-                "Employee experience deleted"
-        );
+        auditLogsService.logDelete("EMPLOYEE_EXPERIENCE", String.valueOf(id), performedBy, employeeId, "Employee experience deleted");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "DELETE_EXPERIENCE",
-                "EMPLOYEE_EXPERIENCE",
-                "Employee experience deleted",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "DELETE_EXPERIENCE", "EMPLOYEE_EXPERIENCE", "Employee experience deleted", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_EXPERIENCE",
-                "EmployeeService",
-                "Experience deleted: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_EXPERIENCE", "EmployeeService", "Experience deleted: " + id);
 
         return "Employee Experience Deleted Successfully";
     }
@@ -1748,41 +1581,20 @@ public class EmployeeService {
 // EMPLOYEE LANGUAGES
 //=================================
 
-    public String createLanguage(String employeeId,
-                                 EmployeeLanguage employeeLanguage) {
+    public String createLanguage(String employeeId, EmployeeLanguage employeeLanguage) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
         employeeLanguage.setEmployee(employee);
 
         employeeLanguageRepository.save(employeeLanguage);
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "EMPLOYEE_LANGUAGE",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Employee language created"
-        );
+        auditLogsService.logCreate("EMPLOYEE_LANGUAGE", employeeId, performedBy, employeeId, "Employee language created");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "CREATE_LANGUAGE",
-                "EMPLOYEE_LANGUAGE",
-                "Employee language created",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "CREATE_LANGUAGE", "EMPLOYEE_LANGUAGE", "Employee language created", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_LANGUAGE",
-                "EmployeeService",
-                "Language created for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_LANGUAGE", "EmployeeService", "Language created for " + employeeId);
 
         return "Employee Language Added Successfully";
     }
@@ -1794,15 +1606,12 @@ public class EmployeeService {
 
     public EmployeeLanguage getLanguage(Long id) {
 
-        return employeeLanguageRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Language Not Found"));
+        return employeeLanguageRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Language Not Found"));
     }
 
-    public String updateLanguage(Long id,
-                                 EmployeeLanguage employeeLanguage) {
+    public String updateLanguage(Long id, EmployeeLanguage employeeLanguage) {
 
-        EmployeeLanguage existingLanguage = employeeLanguageRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Language Not Found"));
+        EmployeeLanguage existingLanguage = employeeLanguageRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Language Not Found"));
 
         existingLanguage.setLanguageName(employeeLanguage.getLanguageName());
         existingLanguage.setReadLevel(employeeLanguage.getReadLevel());
@@ -1816,73 +1625,31 @@ public class EmployeeService {
         String performedBy = getLoggedInEmployeeId();
         String employeeId = existingLanguage.getEmployee().getEmployeeId();
         String oldValue = convertToJson(existingLanguage);
-        auditLogsService.logUpdate(
-                "EMPLOYEE_LANGUAGE",
-                String.valueOf(id),
-                performedBy,
-                employeeId,
-                "Employee language updated",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("EMPLOYEE_LANGUAGE", String.valueOf(id), performedBy, employeeId, "Employee language updated", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                employeeId,
-                "UPDATE_LANGUAGE",
-                "EMPLOYEE_LANGUAGE",
-                "Employee language updated",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "UPDATE_LANGUAGE", "EMPLOYEE_LANGUAGE", "Employee language updated", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_LANGUAGE",
-                "EmployeeService",
-                "Language updated: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_LANGUAGE", "EmployeeService", "Language updated: " + id);
 
         return "Employee Language Updated Successfully";
     }
 
     public String deleteLanguage(Long id) {
 
-        EmployeeLanguage existingLanguage = employeeLanguageRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Language Not Found"));
+        EmployeeLanguage existingLanguage = employeeLanguageRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Language Not Found"));
 
         employeeLanguageRepository.delete(existingLanguage);
-        String employeeId =
-                existingLanguage.getEmployee().getEmployeeId();
+        String employeeId = existingLanguage.getEmployee().getEmployeeId();
 
         employeeLanguageRepository.delete(existingLanguage);
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logDelete(
-                "EMPLOYEE_LANGUAGE",
-                String.valueOf(id),
-                performedBy,
-                employeeId,
-                "Employee language deleted"
-        );
+        auditLogsService.logDelete("EMPLOYEE_LANGUAGE", String.valueOf(id), performedBy, employeeId, "Employee language deleted");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "DELETE_LANGUAGE",
-                "EMPLOYEE_LANGUAGE",
-                "Employee language deleted",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "DELETE_LANGUAGE", "EMPLOYEE_LANGUAGE", "Employee language deleted", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_LANGUAGE",
-                "EmployeeService",
-                "Language deleted: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_LANGUAGE", "EmployeeService", "Language deleted: " + id);
 
         return "Employee Language Deleted Successfully";
     }
@@ -1891,41 +1658,20 @@ public class EmployeeService {
 // EMPLOYEE FAMILY MEMBERS
 //=================================
 
-    public String createFamilyMember(String employeeId,
-                                     EmployeeFamilyMember employeeFamilyMember) {
+    public String createFamilyMember(String employeeId, EmployeeFamilyMember employeeFamilyMember) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
         employeeFamilyMember.setEmployee(employee);
 
         employeeFamilyMemberRepository.save(employeeFamilyMember);
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "EMPLOYEE_FAMILY_MEMBER",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Employee family member created"
-        );
+        auditLogsService.logCreate("EMPLOYEE_FAMILY_MEMBER", employeeId, performedBy, employeeId, "Employee family member created");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "CREATE_FAMILY_MEMBER",
-                "EMPLOYEE_FAMILY_MEMBER",
-                "Employee family member created",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "CREATE_FAMILY_MEMBER", "EMPLOYEE_FAMILY_MEMBER", "Employee family member created", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_FAMILY_MEMBER",
-                "EmployeeService",
-                "Family member created for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_FAMILY_MEMBER", "EmployeeService", "Family member created for " + employeeId);
 
         return "Employee Family Member Added Successfully";
     }
@@ -1937,15 +1683,12 @@ public class EmployeeService {
 
     public EmployeeFamilyMember getFamilyMember(Long id) {
 
-        return employeeFamilyMemberRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Family Member Not Found"));
+        return employeeFamilyMemberRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Family Member Not Found"));
     }
 
-    public String updateFamilyMember(Long id,
-                                     EmployeeFamilyMember employeeFamilyMember) {
+    public String updateFamilyMember(Long id, EmployeeFamilyMember employeeFamilyMember) {
 
-        EmployeeFamilyMember existingMember = employeeFamilyMemberRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Family Member Not Found"));
+        EmployeeFamilyMember existingMember = employeeFamilyMemberRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Family Member Not Found"));
 
         existingMember.setMemberName(employeeFamilyMember.getMemberName());
         existingMember.setRelationship(employeeFamilyMember.getRelationship());
@@ -1967,73 +1710,31 @@ public class EmployeeService {
         String performedBy = getLoggedInEmployeeId();
         String employeeId = existingMember.getEmployee().getEmployeeId();
 
-        auditLogsService.logUpdate(
-                "EMPLOYEE_FAMILY_MEMBER",
-                String.valueOf(id),
-                performedBy,
-                employeeId,
-                "Employee family member updated",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("EMPLOYEE_FAMILY_MEMBER", String.valueOf(id), performedBy, employeeId, "Employee family member updated", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                employeeId,
-                "UPDATE_FAMILY_MEMBER",
-                "EMPLOYEE_FAMILY_MEMBER",
-                "Employee family member updated",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "UPDATE_FAMILY_MEMBER", "EMPLOYEE_FAMILY_MEMBER", "Employee family member updated", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_FAMILY_MEMBER",
-                "EmployeeService",
-                "Family member updated: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_FAMILY_MEMBER", "EmployeeService", "Family member updated: " + id);
 
         return "Employee Family Member Updated Successfully";
     }
 
     public String deleteFamilyMember(Long id) {
 
-        EmployeeFamilyMember existingMember = employeeFamilyMemberRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Family Member Not Found"));
+        EmployeeFamilyMember existingMember = employeeFamilyMemberRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Family Member Not Found"));
 
         employeeFamilyMemberRepository.delete(existingMember);
-        String employeeId =
-                existingMember.getEmployee().getEmployeeId();
+        String employeeId = existingMember.getEmployee().getEmployeeId();
 
         employeeFamilyMemberRepository.delete(existingMember);
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logDelete(
-                "EMPLOYEE_FAMILY_MEMBER",
-                String.valueOf(id),
-                performedBy,
-                employeeId,
-                "Employee family member deleted"
-        );
+        auditLogsService.logDelete("EMPLOYEE_FAMILY_MEMBER", String.valueOf(id), performedBy, employeeId, "Employee family member deleted");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "DELETE_FAMILY_MEMBER",
-                "EMPLOYEE_FAMILY_MEMBER",
-                "Employee family member deleted",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "DELETE_FAMILY_MEMBER", "EMPLOYEE_FAMILY_MEMBER", "Employee family member deleted", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_FAMILY_MEMBER",
-                "EmployeeService",
-                "Family member deleted: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_FAMILY_MEMBER", "EmployeeService", "Family member deleted: " + id);
 
         return "Employee Family Member Deleted Successfully";
     }
@@ -2042,20 +1743,16 @@ public class EmployeeService {
 // EMPLOYEE ADDRESSES
 //=================================
 
-    public String createAddress(String employeeId,
-                                EmployeeAddress employeeAddress) {
+    public String createAddress(String employeeId, EmployeeAddress employeeAddress) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
         // Save Employee Address
         employeeAddress.setEmployee(employee);
         employeeAddressRepository.save(employeeAddress);
 
         // Check if Profile already exists
-        EmployeeProfile profile = employeeProfileRepository
-                .findByEmployee(employee)
-                .orElse(new EmployeeProfile());
+        EmployeeProfile profile = employeeProfileRepository.findByEmployee(employee).orElse(new EmployeeProfile());
 
         profile.setEmployee(employee);
         profile.setAddress(employeeAddress.getAddressLine1() + ", " + employeeAddress.getAddressLine2());
@@ -2069,30 +1766,11 @@ public class EmployeeService {
         employeeProfileRepository.save(profile);
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "EMPLOYEE_ADDRESS",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Employee address created"
-        );
+        auditLogsService.logCreate("EMPLOYEE_ADDRESS", employeeId, performedBy, employeeId, "Employee address created");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "CREATE_ADDRESS",
-                "EMPLOYEE_ADDRESS",
-                "Employee address created",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "CREATE_ADDRESS", "EMPLOYEE_ADDRESS", "Employee address created", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_ADDRESS",
-                "EmployeeService",
-                "Address created for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_ADDRESS", "EmployeeService", "Address created for " + employeeId);
 
         return "Employee Address Created Successfully";
     }
@@ -2104,15 +1782,12 @@ public class EmployeeService {
 
     public EmployeeAddress getAddress(Long id) {
 
-        return employeeAddressRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Address Not Found"));
+        return employeeAddressRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Address Not Found"));
     }
 
-    public String updateAddress(Long id,
-                                EmployeeAddress employeeAddress) {
+    public String updateAddress(Long id, EmployeeAddress employeeAddress) {
 
-        EmployeeAddress existingAddress = employeeAddressRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Address Not Found"));
+        EmployeeAddress existingAddress = employeeAddressRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Address Not Found"));
 
         existingAddress.setAddressType(employeeAddress.getAddressType());
         existingAddress.setAddressLine1(employeeAddress.getAddressLine1());
@@ -2128,12 +1803,9 @@ public class EmployeeService {
         // Update Employee Profile Automatically
         Employee employee = existingAddress.getEmployee();
 
-        EmployeeProfile profile = employeeProfileRepository
-                .findByEmployee(employee)
-                .orElseThrow(() -> new RuntimeException("Employee Profile Not Found"));
+        EmployeeProfile profile = employeeProfileRepository.findByEmployee(employee).orElseThrow(() -> new RuntimeException("Employee Profile Not Found"));
 
-        profile.setAddress(employeeAddress.getAddressLine1()
-                + ", " + employeeAddress.getAddressLine2());
+        profile.setAddress(employeeAddress.getAddressLine1() + ", " + employeeAddress.getAddressLine2());
 
         profile.setCity(employeeAddress.getCity());
         profile.setState(employeeAddress.getState());
@@ -2144,76 +1816,33 @@ public class EmployeeService {
         String newValue = convertToJson(existingAddress);
 
         String performedBy = getLoggedInEmployeeId();
-        String employeeId =
-                existingAddress.getEmployee().getEmployeeId();
+        String employeeId = existingAddress.getEmployee().getEmployeeId();
         String oldValue = convertToJson(existingAddress);
-        auditLogsService.logUpdate(
-                "EMPLOYEE_ADDRESS",
-                String.valueOf(id),
-                performedBy,
-                employeeId,
-                "Employee address updated",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("EMPLOYEE_ADDRESS", String.valueOf(id), performedBy, employeeId, "Employee address updated", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                employeeId,
-                "UPDATE_ADDRESS",
-                "EMPLOYEE_ADDRESS",
-                "Employee address and profile updated",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "UPDATE_ADDRESS", "EMPLOYEE_ADDRESS", "Employee address and profile updated", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_ADDRESS",
-                "EmployeeService",
-                "Address updated: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_ADDRESS", "EmployeeService", "Address updated: " + id);
 
         return "Employee Address & Profile Updated Successfully";
     }
 
     public String deleteAddress(Long id) {
 
-        EmployeeAddress existingAddress = employeeAddressRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Address Not Found"));
+        EmployeeAddress existingAddress = employeeAddressRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Address Not Found"));
 
         employeeAddressRepository.delete(existingAddress);
-        String employeeId =
-                existingAddress.getEmployee().getEmployeeId();
+        String employeeId = existingAddress.getEmployee().getEmployeeId();
 
         employeeAddressRepository.delete(existingAddress);
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logDelete(
-                "EMPLOYEE_ADDRESS",
-                String.valueOf(id),
-                performedBy,
-                employeeId,
-                "Employee address deleted"
-        );
+        auditLogsService.logDelete("EMPLOYEE_ADDRESS", String.valueOf(id), performedBy, employeeId, "Employee address deleted");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "DELETE_ADDRESS",
-                "EMPLOYEE_ADDRESS",
-                "Employee address deleted",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "DELETE_ADDRESS", "EMPLOYEE_ADDRESS", "Employee address deleted", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_ADDRESS",
-                "EmployeeService",
-                "Address deleted: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_ADDRESS", "EmployeeService", "Address deleted: " + id);
 
         return "Employee Address Deleted Successfully";
     }
@@ -2222,41 +1851,20 @@ public class EmployeeService {
 // EMPLOYEE PROMOTIONS
 //=================================
 
-    public String createPromotion(String employeeId,
-                                  EmployeePromotion employeePromotion) {
+    public String createPromotion(String employeeId, EmployeePromotion employeePromotion) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
         employeePromotion.setEmployee(employee);
 
         employeePromotionRepository.save(employeePromotion);
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "EMPLOYEE_PROMOTION",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Employee promotion created"
-        );
+        auditLogsService.logCreate("EMPLOYEE_PROMOTION", employeeId, performedBy, employeeId, "Employee promotion created");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "CREATE_PROMOTION",
-                "EMPLOYEE_PROMOTION",
-                "Employee promotion created",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "CREATE_PROMOTION", "EMPLOYEE_PROMOTION", "Employee promotion created", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_PROMOTION",
-                "EmployeeService",
-                "Promotion created for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_PROMOTION", "EmployeeService", "Promotion created for " + employeeId);
 
         return "Employee Promotion Created Successfully";
     }
@@ -2268,14 +1876,12 @@ public class EmployeeService {
 
     public EmployeePromotion getPromotion(Long id) {
 
-        return employeePromotionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Promotion Not Found"));
+        return employeePromotionRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Promotion Not Found"));
     }
 
     public String updatePromotion(Long id, EmployeePromotion employeePromotion) {
 
-        EmployeePromotion existingPromotion = employeePromotionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Promotion Not Found"));
+        EmployeePromotion existingPromotion = employeePromotionRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Promotion Not Found"));
 
         existingPromotion.setPreviousDesignation(employeePromotion.getPreviousDesignation());
         existingPromotion.setNewDesignation(employeePromotion.getNewDesignation());
@@ -2290,76 +1896,33 @@ public class EmployeeService {
         String newValue = convertToJson(existingPromotion);
 
         String performedBy = getLoggedInEmployeeId();
-        String employeeId =
-                existingPromotion.getEmployee().getEmployeeId();
+        String employeeId = existingPromotion.getEmployee().getEmployeeId();
 
-        auditLogsService.logUpdate(
-                "EMPLOYEE_PROMOTION",
-                String.valueOf(id),
-                performedBy,
-                employeeId,
-                "Employee promotion updated",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("EMPLOYEE_PROMOTION", String.valueOf(id), performedBy, employeeId, "Employee promotion updated", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                employeeId,
-                "UPDATE_PROMOTION",
-                "EMPLOYEE_PROMOTION",
-                "Employee promotion updated",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "UPDATE_PROMOTION", "EMPLOYEE_PROMOTION", "Employee promotion updated", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_PROMOTION",
-                "EmployeeService",
-                "Promotion updated: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_PROMOTION", "EmployeeService", "Promotion updated: " + id);
 
         return "Employee Promotion Updated Successfully";
     }
 
     public String deletePromotion(Long id) {
 
-        EmployeePromotion existingPromotion = employeePromotionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Promotion Not Found"));
+        EmployeePromotion existingPromotion = employeePromotionRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Promotion Not Found"));
 
         employeePromotionRepository.delete(existingPromotion);
-        String employeeId =
-                existingPromotion.getEmployee().getEmployeeId();
+        String employeeId = existingPromotion.getEmployee().getEmployeeId();
 
         employeePromotionRepository.delete(existingPromotion);
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logDelete(
-                "EMPLOYEE_PROMOTION",
-                String.valueOf(id),
-                performedBy,
-                employeeId,
-                "Employee promotion deleted"
-        );
+        auditLogsService.logDelete("EMPLOYEE_PROMOTION", String.valueOf(id), performedBy, employeeId, "Employee promotion deleted");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "DELETE_PROMOTION",
-                "EMPLOYEE_PROMOTION",
-                "Employee promotion deleted",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "DELETE_PROMOTION", "EMPLOYEE_PROMOTION", "Employee promotion deleted", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_PROMOTION",
-                "EmployeeService",
-                "Promotion deleted: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_PROMOTION", "EmployeeService", "Promotion deleted: " + id);
 
         return "Employee Promotion Deleted Successfully";
     }
@@ -2367,41 +1930,20 @@ public class EmployeeService {
 // EMPLOYEE TRANSFERS
 //=================================
 
-    public String createTransfer(String employeeId,
-                                 EmployeeTransfer employeeTransfer) {
+    public String createTransfer(String employeeId, EmployeeTransfer employeeTransfer) {
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
         employeeTransfer.setEmployee(employee);
 
         employeeTransferRepository.save(employeeTransfer);
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate(
-                "EMPLOYEE_TRANSFER",
-                employeeId,
-                performedBy,
-                employeeId,
-                "Employee transfer created"
-        );
+        auditLogsService.logCreate("EMPLOYEE_TRANSFER", employeeId, performedBy, employeeId, "Employee transfer created");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "CREATE_TRANSFER",
-                "EMPLOYEE_TRANSFER",
-                "Employee transfer created",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "CREATE_TRANSFER", "EMPLOYEE_TRANSFER", "Employee transfer created", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_TRANSFER",
-                "EmployeeService",
-                "Transfer created for " + employeeId
-        );
+        auditLogsService.logInfo("EMPLOYEE_TRANSFER", "EmployeeService", "Transfer created for " + employeeId);
 
         return "Employee Transfer Created Successfully";
     }
@@ -2413,15 +1955,12 @@ public class EmployeeService {
 
     public EmployeeTransfer getTransfer(Long id) {
 
-        return employeeTransferRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Transfer Not Found"));
+        return employeeTransferRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Transfer Not Found"));
     }
 
-    public String updateTransfer(Long id,
-                                 EmployeeTransfer employeeTransfer) {
+    public String updateTransfer(Long id, EmployeeTransfer employeeTransfer) {
 
-        EmployeeTransfer existingTransfer = employeeTransferRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Transfer Not Found"));
+        EmployeeTransfer existingTransfer = employeeTransferRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Transfer Not Found"));
 
         existingTransfer.setFromDepartment(employeeTransfer.getFromDepartment());
         existingTransfer.setToDepartment(employeeTransfer.getToDepartment());
@@ -2441,76 +1980,33 @@ public class EmployeeService {
         String newValue = convertToJson(existingTransfer);
 
         String performedBy = getLoggedInEmployeeId();
-        String employeeId =
-                existingTransfer.getEmployee().getEmployeeId();
+        String employeeId = existingTransfer.getEmployee().getEmployeeId();
 
-        auditLogsService.logUpdate(
-                "EMPLOYEE_TRANSFER",
-                String.valueOf(id),
-                performedBy,
-                employeeId,
-                "Employee transfer updated",
-                oldValue,
-                newValue
-        );
+        auditLogsService.logUpdate("EMPLOYEE_TRANSFER", String.valueOf(id), performedBy, employeeId, "Employee transfer updated", oldValue, newValue);
 
-        auditLogsService.logActivity(
-                employeeId,
-                "UPDATE_TRANSFER",
-                "EMPLOYEE_TRANSFER",
-                "Employee transfer updated",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "UPDATE_TRANSFER", "EMPLOYEE_TRANSFER", "Employee transfer updated", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_TRANSFER",
-                "EmployeeService",
-                "Transfer updated: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_TRANSFER", "EmployeeService", "Transfer updated: " + id);
 
         return "Employee Transfer Updated Successfully";
     }
 
     public String deleteTransfer(Long id) {
 
-        EmployeeTransfer existingTransfer = employeeTransferRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Transfer Not Found"));
+        EmployeeTransfer existingTransfer = employeeTransferRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Transfer Not Found"));
 
         employeeTransferRepository.delete(existingTransfer);
-        String employeeId =
-                existingTransfer.getEmployee().getEmployeeId();
+        String employeeId = existingTransfer.getEmployee().getEmployeeId();
 
         employeeTransferRepository.delete(existingTransfer);
 
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logDelete(
-                "EMPLOYEE_TRANSFER",
-                String.valueOf(id),
-                performedBy,
-                employeeId,
-                "Employee transfer deleted"
-        );
+        auditLogsService.logDelete("EMPLOYEE_TRANSFER", String.valueOf(id), performedBy, employeeId, "Employee transfer deleted");
 
-        auditLogsService.logActivity(
-                employeeId,
-                "DELETE_TRANSFER",
-                "EMPLOYEE_TRANSFER",
-                "Employee transfer deleted",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
+        auditLogsService.logActivity(employeeId, "DELETE_TRANSFER", "EMPLOYEE_TRANSFER", "Employee transfer deleted", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo(
-                "EMPLOYEE_TRANSFER",
-                "EmployeeService",
-                "Transfer deleted: " + id
-        );
+        auditLogsService.logInfo("EMPLOYEE_TRANSFER", "EmployeeService", "Transfer deleted: " + id);
 
         return "Employee Transfer Deleted Successfully";
     }
@@ -2521,61 +2017,37 @@ public class EmployeeService {
 
     public List<EmployeeSkill> certifiedSkills() {
 
-        return employeeSkillRepository.findAll()
-                .stream()
-                .filter(skill -> Boolean.TRUE.equals(skill.getCertificationAvailable()))
-                .toList();
+        return employeeSkillRepository.findAll().stream().filter(skill -> Boolean.TRUE.equals(skill.getCertificationAvailable())).toList();
     }
 
     public List<EmployeeCertification> activeCertifications() {
 
-        return employeeCertificationRepository.findAll()
-                .stream()
-                .filter(certification ->
-                        "ACTIVE".equalsIgnoreCase(certification.getStatus()))
-                .toList();
+        return employeeCertificationRepository.findAll().stream().filter(certification -> "ACTIVE".equalsIgnoreCase(certification.getStatus())).toList();
     }
 
     public List<EmployeeCertification> expiredCertifications() {
 
-        return employeeCertificationRepository.findAll()
-                .stream()
-                .filter(certification ->
-                        certification.getExpiryDate() != null &&
-                                certification.getExpiryDate().isBefore(LocalDate.now()))
-                .toList();
+        return employeeCertificationRepository.findAll().stream().filter(certification -> certification.getExpiryDate() != null && certification.getExpiryDate().isBefore(LocalDate.now())).toList();
     }
 
     public List<EmployeeExperience> currentExperiences() {
 
-        return employeeExperienceRepository.findAll()
-                .stream()
-                .filter(EmployeeExperience::getCurrentCompany)
-                .toList();
+        return employeeExperienceRepository.findAll().stream().filter(EmployeeExperience::getCurrentCompany).toList();
     }
 
     public List<EmployeeExperience> previousExperiences() {
 
-        return employeeExperienceRepository.findAll()
-                .stream()
-                .filter(experience -> !experience.getCurrentCompany())
-                .toList();
+        return employeeExperienceRepository.findAll().stream().filter(experience -> !experience.getCurrentCompany()).toList();
     }
 
     public List<EmployeePromotion> latestPromotions() {
 
-        return employeePromotionRepository.findAll()
-                .stream()
-                .sorted(Comparator.comparing(EmployeePromotion::getPromotionDate).reversed())
-                .toList();
+        return employeePromotionRepository.findAll().stream().sorted(Comparator.comparing(EmployeePromotion::getPromotionDate).reversed()).toList();
     }
 
     public List<EmployeeTransfer> latestTransfers() {
 
-        return employeeTransferRepository.findAll()
-                .stream()
-                .sorted(Comparator.comparing(EmployeeTransfer::getTransferDate).reversed())
-                .toList();
+        return employeeTransferRepository.findAll().stream().sorted(Comparator.comparing(EmployeeTransfer::getTransferDate).reversed()).toList();
     }
 
     //=================================
@@ -2616,73 +2088,39 @@ public class EmployeeService {
 
         counts.put("totalTransfers", employeeTransferRepository.count());
 
-        counts.put("activeEmployees",
-                employeeRepository.findAll()
-                        .stream()
-                        .filter(employee -> "ACTIVE".equalsIgnoreCase(employee.getStatus()))
-                        .count());
+        counts.put("activeEmployees", employeeRepository.findAll().stream().filter(employee -> "ACTIVE".equalsIgnoreCase(employee.getStatus())).count());
 
-        counts.put("inactiveEmployees",
-                employeeRepository.findAll()
-                        .stream()
-                        .filter(employee -> "INACTIVE".equalsIgnoreCase(employee.getStatus()))
-                        .count());
+        counts.put("inactiveEmployees", employeeRepository.findAll().stream().filter(employee -> "INACTIVE".equalsIgnoreCase(employee.getStatus())).count());
 
-        counts.put("certifiedSkills",
-                employeeSkillRepository.findAll()
-                        .stream()
-                        .filter(skill -> Boolean.TRUE.equals(skill.getCertificationAvailable()))
-                        .count());
+        counts.put("certifiedSkills", employeeSkillRepository.findAll().stream().filter(skill -> Boolean.TRUE.equals(skill.getCertificationAvailable())).count());
 
-        counts.put("activeCertifications",
-                employeeCertificationRepository.findAll()
-                        .stream()
-                        .filter(c -> "ACTIVE".equalsIgnoreCase(c.getStatus()))
-                        .count());
+        counts.put("activeCertifications", employeeCertificationRepository.findAll().stream().filter(c -> "ACTIVE".equalsIgnoreCase(c.getStatus())).count());
 
-        counts.put("expiredCertifications",
-                employeeCertificationRepository.findAll()
-                        .stream()
-                        .filter(c -> c.getExpiryDate() != null
-                                && c.getExpiryDate().isBefore(LocalDate.now()))
-                        .count());
+        counts.put("expiredCertifications", employeeCertificationRepository.findAll().stream().filter(c -> c.getExpiryDate() != null && c.getExpiryDate().isBefore(LocalDate.now())).count());
 
-        counts.put("currentExperienceEmployees",
-                employeeExperienceRepository.findAll()
-                        .stream()
-                        .filter(EmployeeExperience::getCurrentCompany)
-                        .count());
+        counts.put("currentExperienceEmployees", employeeExperienceRepository.findAll().stream().filter(EmployeeExperience::getCurrentCompany).count());
 
         return counts;
     }
+
     public List<Employee> searchEmployees(String keyword) {
 
         if (keyword == null || keyword.trim().isEmpty()) {
             return employeeRepository.findAll();
         }
 
-        return employeeRepository.searchEmployees(
-                keyword.trim()
-        );
+        return employeeRepository.searchEmployees(keyword.trim());
     }
-    public List<Employee> getEmployeesByDepartmentName(
-            String departmentName) {
 
-        Department department =
-                departmentRepository
-                        .findByDepartmentNameIgnoreCase(
-                                departmentName)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Department Not Found"));
+    public List<Employee> getEmployeesByDepartmentName(String departmentName) {
 
-        return employeeRepository
-                .findByDepartmentId(
-                        department.getId());
+        Department department = departmentRepository.findByDepartmentNameIgnoreCase(departmentName).orElseThrow(() -> new RuntimeException("Department Not Found"));
+
+        return employeeRepository.findByDepartmentId(department.getId());
     }
+
     public List<Employee> findEmployeesByDesignationName(String designationName) {
-        return employeeDesignationRepository
-                .findEmployeesByDesignationName(designationName);
+        return employeeDesignationRepository.findEmployeesByDesignationName(designationName);
     }
 
     @Transactional
@@ -2693,9 +2131,7 @@ public class EmployeeService {
         }
 
         if (!file.getOriginalFilename().endsWith(".xlsx")) {
-            throw new RuntimeException(
-                    "Only .xlsx Excel files are supported"
-            );
+            throw new RuntimeException("Only .xlsx Excel files are supported");
         }
 
         int employeeCount = 0;
@@ -2703,8 +2139,7 @@ public class EmployeeService {
         int bankCount = 0;
         int documentCount = 0;
 
-        try (InputStream inputStream = file.getInputStream();
-             Workbook workbook = new XSSFWorkbook(inputStream)) {
+        try (InputStream inputStream = file.getInputStream(); Workbook workbook = new XSSFWorkbook(inputStream)) {
 
             /*
              * =====================================================
@@ -2712,13 +2147,10 @@ public class EmployeeService {
              * =====================================================
              */
 
-            Sheet employeeSheet =
-                    workbook.getSheet("Employees");
+            Sheet employeeSheet = workbook.getSheet("Employees");
 
             if (employeeSheet == null) {
-                throw new RuntimeException(
-                        "Employees sheet not found"
-                );
+                throw new RuntimeException("Employees sheet not found");
             }
 
             Map<String, Employee> employeeMap = new HashMap<>();
@@ -2731,59 +2163,36 @@ public class EmployeeService {
                     continue;
                 }
 
-                String employeeId =
-                        getCellValue(row.getCell(0));
+                String employeeId = getCellValue(row.getCell(0));
 
-                if (employeeId == null ||
-                        employeeId.isBlank()) {
+                if (employeeId == null || employeeId.isBlank()) {
                     continue;
                 }
 
-                if (employeeRepository
-                        .findByEmployeeId(employeeId)
-                        .isPresent()) {
+                if (employeeRepository.findByEmployeeId(employeeId).isPresent()) {
 
-                    throw new RuntimeException(
-                            "Employee already exists: "
-                                    + employeeId
-                    );
+                    throw new RuntimeException("Employee already exists: " + employeeId);
                 }
 
                 Employee employee = new Employee();
 
                 employee.setEmployeeId(employeeId);
 
-                employee.setFirstName(
-                        getCellValue(row.getCell(1))
-                );
+                employee.setFirstName(getCellValue(row.getCell(1)));
 
-                employee.setLastName(
-                        getCellValue(row.getCell(2))
-                );
+                employee.setLastName(getCellValue(row.getCell(2)));
 
-                employee.setEmail(
-                        getCellValue(row.getCell(3))
-                );
+                employee.setEmail(getCellValue(row.getCell(3)));
 
-                employee.setMobileNumber(
-                        getCellValue(row.getCell(4))
-                );
+                employee.setMobileNumber(getCellValue(row.getCell(4)));
 
-                employee.setGender(
-                        getCellValue(row.getCell(5))
-                );
+                employee.setGender(getCellValue(row.getCell(5)));
 
-                employee.setDateOfBirth(
-                        getLocalDate(row.getCell(6))
-                );
+                employee.setDateOfBirth(getLocalDate(row.getCell(6)));
 
-                employee.setJoiningDate(
-                        getLocalDate(row.getCell(7))
-                );
+                employee.setJoiningDate(getLocalDate(row.getCell(7)));
 
-                employee.setStatus(
-                        getCellValue(row.getCell(8))
-                );
+                employee.setStatus(getCellValue(row.getCell(8)));
 
                 /*
                  * Company / Branch / Department
@@ -2791,13 +2200,9 @@ public class EmployeeService {
                  * Resolve these using your repositories.
                  */
 
-                Employee savedEmployee =
-                        employeeRepository.save(employee);
+                Employee savedEmployee = employeeRepository.save(employee);
 
-                employeeMap.put(
-                        employeeId,
-                        savedEmployee
-                );
+                employeeMap.put(employeeId, savedEmployee);
 
                 employeeCount++;
             }
@@ -2808,14 +2213,11 @@ public class EmployeeService {
              * =====================================================
              */
 
-            Sheet addressSheet =
-                    workbook.getSheet("Addresses");
+            Sheet addressSheet = workbook.getSheet("Addresses");
 
             if (addressSheet != null) {
 
-                for (int i = 1;
-                     i <= addressSheet.getLastRowNum();
-                     i++) {
+                for (int i = 1; i <= addressSheet.getLastRowNum(); i++) {
 
                     Row row = addressSheet.getRow(i);
 
@@ -2823,51 +2225,29 @@ public class EmployeeService {
                         continue;
                     }
 
-                    String employeeId =
-                            getCellValue(row.getCell(0));
+                    String employeeId = getCellValue(row.getCell(0));
 
-                    Employee employee =
-                            getEmployee(
-                                    employeeMap,
-                                    employeeId
-                            );
+                    Employee employee = getEmployee(employeeMap, employeeId);
 
-                    EmployeeAddress address =
-                            new EmployeeAddress();
+                    EmployeeAddress address = new EmployeeAddress();
 
                     address.setEmployee(employee);
 
-                    address.setAddressType(
-                            getCellValue(row.getCell(1))
-                    );
+                    address.setAddressType(getCellValue(row.getCell(1)));
 
-                    address.setAddressLine1(
-                            getCellValue(row.getCell(2))
-                    );
+                    address.setAddressLine1(getCellValue(row.getCell(2)));
 
-                    address.setAddressLine2(
-                            getCellValue(row.getCell(3))
-                    );
+                    address.setAddressLine2(getCellValue(row.getCell(3)));
 
-                    address.setCity(
-                            getCellValue(row.getCell(4))
-                    );
+                    address.setCity(getCellValue(row.getCell(4)));
 
-                    address.setDistrict(
-                            getCellValue(row.getCell(5))
-                    );
+                    address.setDistrict(getCellValue(row.getCell(5)));
 
-                    address.setState(
-                            getCellValue(row.getCell(6))
-                    );
+                    address.setState(getCellValue(row.getCell(6)));
 
-                    address.setCountry(
-                            getCellValue(row.getCell(7))
-                    );
+                    address.setCountry(getCellValue(row.getCell(7)));
 
-                    address.setPostalCode(
-                            getCellValue(row.getCell(8))
-                    );
+                    address.setPostalCode(getCellValue(row.getCell(8)));
 
                     employeeAddressRepository.save(address);
 
@@ -2881,14 +2261,11 @@ public class EmployeeService {
              * =====================================================
              */
 
-            Sheet bankSheet =
-                    workbook.getSheet("BankDetails");
+            Sheet bankSheet = workbook.getSheet("BankDetails");
 
             if (bankSheet != null) {
 
-                for (int i = 1;
-                     i <= bankSheet.getLastRowNum();
-                     i++) {
+                for (int i = 1; i <= bankSheet.getLastRowNum(); i++) {
 
                     Row row = bankSheet.getRow(i);
 
@@ -2896,47 +2273,27 @@ public class EmployeeService {
                         continue;
                     }
 
-                    String employeeId =
-                            getCellValue(row.getCell(0));
+                    String employeeId = getCellValue(row.getCell(0));
 
-                    Employee employee =
-                            getEmployee(
-                                    employeeMap,
-                                    employeeId
-                            );
+                    Employee employee = getEmployee(employeeMap, employeeId);
 
-                    EmployeeBankDetails bank =
-                            new EmployeeBankDetails();
+                    EmployeeBankDetails bank = new EmployeeBankDetails();
 
                     bank.setEmployee(employee);
 
-                    bank.setAccountHolderName(
-                            getCellValue(row.getCell(1))
-                    );
+                    bank.setAccountHolderName(getCellValue(row.getCell(1)));
 
-                    bank.setBankName(
-                            getCellValue(row.getCell(2))
-                    );
+                    bank.setBankName(getCellValue(row.getCell(2)));
 
-                    bank.setAccountNumber(
-                            getCellValue(row.getCell(3))
-                    );
+                    bank.setAccountNumber(getCellValue(row.getCell(3)));
 
-                    bank.setIfscCode(
-                            getCellValue(row.getCell(4))
-                    );
+                    bank.setIfscCode(getCellValue(row.getCell(4)));
 
-                    bank.setBranchName(
-                            getCellValue(row.getCell(5))
-                    );
+                    bank.setBranchName(getCellValue(row.getCell(5)));
 
-                    bank.setUpiId(
-                            getCellValue(row.getCell(6))
-                    );
+                    bank.setUpiId(getCellValue(row.getCell(6)));
 
-                    bank.setAccountStatus(
-                            getCellValue(row.getCell(7))
-                    );
+                    bank.setAccountStatus(getCellValue(row.getCell(7)));
 
                     employeeBankRepository.save(bank);
 
@@ -2950,14 +2307,11 @@ public class EmployeeService {
              * =====================================================
              */
 
-            Sheet documentSheet =
-                    workbook.getSheet("Documents");
+            Sheet documentSheet = workbook.getSheet("Documents");
 
             if (documentSheet != null) {
 
-                for (int i = 1;
-                     i <= documentSheet.getLastRowNum();
-                     i++) {
+                for (int i = 1; i <= documentSheet.getLastRowNum(); i++) {
 
                     Row row = documentSheet.getRow(i);
 
@@ -2965,71 +2319,39 @@ public class EmployeeService {
                         continue;
                     }
 
-                    String employeeId =
-                            getCellValue(row.getCell(0));
+                    String employeeId = getCellValue(row.getCell(0));
 
-                    Employee employee =
-                            getEmployee(
-                                    employeeMap,
-                                    employeeId
-                            );
+                    Employee employee = getEmployee(employeeMap, employeeId);
 
-                    EmployeeDocuments documents =
-                            new EmployeeDocuments();
+                    EmployeeDocuments documents = new EmployeeDocuments();
 
                     documents.setEmployee(employee);
 
-                    documents.setAadhaarNumber(
-                            getCellValue(row.getCell(1))
-                    );
+                    documents.setAadhaarNumber(getCellValue(row.getCell(1)));
 
-                    documents.setPanNumber(
-                            getCellValue(row.getCell(2))
-                    );
+                    documents.setPanNumber(getCellValue(row.getCell(2)));
 
-                    documents.setPassportNumber(
-                            getCellValue(row.getCell(3))
-                    );
+                    documents.setPassportNumber(getCellValue(row.getCell(3)));
 
-                    documents.setResumeUrl(
-                            getCellValue(row.getCell(4))
-                    );
+                    documents.setResumeUrl(getCellValue(row.getCell(4)));
 
-                    documents.setAadhaarDocument(
-                            getCellValue(row.getCell(5))
-                    );
+                    documents.setAadhaarDocument(getCellValue(row.getCell(5)));
 
-                    documents.setPanDocument(
-                            getCellValue(row.getCell(6))
-                    );
+                    documents.setPanDocument(getCellValue(row.getCell(6)));
 
-                    documents.setDegreeCertificate(
-                            getCellValue(row.getCell(7))
-                    );
+                    documents.setDegreeCertificate(getCellValue(row.getCell(7)));
 
-                    documents.setPgCertificate(
-                            getCellValue(row.getCell(8))
-                    );
+                    documents.setPgCertificate(getCellValue(row.getCell(8)));
 
-                    documents.setOfferLetter(
-                            getCellValue(row.getCell(9))
-                    );
+                    documents.setOfferLetter(getCellValue(row.getCell(9)));
 
-                    documents.setJoiningLetter(
-                            getCellValue(row.getCell(10))
-                    );
+                    documents.setJoiningLetter(getCellValue(row.getCell(10)));
 
-                    documents.setSalarySlips(
-                            getCellValue(row.getCell(11))
-                    );
+                    documents.setSalarySlips(getCellValue(row.getCell(11)));
 
-                    documents.setExperienceLetter(
-                            getCellValue(row.getCell(12))
-                    );
+                    documents.setExperienceLetter(getCellValue(row.getCell(12)));
 
-                    documents.setStatus(
-                            getCellValue(row.getCell(13))
-                    );
+                    documents.setStatus(getCellValue(row.getCell(13)));
 
                     employeeDocumentRepository.save(documents);
 
@@ -3043,741 +2365,447 @@ public class EmployeeService {
              * =====================================================
              */
             // Contacts
-             Sheet contactSheet = workbook.getSheet("Contacts");
+            Sheet contactSheet = workbook.getSheet("Contacts");
 
-if (contactSheet != null) {
+            if (contactSheet != null) {
 
-    for (int i = 1; i <= contactSheet.getLastRowNum(); i++) {
+                for (int i = 1; i <= contactSheet.getLastRowNum(); i++) {
 
-        Row row = contactSheet.getRow(i);
+                    Row row = contactSheet.getRow(i);
 
-        if (row == null) continue;
+                    if (row == null) continue;
 
-        String employeeId = getCellValue(row.getCell(0));
+                    String employeeId = getCellValue(row.getCell(0));
 
-        Employee employee = getEmployee(employeeMap, employeeId);
+                    Employee employee = getEmployee(employeeMap, employeeId);
 
-        EmployeeContacts contact = new EmployeeContacts();
+                    EmployeeContacts contact = new EmployeeContacts();
 
-        contact.setEmployee(employee);
+                    contact.setEmployee(employee);
 
-        contact.setEmergencyContactName(
-                getCellValue(row.getCell(1))
-        );
+                    contact.setEmergencyContactName(getCellValue(row.getCell(1)));
 
-        contact.setRelation(
-                getCellValue(row.getCell(2))
-        );
+                    contact.setRelation(getCellValue(row.getCell(2)));
 
-        contact.setMobileNumber(
-                getCellValue(row.getCell(3))
-        );
+                    contact.setMobileNumber(getCellValue(row.getCell(3)));
 
-        contact.setAlternateNumber(
-                getCellValue(row.getCell(4))
-        );
+                    contact.setAlternateNumber(getCellValue(row.getCell(4)));
 
-        employeeContactRepository.save(contact);
-    }
-}
+                    employeeContactRepository.save(contact);
+                }
+            }
 //             //Certifications
-            Sheet certificationSheet =
-                    workbook.getSheet("Certifications");
+            Sheet certificationSheet = workbook.getSheet("Certifications");
 
             if (certificationSheet != null) {
 
-                for (int i = 1;
-                     i <= certificationSheet.getLastRowNum();
-                     i++) {
+                for (int i = 1; i <= certificationSheet.getLastRowNum(); i++) {
 
                     Row row = certificationSheet.getRow(i);
 
                     if (row == null) continue;
 
-                    String employeeId =
-                            getCellValue(row.getCell(0));
+                    String employeeId = getCellValue(row.getCell(0));
 
-                    Employee employee =
-                            getEmployee(employeeMap, employeeId);
+                    Employee employee = getEmployee(employeeMap, employeeId);
 
-                    EmployeeCertification certification =
-                            new EmployeeCertification();
+                    EmployeeCertification certification = new EmployeeCertification();
 
                     certification.setEmployee(employee);
 
-                    certification.setCertificationName(
-                            getCellValue(row.getCell(1))
-                    );
+                    certification.setCertificationName(getCellValue(row.getCell(1)));
 
-                    certification.setIssuingOrganization(
-                            getCellValue(row.getCell(2))
-                    );
+                    certification.setIssuingOrganization(getCellValue(row.getCell(2)));
 
-                    certification.setCertificateNumber(
-                            getCellValue(row.getCell(3))
-                    );
+                    certification.setCertificateNumber(getCellValue(row.getCell(3)));
 
-                    certification.setIssueDate(
-                            getLocalDate(row.getCell(4))
-                    );
+                    certification.setIssueDate(getLocalDate(row.getCell(4)));
 
-                    certification.setExpiryDate(
-                            getLocalDate(row.getCell(5))
-                    );
+                    certification.setExpiryDate(getLocalDate(row.getCell(5)));
 
-                    certification.setCredentialUrl(
-                            getCellValue(row.getCell(6))
-                    );
+                    certification.setCredentialUrl(getCellValue(row.getCell(6)));
 
-                    certification.setAttachmentUrl(
-                            getCellValue(row.getCell(7))
-                    );
+                    certification.setAttachmentUrl(getCellValue(row.getCell(7)));
 
-                    certification.setStatus(
-                            getCellValue(row.getCell(8))
-                    );
+                    certification.setStatus(getCellValue(row.getCell(8)));
 
                     employeeCertificationRepository.save(certification);
                 }
             }
 //             * Experience
-            Sheet experienceSheet =
-                    workbook.getSheet("Experience");
+            Sheet experienceSheet = workbook.getSheet("Experience");
 
             if (experienceSheet != null) {
 
-                for (int i = 1;
-                     i <= experienceSheet.getLastRowNum();
-                     i++) {
+                for (int i = 1; i <= experienceSheet.getLastRowNum(); i++) {
 
                     Row row = experienceSheet.getRow(i);
 
                     if (row == null) continue;
 
-                    String employeeId =
-                            getCellValue(row.getCell(0));
+                    String employeeId = getCellValue(row.getCell(0));
 
-                    Employee employee =
-                            getEmployee(employeeMap, employeeId);
+                    Employee employee = getEmployee(employeeMap, employeeId);
 
-                    EmployeeExperience experience =
-                            new EmployeeExperience();
+                    EmployeeExperience experience = new EmployeeExperience();
 
                     experience.setEmployee(employee);
 
-                    experience.setCompanyName(
-                            getCellValue(row.getCell(1))
-                    );
+                    experience.setCompanyName(getCellValue(row.getCell(1)));
 
-                    experience.setDesignation(
-                            getCellValue(row.getCell(2))
-                    );
+                    experience.setDesignation(getCellValue(row.getCell(2)));
 
-                    experience.setEmploymentType(
-                            getCellValue(row.getCell(3))
-                    );
+                    experience.setEmploymentType(getCellValue(row.getCell(3)));
 
-                    experience.setStartDate(
-                            getLocalDate(row.getCell(4))
-                    );
+                    experience.setStartDate(getLocalDate(row.getCell(4)));
 
-                    experience.setEndDate(
-                            getLocalDate(row.getCell(5))
-                    );
+                    experience.setEndDate(getLocalDate(row.getCell(5)));
 
-                    String totalExperience =
-                            getCellValue(row.getCell(6));
+                    String totalExperience = getCellValue(row.getCell(6));
 
-                    if (totalExperience != null &&
-                            !totalExperience.isBlank()) {
+                    if (totalExperience != null && !totalExperience.isBlank()) {
 
-                        experience.setTotalExperience(
-                                new java.math.BigDecimal(totalExperience)
-                        );
+                        experience.setTotalExperience(new java.math.BigDecimal(totalExperience));
                     }
 
-                    String currentCompany =
-                            getCellValue(row.getCell(7));
+                    String currentCompany = getCellValue(row.getCell(7));
 
-                    if (currentCompany != null &&
-                            !currentCompany.isBlank()) {
+                    if (currentCompany != null && !currentCompany.isBlank()) {
 
-                        experience.setCurrentCompany(
-                                Boolean.parseBoolean(currentCompany)
-                        );
+                        experience.setCurrentCompany(Boolean.parseBoolean(currentCompany));
                     }
 
-                    String salary =
-                            getCellValue(row.getCell(8));
+                    String salary = getCellValue(row.getCell(8));
 
-                    if (salary != null &&
-                            !salary.isBlank()) {
+                    if (salary != null && !salary.isBlank()) {
 
-                        experience.setSalary(
-                                new java.math.BigDecimal(salary)
-                        );
+                        experience.setSalary(new java.math.BigDecimal(salary));
                     }
 
-                    experience.setReasonForLeaving(
-                            getCellValue(row.getCell(9))
-                    );
+                    experience.setReasonForLeaving(getCellValue(row.getCell(9)));
 
                     employeeExperienceRepository.save(experience);
                 }
             }
 //             * FamilyMembers
-            Sheet familySheet =
-                    workbook.getSheet("FamilyMembers");
+            Sheet familySheet = workbook.getSheet("FamilyMembers");
 
             if (familySheet != null) {
 
-                for (int i = 1;
-                     i <= familySheet.getLastRowNum();
-                     i++) {
+                for (int i = 1; i <= familySheet.getLastRowNum(); i++) {
 
                     Row row = familySheet.getRow(i);
 
                     if (row == null) continue;
 
-                    String employeeId =
-                            getCellValue(row.getCell(0));
+                    String employeeId = getCellValue(row.getCell(0));
 
-                    Employee employee =
-                            getEmployee(employeeMap, employeeId);
+                    Employee employee = getEmployee(employeeMap, employeeId);
 
-                    EmployeeFamilyMember family =
-                            new EmployeeFamilyMember();
+                    EmployeeFamilyMember family = new EmployeeFamilyMember();
 
                     family.setEmployee(employee);
 
-                    family.setMemberName(
-                            getCellValue(row.getCell(1))
-                    );
+                    family.setMemberName(getCellValue(row.getCell(1)));
 
-                    family.setRelationship(
-                            getCellValue(row.getCell(2))
-                    );
+                    family.setRelationship(getCellValue(row.getCell(2)));
 
-                    family.setDateOfBirth(
-                            getLocalDate(row.getCell(3))
-                    );
+                    family.setDateOfBirth(getLocalDate(row.getCell(3)));
 
-                    family.setOccupation(
-                            getCellValue(row.getCell(4))
-                    );
+                    family.setOccupation(getCellValue(row.getCell(4)));
 
-                    family.setMobileNumber(
-                            getCellValue(row.getCell(5))
-                    );
+                    family.setMobileNumber(getCellValue(row.getCell(5)));
 
-                    String dependent =
-                            getCellValue(row.getCell(6));
+                    String dependent = getCellValue(row.getCell(6));
 
-                    if (dependent != null &&
-                            !dependent.isBlank()) {
+                    if (dependent != null && !dependent.isBlank()) {
 
-                        family.setDependent(
-                                Boolean.parseBoolean(dependent)
-                        );
+                        family.setDependent(Boolean.parseBoolean(dependent));
                     }
 
-                    String nominee =
-                            getCellValue(row.getCell(7));
+                    String nominee = getCellValue(row.getCell(7));
 
-                    if (nominee != null &&
-                            !nominee.isBlank()) {
+                    if (nominee != null && !nominee.isBlank()) {
 
-                        family.setNominee(
-                                Boolean.parseBoolean(nominee)
-                        );
+                        family.setNominee(Boolean.parseBoolean(nominee));
                     }
 
                     employeeFamilyMemberRepository.save(family);
                 }
             }
 //             * Languages
-            Sheet languageSheet =
-                    workbook.getSheet("Languages");
+            Sheet languageSheet = workbook.getSheet("Languages");
 
             if (languageSheet != null) {
 
-                for (int i = 1;
-                     i <= languageSheet.getLastRowNum();
-                     i++) {
+                for (int i = 1; i <= languageSheet.getLastRowNum(); i++) {
 
                     Row row = languageSheet.getRow(i);
 
                     if (row == null) continue;
 
-                    String employeeId =
-                            getCellValue(row.getCell(0));
+                    String employeeId = getCellValue(row.getCell(0));
 
-                    Employee employee =
-                            getEmployee(employeeMap, employeeId);
+                    Employee employee = getEmployee(employeeMap, employeeId);
 
-                    EmployeeLanguage language =
-                            new EmployeeLanguage();
+                    EmployeeLanguage language = new EmployeeLanguage();
 
                     language.setEmployee(employee);
 
-                    language.setLanguageName(
-                            getCellValue(row.getCell(1))
-                    );
+                    language.setLanguageName(getCellValue(row.getCell(1)));
 
-                    language.setReadLevel(
-                            getCellValue(row.getCell(2))
-                    );
+                    language.setReadLevel(getCellValue(row.getCell(2)));
 
-                    language.setWriteLevel(
-                            getCellValue(row.getCell(3))
-                    );
+                    language.setWriteLevel(getCellValue(row.getCell(3)));
 
-                    language.setSpeakLevel(
-                            getCellValue(row.getCell(4))
-                    );
+                    language.setSpeakLevel(getCellValue(row.getCell(4)));
 
-                    String nativeLanguage =
-                            getCellValue(row.getCell(5));
+                    String nativeLanguage = getCellValue(row.getCell(5));
 
-                    if (nativeLanguage != null &&
-                            !nativeLanguage.isBlank()) {
+                    if (nativeLanguage != null && !nativeLanguage.isBlank()) {
 
-                        language.setNativeLanguage(
-                                Boolean.parseBoolean(nativeLanguage)
-                        );
+                        language.setNativeLanguage(Boolean.parseBoolean(nativeLanguage));
                     }
 
                     employeeLanguageRepository.save(language);
                 }
             }
 //             * Skills
-            Sheet skillSheet =
-                    workbook.getSheet("Skills");
+            Sheet skillSheet = workbook.getSheet("Skills");
 
             if (skillSheet != null) {
 
-                for (int i = 1;
-                     i <= skillSheet.getLastRowNum();
-                     i++) {
+                for (int i = 1; i <= skillSheet.getLastRowNum(); i++) {
 
                     Row row = skillSheet.getRow(i);
 
                     if (row == null) continue;
 
-                    String employeeId =
-                            getCellValue(row.getCell(0));
+                    String employeeId = getCellValue(row.getCell(0));
 
-                    Employee employee =
-                            getEmployee(employeeMap, employeeId);
+                    Employee employee = getEmployee(employeeMap, employeeId);
 
-                    EmployeeSkill skill =
-                            new EmployeeSkill();
+                    EmployeeSkill skill = new EmployeeSkill();
 
                     skill.setEmployee(employee);
 
-                    skill.setSkillName(
-                            getCellValue(row.getCell(1))
-                    );
+                    skill.setSkillName(getCellValue(row.getCell(1)));
 
-                    skill.setSkillCategory(
-                            getCellValue(row.getCell(2))
-                    );
+                    skill.setSkillCategory(getCellValue(row.getCell(2)));
 
-                    skill.setProficiencyLevel(
-                            getCellValue(row.getCell(3))
-                    );
+                    skill.setProficiencyLevel(getCellValue(row.getCell(3)));
 
-                    String experienceYears =
-                            getCellValue(row.getCell(4));
+                    String experienceYears = getCellValue(row.getCell(4));
 
-                    if (experienceYears != null &&
-                            !experienceYears.isBlank()) {
+                    if (experienceYears != null && !experienceYears.isBlank()) {
 
-                        skill.setExperienceYears(
-                                new java.math.BigDecimal(experienceYears)
-                        );
+                        skill.setExperienceYears(new java.math.BigDecimal(experienceYears));
                     }
 
-                    skill.setLastUsed(
-                            getLocalDate(row.getCell(5))
-                    );
+                    skill.setLastUsed(getLocalDate(row.getCell(5)));
 
-                    String certificationAvailable =
-                            getCellValue(row.getCell(6));
+                    String certificationAvailable = getCellValue(row.getCell(6));
 
-                    if (certificationAvailable != null &&
-                            !certificationAvailable.isBlank()) {
+                    if (certificationAvailable != null && !certificationAvailable.isBlank()) {
 
-                        skill.setCertificationAvailable(
-                                Boolean.parseBoolean(
-                                        certificationAvailable
-                                )
-                        );
+                        skill.setCertificationAvailable(Boolean.parseBoolean(certificationAvailable));
                     }
 
-                    skill.setRemarks(
-                            getCellValue(row.getCell(7))
-                    );
+                    skill.setRemarks(getCellValue(row.getCell(7)));
 
                     employeeSkillRepository.save(skill);
                 }
             }
 //             * Designations
-            Sheet designationSheet =
-                    workbook.getSheet("Designations");
+            Sheet designationSheet = workbook.getSheet("Designations");
 
             if (designationSheet != null) {
 
-                for (int i = 1;
-                     i <= designationSheet.getLastRowNum();
-                     i++) {
+                for (int i = 1; i <= designationSheet.getLastRowNum(); i++) {
 
                     Row row = designationSheet.getRow(i);
 
                     if (row == null) continue;
 
-                    String employeeId =
-                            getCellValue(row.getCell(0));
+                    String employeeId = getCellValue(row.getCell(0));
 
-                    Employee employee =
-                            getEmployee(employeeMap, employeeId);
+                    Employee employee = getEmployee(employeeMap, employeeId);
 
-                    String designationName =
-                            getCellValue(row.getCell(1));
+                    String designationName = getCellValue(row.getCell(1));
 
-                    Designation designation =
-                            designationRepository
-                                    .findByDesignationName(designationName)
-                                    .orElseThrow(() ->
-                                            new RuntimeException(
-                                                    "Designation not found: "
-                                                            + designationName
-                                            )
-                                    );
+                    Designation designation = designationRepository.findByDesignationName(designationName).orElseThrow(() -> new RuntimeException("Designation not found: " + designationName));
 
-                    EmployeeDesignation employeeDesignation =
-                            new EmployeeDesignation();
+                    EmployeeDesignation employeeDesignation = new EmployeeDesignation();
 
                     employeeDesignation.setEmployee(employee);
 
-                    employeeDesignation.setDesignation(
-                            designation
-                    );
+                    employeeDesignation.setDesignation(designation);
 
-                    employeeDesignation.setPromotedDate(
-                            getLocalDate(row.getCell(2))
-                    );
+                    employeeDesignation.setPromotedDate(getLocalDate(row.getCell(2)));
 
-                    String previousDesignationName =
-                            getCellValue(row.getCell(3));
+                    String previousDesignationName = getCellValue(row.getCell(3));
 
-                    if (previousDesignationName != null &&
-                            !previousDesignationName.isBlank()) {
+                    if (previousDesignationName != null && !previousDesignationName.isBlank()) {
 
-                        Designation previousDesignation =
-                                designationRepository
-                                        .findByDesignationName(
-                                                previousDesignationName
-                                        )
-                                        .orElseThrow(() ->
-                                                new RuntimeException(
-                                                        "Previous designation not found: "
-                                                                + previousDesignationName
-                                                )
-                                        );
+                        Designation previousDesignation = designationRepository.findByDesignationName(previousDesignationName).orElseThrow(() -> new RuntimeException("Previous designation not found: " + previousDesignationName));
 
-                        employeeDesignation.setPreviousDesignation(
-                                previousDesignation
-                        );
+                        employeeDesignation.setPreviousDesignation(previousDesignation);
                     }
 
-                    employeeDesignation.setSalaryGrade(
-                            getCellValue(row.getCell(4))
-                    );
+                    employeeDesignation.setSalaryGrade(getCellValue(row.getCell(4)));
 
-                    employeeDesignationRepository.save(
-                            employeeDesignation
-                    );
+                    employeeDesignationRepository.save(employeeDesignation);
                 }
             }
 //             * Promotions
-            Sheet promotionSheet =
-                    workbook.getSheet("Promotions");
+            Sheet promotionSheet = workbook.getSheet("Promotions");
 
             if (promotionSheet != null) {
 
-                for (int i = 1;
-                     i <= promotionSheet.getLastRowNum();
-                     i++) {
+                for (int i = 1; i <= promotionSheet.getLastRowNum(); i++) {
 
                     Row row = promotionSheet.getRow(i);
 
                     if (row == null) continue;
 
-                    String employeeId =
-                            getCellValue(row.getCell(0));
+                    String employeeId = getCellValue(row.getCell(0));
 
-                    Employee employee =
-                            getEmployee(employeeMap, employeeId);
+                    Employee employee = getEmployee(employeeMap, employeeId);
 
-                    EmployeePromotion promotion =
-                            new EmployeePromotion();
+                    EmployeePromotion promotion = new EmployeePromotion();
 
                     promotion.setEmployee(employee);
 
-                    String previousSalary =
-                            getCellValue(row.getCell(1));
+                    String previousSalary = getCellValue(row.getCell(1));
 
-                    if (previousSalary != null &&
-                            !previousSalary.isBlank()) {
+                    if (previousSalary != null && !previousSalary.isBlank()) {
 
-                        promotion.setPreviousSalary(
-                                new java.math.BigDecimal(previousSalary)
-                        );
+                        promotion.setPreviousSalary(new java.math.BigDecimal(previousSalary));
                     }
 
-                    String newSalary =
-                            getCellValue(row.getCell(2));
+                    String newSalary = getCellValue(row.getCell(2));
 
-                    if (newSalary != null &&
-                            !newSalary.isBlank()) {
+                    if (newSalary != null && !newSalary.isBlank()) {
 
-                        promotion.setNewSalary(
-                                new java.math.BigDecimal(newSalary)
-                        );
+                        promotion.setNewSalary(new java.math.BigDecimal(newSalary));
                     }
 
-                    promotion.setPromotionDate(
-                            getLocalDate(row.getCell(3))
-                    );
+                    promotion.setPromotionDate(getLocalDate(row.getCell(3)));
 
-                    promotion.setReason(
-                            getCellValue(row.getCell(4))
-                    );
+                    promotion.setReason(getCellValue(row.getCell(4)));
 
-                    employeePromotionRepository.save(
-                            promotion
-                    );
+                    employeePromotionRepository.save(promotion);
                 }
             }
 //             * Transfers
-            Sheet transferSheet =
-                    workbook.getSheet("Transfers");
+            Sheet transferSheet = workbook.getSheet("Transfers");
 
             if (transferSheet != null) {
 
-                for (int i = 1;
-                     i <= transferSheet.getLastRowNum();
-                     i++) {
+                for (int i = 1; i <= transferSheet.getLastRowNum(); i++) {
 
                     Row row = transferSheet.getRow(i);
 
                     if (row == null) continue;
 
-                    String employeeId =
-                            getCellValue(row.getCell(0));
+                    String employeeId = getCellValue(row.getCell(0));
 
-                    Employee employee =
-                            getEmployee(employeeMap, employeeId);
+                    Employee employee = getEmployee(employeeMap, employeeId);
 
-                    EmployeeTransfer transfer =
-                            new EmployeeTransfer();
+                    EmployeeTransfer transfer = new EmployeeTransfer();
 
                     transfer.setEmployee(employee);
 
-                    String fromDepartment =
-                            getCellValue(row.getCell(1));
+                    String fromDepartment = getCellValue(row.getCell(1));
 
-                    String toDepartment =
-                            getCellValue(row.getCell(2));
+                    String toDepartment = getCellValue(row.getCell(2));
 
-                    String fromBranch =
-                            getCellValue(row.getCell(3));
+                    String fromBranch = getCellValue(row.getCell(3));
 
-                    String toBranch =
-                            getCellValue(row.getCell(4));
+                    String toBranch = getCellValue(row.getCell(4));
 
-                    String fromTeam =
-                            getCellValue(row.getCell(5));
+                    String fromTeam = getCellValue(row.getCell(5));
 
-                    String toTeam =
-                            getCellValue(row.getCell(6));
+                    String toTeam = getCellValue(row.getCell(6));
 
                     /*
                      * Resolve Department / Branch / Team
                      * using your repositories.
                      */
 
-                    if (fromDepartment != null &&
-                            !fromDepartment.isBlank()) {
+                    if (fromDepartment != null && !fromDepartment.isBlank()) {
 
-                        transfer.setFromDepartment(
-                                departmentRepository
-                                        .findByDepartmentName(
-                                                fromDepartment
-                                        )
-                                        .orElseThrow(() ->
-                                                new RuntimeException(
-                                                        "From department not found: "
-                                                                + fromDepartment
-                                                )
-                                        )
-                        );
+                        transfer.setFromDepartment(departmentRepository.findByDepartmentName(fromDepartment).orElseThrow(() -> new RuntimeException("From department not found: " + fromDepartment)));
                     }
 
-                    if (toDepartment != null &&
-                            !toDepartment.isBlank()) {
+                    if (toDepartment != null && !toDepartment.isBlank()) {
 
-                        transfer.setToDepartment(
-                                departmentRepository
-                                        .findByDepartmentName(
-                                                toDepartment
-                                        )
-                                        .orElseThrow(() ->
-                                                new RuntimeException(
-                                                        "To department not found: "
-                                                                + toDepartment
-                                                )
-                                        )
-                        );
+                        transfer.setToDepartment(departmentRepository.findByDepartmentName(toDepartment).orElseThrow(() -> new RuntimeException("To department not found: " + toDepartment)));
                     }
 
-                    if (fromBranch != null &&
-                            !fromBranch.isBlank()) {
+                    if (fromBranch != null && !fromBranch.isBlank()) {
 
-                        transfer.setFromBranch(
-                                branchRepository
-                                        .findByBranchName(fromBranch)
-                                        .orElseThrow(() ->
-                                                new RuntimeException(
-                                                        "From branch not found: "
-                                                                + fromBranch
-                                                )
-                                        )
-                        );
+                        transfer.setFromBranch(branchRepository.findByBranchName(fromBranch).orElseThrow(() -> new RuntimeException("From branch not found: " + fromBranch)));
                     }
 
-                    if (toBranch != null &&
-                            !toBranch.isBlank()) {
+                    if (toBranch != null && !toBranch.isBlank()) {
 
-                        transfer.setToBranch(
-                                branchRepository
-                                        .findByBranchName(toBranch)
-                                        .orElseThrow(() ->
-                                                new RuntimeException(
-                                                        "To branch not found: "
-                                                                + toBranch
-                                                )
-                                        )
-                        );
+                        transfer.setToBranch(branchRepository.findByBranchName(toBranch).orElseThrow(() -> new RuntimeException("To branch not found: " + toBranch)));
                     }
 
-                    if (fromTeam != null &&
-                            !fromTeam.isBlank()) {
+                    if (fromTeam != null && !fromTeam.isBlank()) {
 
-                        transfer.setFromTeam(
-                                teamRepository
-                                        .findByTeamName(fromTeam)
-                                        .orElseThrow(() ->
-                                                new RuntimeException(
-                                                        "From team not found: "
-                                                                + fromTeam
-                                                )
-                                        )
-                        );
+                        transfer.setFromTeam(teamRepository.findByTeamName(fromTeam).orElseThrow(() -> new RuntimeException("From team not found: " + fromTeam)));
                     }
 
-                    if (toTeam != null &&
-                            !toTeam.isBlank()) {
+                    if (toTeam != null && !toTeam.isBlank()) {
 
-                        transfer.setToTeam(
-                                teamRepository
-                                        .findByTeamName(toTeam)
-                                        .orElseThrow(() ->
-                                                new RuntimeException(
-                                                        "To team not found: "
-                                                                + toTeam
-                                                )
-                                        ));
+                        transfer.setToTeam(teamRepository.findByTeamName(toTeam).orElseThrow(() -> new RuntimeException("To team not found: " + toTeam)));
                     }
 
-                    transfer.setTransferDate(
-                            getLocalDate(row.getCell(7))
-                    );
+                    transfer.setTransferDate(getLocalDate(row.getCell(7)));
 
-                    transfer.setReason(
-                            getCellValue(row.getCell(8))
-                    );
+                    transfer.setReason(getCellValue(row.getCell(8)));
 
                     employeeTransferRepository.save(transfer);
                 }
             }
 //             * ExitManagement
-            Sheet exitSheet =
-                    workbook.getSheet("ExitManagement");
+            Sheet exitSheet = workbook.getSheet("ExitManagement");
 
             if (exitSheet != null) {
 
-                for (int i = 1;
-                     i <= exitSheet.getLastRowNum();
-                     i++) {
+                for (int i = 1; i <= exitSheet.getLastRowNum(); i++) {
 
                     Row row = exitSheet.getRow(i);
 
                     if (row == null) continue;
 
-                    String employeeId =
-                            getCellValue(row.getCell(0));
+                    String employeeId = getCellValue(row.getCell(0));
 
-                    Employee employee =
-                            getEmployee(employeeMap, employeeId);
+                    Employee employee = getEmployee(employeeMap, employeeId);
 
-                    EmployeeExitManagement exit =
-                            new EmployeeExitManagement();
+                    EmployeeExitManagement exit = new EmployeeExitManagement();
 
                     exit.setEmployee(employee);
 
-                    exit.setResignationDate(
-                            getLocalDate(row.getCell(1))
-                    );
+                    exit.setResignationDate(getLocalDate(row.getCell(1)));
 
-                    exit.setLastWorkingDay(
-                            getLocalDate(row.getCell(2))
-                    );
+                    exit.setLastWorkingDay(getLocalDate(row.getCell(2)));
 
-                    exit.setReason(
-                            getCellValue(row.getCell(3))
-                    );
+                    exit.setReason(getCellValue(row.getCell(3)));
 
-                    exit.setExitStatus(
-                            getCellValue(row.getCell(4))
-                    );
+                    exit.setExitStatus(getCellValue(row.getCell(4)));
 
-                    exit.setRelievingLetter(
-                            getCellValue(row.getCell(5))
-                    );
+                    exit.setRelievingLetter(getCellValue(row.getCell(5)));
 
-                    exit.setRemarks(
-                            getCellValue(row.getCell(6))
-                    );
+                    exit.setRemarks(getCellValue(row.getCell(6)));
 
-                    String approvedByEmployeeId =
-                            getCellValue(row.getCell(7));
+                    String approvedByEmployeeId = getCellValue(row.getCell(7));
 
-                    if (approvedByEmployeeId != null &&
-                            !approvedByEmployeeId.isBlank()) {
+                    if (approvedByEmployeeId != null && !approvedByEmployeeId.isBlank()) {
 
-                        Employee approvedBy =
-                                employeeRepository
-                                        .findByEmployeeId(
-                                                approvedByEmployeeId
-                                        )
-                                        .orElseThrow(() ->
-                                                new RuntimeException(
-                                                        "Approving employee not found: "
-                                                                + approvedByEmployeeId
-                                                )
-                                        );
+                        Employee approvedBy = employeeRepository.findByEmployeeId(approvedByEmployeeId).orElseThrow(() -> new RuntimeException("Approving employee not found: " + approvedByEmployeeId));
 
                         exit.setExitApprovedBy(approvedBy);
                     }
@@ -3786,63 +2814,34 @@ if (contactSheet != null) {
                 }
             }
 
-            Map<String, Object> response =
-                    new LinkedHashMap<>();
+            Map<String, Object> response = new LinkedHashMap<>();
 
-            response.put(
-                    "message",
-                    "Employee Excel uploaded successfully"
-            );
+            response.put("message", "Employee Excel uploaded successfully");
 
-            response.put(
-                    "employeesCreated",
-                    employeeCount
-            );
+            response.put("employeesCreated", employeeCount);
 
-            response.put(
-                    "addressesCreated",
-                    addressCount
-            );
+            response.put("addressesCreated", addressCount);
 
-            response.put(
-                    "bankDetailsCreated",
-                    bankCount
-            );
+            response.put("bankDetailsCreated", bankCount);
 
-            response.put(
-                    "documentsCreated",
-                    documentCount
-            );
+            response.put("documentsCreated", documentCount);
 
-            response.put(
-                    "status",
-                    "SUCCESS"
-            );
+            response.put("status", "SUCCESS");
 
             return response;
 
         } catch (Exception e) {
 
-            throw new RuntimeException(
-                    "Excel upload failed: "
-                            + e.getMessage(),
-                    e
-            );
+            throw new RuntimeException("Excel upload failed: " + e.getMessage(), e);
         }
     }
 
-    private Employee getEmployee(
-            Map<String, Employee> employeeMap,
-            String employeeId) {
+    private Employee getEmployee(Map<String, Employee> employeeMap, String employeeId) {
 
-        Employee employee =
-                employeeMap.get(employeeId);
+        Employee employee = employeeMap.get(employeeId);
 
         if (employee == null) {
-            throw new RuntimeException(
-                    "Employee ID not found in Employees sheet: "
-                            + employeeId
-            );
+            throw new RuntimeException("Employee ID not found in Employees sheet: " + employeeId);
         }
 
         return employee;
@@ -3854,12 +2853,9 @@ if (contactSheet != null) {
             return null;
         }
 
-        DataFormatter formatter =
-                new DataFormatter();
+        DataFormatter formatter = new DataFormatter();
 
-        return formatter
-                .formatCellValue(cell)
-                .trim();
+        return formatter.formatCellValue(cell).trim();
     }
 
     private java.time.LocalDate getLocalDate(Cell cell) {
@@ -3868,19 +2864,14 @@ if (contactSheet != null) {
             return null;
         }
 
-        if (cell.getCellType() ==
-                CellType.NUMERIC &&
-                DateUtil.isCellDateFormatted(cell)) {
+        if (cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
 
-            return cell
-                    .getLocalDateTimeCellValue()
-                    .toLocalDate();
+            return cell.getLocalDateTimeCellValue().toLocalDate();
         }
 
         String value = getCellValue(cell);
 
-        if (value == null ||
-                value.isBlank()) {
+        if (value == null || value.isBlank()) {
             return null;
         }
 
@@ -3897,9 +2888,7 @@ if (contactSheet != null) {
         Employee employee = getEmployeeByEmployeeId(employeeId);
 
         if (employeeApprovalRepository.existsByEmployee_Id(employee.getId())) {
-            throw new RuntimeException(
-                    "Approval already exists for employee: " + employeeId
-            );
+            throw new RuntimeException("Approval already exists for employee: " + employeeId);
         }
 
         EmployeeApproval approval = new EmployeeApproval();
@@ -3936,14 +2925,7 @@ if (contactSheet != null) {
 
         Employee employee = getEmployeeByEmployeeId(employeeId);
 
-        return employeeApprovalRepository
-                .findByEmployee_Id(employee.getId())
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Approval record not found for employee: "
-                                        + employeeId
-                        )
-                );
+        return employeeApprovalRepository.findByEmployee_Id(employee.getId()).orElseThrow(() -> new RuntimeException("Approval record not found for employee: " + employeeId));
     }
 
 
@@ -3952,10 +2934,7 @@ if (contactSheet != null) {
     // =====================================================
 
     @Transactional
-    public EmployeeApproval hrApproval(
-            String employeeId,
-            ApprovalRequestdto request,
-            Long approverId) {
+    public EmployeeApproval hrApproval(String employeeId, ApprovalRequestdto request, Long approverId) {
 
         EmployeeApproval approval = getApproval(employeeId);
 
@@ -3977,10 +2956,7 @@ if (contactSheet != null) {
     // =====================================================
 
     @Transactional
-    public EmployeeApproval adminApproval(
-            String employeeId,
-            ApprovalRequestdto request,
-            Long approverId) {
+    public EmployeeApproval adminApproval(String employeeId, ApprovalRequestdto request, Long approverId) {
 
         EmployeeApproval approval = getApproval(employeeId);
 
@@ -4002,10 +2978,7 @@ if (contactSheet != null) {
     // =====================================================
 
     @Transactional
-    public EmployeeApproval departmentHeadApproval(
-            String employeeId,
-            ApprovalRequestdto request,
-            Long approverId) {
+    public EmployeeApproval departmentHeadApproval(String employeeId, ApprovalRequestdto request, Long approverId) {
 
         EmployeeApproval approval = getApproval(employeeId);
 
@@ -4013,12 +2986,8 @@ if (contactSheet != null) {
 
         approval.setDepartmentHeadStatus(request.getStatus());
         approval.setDepartmentHeadApprovedBy(approver);
-        approval.setDepartmentHeadApprovedAt(
-                LocalDateTime.now()
-        );
-        approval.setDepartmentHeadRemarks(
-                request.getRemarks()
-        );
+        approval.setDepartmentHeadApprovedAt(LocalDateTime.now());
+        approval.setDepartmentHeadRemarks(request.getRemarks());
 
         checkFinalApproval(approval);
 
@@ -4030,18 +2999,12 @@ if (contactSheet != null) {
     // CHECK FINAL APPROVAL
     // =====================================================
 
-    private void checkFinalApproval(
-            EmployeeApproval approval) {
+    private void checkFinalApproval(EmployeeApproval approval) {
 
         // If anyone rejects
-        if (approval.getHrStatus() == ApprovalStatus.REJECTED
-                || approval.getAdminStatus() == ApprovalStatus.REJECTED
-                || approval.getDepartmentHeadStatus()
-                == ApprovalStatus.REJECTED) {
+        if (approval.getHrStatus() == ApprovalStatus.REJECTED || approval.getAdminStatus() == ApprovalStatus.REJECTED || approval.getDepartmentHeadStatus() == ApprovalStatus.REJECTED) {
 
-            approval.setFinalStatus(
-                    ApprovalStatus.REJECTED
-            );
+            approval.setFinalStatus(ApprovalStatus.REJECTED);
 
             approval.setFinalApprovedAt(null);
 
@@ -4050,27 +3013,18 @@ if (contactSheet != null) {
 
 
         // All three approved
-        if (approval.getHrStatus() == ApprovalStatus.APPROVED
-                && approval.getAdminStatus() == ApprovalStatus.APPROVED
-                && approval.getDepartmentHeadStatus()
-                == ApprovalStatus.APPROVED) {
+        if (approval.getHrStatus() == ApprovalStatus.APPROVED && approval.getAdminStatus() == ApprovalStatus.APPROVED && approval.getDepartmentHeadStatus() == ApprovalStatus.APPROVED) {
 
-            approval.setFinalStatus(
-                    ApprovalStatus.APPROVED
-            );
+            approval.setFinalStatus(ApprovalStatus.APPROVED);
 
-            approval.setFinalApprovedAt(
-                    LocalDateTime.now()
-            );
+            approval.setFinalApprovedAt(LocalDateTime.now());
 
             return;
         }
 
 
         // Otherwise pending
-        approval.setFinalStatus(
-                ApprovalStatus.PENDING
-        );
+        approval.setFinalStatus(ApprovalStatus.PENDING);
 
         approval.setFinalApprovedAt(null);
     }
@@ -4082,10 +3036,7 @@ if (contactSheet != null) {
 
     public List<EmployeeApproval> getPendingHR() {
 
-        return employeeApprovalRepository
-                .findByHrStatus(
-                        ApprovalStatus.PENDING
-                );
+        return employeeApprovalRepository.findByHrStatus(ApprovalStatus.PENDING);
     }
 
 
@@ -4095,10 +3046,7 @@ if (contactSheet != null) {
 
     public List<EmployeeApproval> getPendingAdmin() {
 
-        return employeeApprovalRepository
-                .findByAdminStatus(
-                        ApprovalStatus.PENDING
-                );
+        return employeeApprovalRepository.findByAdminStatus(ApprovalStatus.PENDING);
     }
 
 
@@ -4108,10 +3056,7 @@ if (contactSheet != null) {
 
     public List<EmployeeApproval> getPendingDepartmentHead() {
 
-        return employeeApprovalRepository
-                .findByDepartmentHeadStatus(
-                        ApprovalStatus.PENDING
-                );
+        return employeeApprovalRepository.findByDepartmentHeadStatus(ApprovalStatus.PENDING);
     }
 
 
@@ -4121,10 +3066,7 @@ if (contactSheet != null) {
 
     public List<EmployeeApproval> getFinalApprovedEmployees() {
 
-        return employeeApprovalRepository
-                .findByFinalStatus(
-                        ApprovalStatus.APPROVED
-                );
+        return employeeApprovalRepository.findByFinalStatus(ApprovalStatus.APPROVED);
     }
 
 
@@ -4134,10 +3076,7 @@ if (contactSheet != null) {
 
     public List<EmployeeApproval> getRejectedEmployees() {
 
-        return employeeApprovalRepository
-                .findByFinalStatus(
-                        ApprovalStatus.REJECTED
-                );
+        return employeeApprovalRepository.findByFinalStatus(ApprovalStatus.REJECTED);
     }
 
 
@@ -4146,24 +3085,18 @@ if (contactSheet != null) {
     // =====================================================
 
     @Transactional
-    public EmployeeApproval markAccountCreated(
-            String employeeId) {
+    public EmployeeApproval markAccountCreated(String employeeId) {
 
         EmployeeApproval approval = getApproval(employeeId);
 
-        if (approval.getFinalStatus()
-                != ApprovalStatus.APPROVED) {
+        if (approval.getFinalStatus() != ApprovalStatus.APPROVED) {
 
-            throw new RuntimeException(
-                    "Employee is not finally approved"
-            );
+            throw new RuntimeException("Employee is not finally approved");
         }
 
         approval.setAccountCreated(true);
 
-        approval.setAccountCreatedAt(
-                LocalDateTime.now()
-        );
+        approval.setAccountCreatedAt(LocalDateTime.now());
 
         return employeeApprovalRepository.save(approval);
     }
@@ -4174,24 +3107,18 @@ if (contactSheet != null) {
     // =====================================================
 
     @Transactional
-    public EmployeeApproval markWelcomeMailSent(
-            String employeeId) {
+    public EmployeeApproval markWelcomeMailSent(String employeeId) {
 
         EmployeeApproval approval = getApproval(employeeId);
 
-        if (!Boolean.TRUE.equals(
-                approval.getAccountCreated())) {
+        if (!Boolean.TRUE.equals(approval.getAccountCreated())) {
 
-            throw new RuntimeException(
-                    "Employee account has not been created"
-            );
+            throw new RuntimeException("Employee account has not been created");
         }
 
         approval.setWelcomeMailSent(true);
 
-        approval.setWelcomeMailSentAt(
-                LocalDateTime.now()
-        );
+        approval.setWelcomeMailSentAt(LocalDateTime.now());
 
         return employeeApprovalRepository.save(approval);
     }
@@ -4201,17 +3128,9 @@ if (contactSheet != null) {
     // GET EMPLOYEE BY BUSINESS EMPLOYEE ID
     // =====================================================
 
-    private Employee getEmployeeByEmployeeId(
-            String employeeId) {
+    private Employee getEmployeeByEmployeeId(String employeeId) {
 
-        return employeeRepository
-                .findByEmployeeId(employeeId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Employee not found: "
-                                        + employeeId
-                        )
-                );
+        return employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found: " + employeeId));
     }
 
 
@@ -4221,14 +3140,275 @@ if (contactSheet != null) {
 
     private Employee getEmployeeById(Long id) {
 
-        return employeeRepository
-                .findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Employee not found with ID: "
-                                        + id
-                        )
-                );
+        return employeeRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee not found with ID: " + id));
+    }
+
+    @Transactional
+    public String hrApproval(Long employeeId, EmployeeApprovalRequest request) {
+
+        EmployeeApproval approval = employeeApprovalRepository.findByEmployeeId(employeeId);
+
+        if (approval.getHrStatus() != ApprovalStatus.PENDING) {
+            throw new RuntimeException("HR approval has already been processed");
+        }
+
+        Employee approver = employeeRepository.findByEmployeeId(getLoggedInEmployeeId()).orElseThrow(() -> new RuntimeException("Approving employee not found"));
+
+        if (request.getHrStatus() == ApprovalStatus.APPROVED) {
+
+            approval.setHrStatus(ApprovalStatus.APPROVED);
+
+            approval.setHrApprovedBy(approver);
+
+            approval.setHrApprovedAt(LocalDateTime.now());
+
+            approval.setHrRemarks(request.getHrRemarks());
+
+            employeeApprovalRepository.save(approval);
+
+            return "Employee approved by HR";
+
+        } else if (request.getHrStatus() == ApprovalStatus.REJECTED) {
+
+            approval.setHrStatus(ApprovalStatus.REJECTED);
+
+            approval.setHrApprovedBy(approver);
+
+            approval.setHrApprovedAt(LocalDateTime.now());
+
+            approval.setHrRemarks(request.getHrRemarks());
+
+            approval.setFinalStatus(ApprovalStatus.REJECTED);
+
+            employeeApprovalRepository.save(approval);
+
+            return "Employee rejected by HR";
+        }
+
+        throw new RuntimeException("Invalid HR approval status");
+    }
+
+    @Transactional
+    public String adminApproval(Long employeeId, EmployeeApprovalRequest request) {
+
+        EmployeeApproval approval = employeeApprovalRepository.findByEmployeeId(employeeId);
+
+        if (approval.getHrStatus() != ApprovalStatus.APPROVED) {
+
+            throw new RuntimeException("HR approval is required before Admin approval");
+        }
+
+        if (approval.getAdminStatus() != ApprovalStatus.PENDING) {
+
+            throw new RuntimeException("Admin approval has already been processed");
+        }
+
+        Employee approver = employeeRepository.findByEmployeeId(getLoggedInEmployeeId()).orElseThrow(() -> new RuntimeException("Approving employee not found"));
+
+        if (request.getAdminStatus() == ApprovalStatus.APPROVED) {
+
+            approval.setAdminStatus(ApprovalStatus.APPROVED);
+
+            approval.setAdminApprovedBy(approver);
+
+            approval.setAdminApprovedAt(LocalDateTime.now());
+
+            approval.setAdminRemarks(request.getAdminRemarks());
+
+            employeeApprovalRepository.save(approval);
+
+            return "Employee approved by Admin";
+
+        } else if (request.getAdminStatus() == ApprovalStatus.REJECTED) {
+
+            approval.setAdminStatus(ApprovalStatus.REJECTED);
+
+            approval.setAdminApprovedBy(approver);
+
+            approval.setAdminApprovedAt(LocalDateTime.now());
+
+            approval.setAdminRemarks(request.getAdminRemarks());
+
+            approval.setFinalStatus(ApprovalStatus.REJECTED);
+
+            employeeApprovalRepository.save(approval);
+
+            return "Employee rejected by Admin";
+        }
+
+        throw new RuntimeException("Invalid Admin approval status");
+    }
+
+    @Transactional
+    public String departmentHeadApproval(Long employeeId, EmployeeApprovalRequest request) {
+
+        EmployeeApproval approval = employeeApprovalRepository.findByEmployeeId(employeeId);
+
+        if (approval.getHrStatus() != ApprovalStatus.APPROVED) {
+
+            throw new RuntimeException("HR approval is required");
+        }
+
+        if (approval.getAdminStatus() != ApprovalStatus.APPROVED) {
+
+            throw new RuntimeException("Admin approval is required");
+        }
+
+        if (approval.getDepartmentHeadStatus() != ApprovalStatus.PENDING) {
+
+            throw new RuntimeException("Department Head approval has already been processed");
+        }
+
+        Employee approver = employeeRepository.findByEmployeeId(getLoggedInEmployeeId()).orElseThrow(() -> new RuntimeException("Approving employee not found"));
+
+        if (request.getDepartmentHeadStatus() == ApprovalStatus.APPROVED) {
+
+            approval.setDepartmentHeadStatus(ApprovalStatus.APPROVED);
+
+            approval.setDepartmentHeadApprovedBy(approver);
+
+            approval.setDepartmentHeadApprovedAt(LocalDateTime.now());
+
+            approval.setDepartmentHeadRemarks(request.getDepartmentHeadRemarks());
+
+            employeeApprovalRepository.save(approval);
+
+            return "Employee approved by Department Head";
+
+        } else if (request.getDepartmentHeadStatus() == ApprovalStatus.REJECTED) {
+
+            approval.setDepartmentHeadStatus(ApprovalStatus.REJECTED);
+
+            approval.setDepartmentHeadApprovedBy(approver);
+
+            approval.setDepartmentHeadApprovedAt(LocalDateTime.now());
+
+            approval.setDepartmentHeadRemarks(request.getDepartmentHeadRemarks());
+
+            approval.setFinalStatus(ApprovalStatus.REJECTED);
+
+            employeeApprovalRepository.save(approval);
+
+            return "Employee rejected by Department Head";
+        }
+
+        throw new RuntimeException("Invalid Department Head approval status");
+    }
+
+    @Transactional
+    public String finalApproval(Long employeeId) {
+
+        EmployeeApproval approval = employeeApprovalRepository.findByEmployeeId(employeeId);
+
+        if (approval.getHrStatus() != ApprovalStatus.APPROVED) {
+
+            throw new RuntimeException("HR approval is pending");
+        }
+
+        if (approval.getAdminStatus() != ApprovalStatus.APPROVED) {
+
+            throw new RuntimeException("Admin approval is pending");
+        }
+
+        if (approval.getDepartmentHeadStatus() != ApprovalStatus.APPROVED) {
+
+            throw new RuntimeException("Department Head approval is pending");
+        }
+
+        if (approval.getFinalStatus() != ApprovalStatus.PENDING) {
+
+            throw new RuntimeException("Final approval has already been processed");
+        }
+
+        approval.setFinalStatus(ApprovalStatus.APPROVED);
+
+        approval.setFinalApprovedAt(LocalDateTime.now());
+
+        employeeApprovalRepository.save(approval);
+
+        return "Employee finally approved";
+    }
+
+    @Transactional
+    public String sendWelcomeMail(Long employeeId) {
+
+        // =====================================================
+        // 1. FIND APPROVAL
+        // =====================================================
+
+        EmployeeApproval approval = employeeApprovalRepository.findByEmployeeId(employeeId);
+
+
+        // =====================================================
+        // 2. CHECK FINAL APPROVAL
+        // =====================================================
+
+        if (approval.getFinalStatus() != ApprovalStatus.APPROVED) {
+
+            throw new RuntimeException("Employee is not finally approved");
+        }
+
+
+        // =====================================================
+        // 3. CHECK ACCOUNT CREATED
+        // =====================================================
+
+        if (!Boolean.TRUE.equals(approval.getAccountCreated())) {
+
+            throw new RuntimeException("Employee account has not been created");
+        }
+
+
+        // =====================================================
+        // 4. CHECK WELCOME MAIL
+        // =====================================================
+
+        if (Boolean.TRUE.equals(approval.getWelcomeMailSent())) {
+
+            throw new RuntimeException("Welcome mail already sent");
+        }
+
+
+        // =====================================================
+        // 5. GET EMPLOYEE
+        // =====================================================
+
+        Employee employee = approval.getEmployee();
+
+        if (employee == null) {
+
+            throw new RuntimeException("Employee not found");
+        }
+
+        if (employee.getEmail() == null || employee.getEmail().isBlank()) {
+
+            throw new RuntimeException("Employee email address not available");
+        }
+
+
+        // =====================================================
+        // 6. SEND WELCOME MAIL
+        // =====================================================
+
+        emailService.sendWelcomeMail(employee.getEmail(), employee.getFirstName());
+
+
+        // =====================================================
+        // 7. UPDATE MAIL STATUS
+        // =====================================================
+
+        approval.setWelcomeMailSent(true);
+
+        approval.setWelcomeMailSentAt(LocalDateTime.now());
+
+        employeeApprovalRepository.save(approval);
+
+
+        // =====================================================
+        // 8. RESPONSE
+        // =====================================================
+
+        return "Welcome mail sent successfully";
     }
 //    public Object getAttendance(Long id){
 //
@@ -4318,7 +3498,6 @@ if (contactSheet != null) {
 //
 //        return null;
 //    }
-
 
 
 }

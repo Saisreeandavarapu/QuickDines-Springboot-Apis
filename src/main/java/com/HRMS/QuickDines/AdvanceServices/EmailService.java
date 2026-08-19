@@ -225,6 +225,32 @@ public class EmailService {
         mailSender.send(message);
     }
 
+    public void sendWelcomeMail(
+            String email,
+            String firstName) {
+
+        SimpleMailMessage message =
+                new SimpleMailMessage();
+
+        message.setTo(email);
+
+        message.setSubject(
+                "Welcome to QuickDines HRMS"
+        );
+
+        message.setText(
+                "Dear " + firstName + ",\n\n" +
+                        "Welcome to QuickDines HRMS.\n\n" +
+                        "Your employee account has been successfully created " +
+                        "and approved.\n\n" +
+                        "You can now log in to the HRMS portal.\n\n" +
+                        "Regards,\n" +
+                        "QuickDines HRMS"
+        );
+
+        mailSender.send(message);
+    }
+
 
     public void sendRegistrationMail(){}
 

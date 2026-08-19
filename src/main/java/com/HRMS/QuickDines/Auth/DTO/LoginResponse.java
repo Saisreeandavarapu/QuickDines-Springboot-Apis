@@ -10,8 +10,12 @@ public class LoginResponse {
 
     private String role;
 
-    private String message;
+    private String email;
 
     private String refreshToken;
+
+    private String employeeId;
+
+
 
 }

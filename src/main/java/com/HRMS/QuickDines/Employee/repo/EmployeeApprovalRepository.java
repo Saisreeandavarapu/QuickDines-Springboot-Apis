@@ -25,4 +25,6 @@ public interface EmployeeApprovalRepository
     List<EmployeeApproval> findByFinalStatus(
             ApprovalStatus status
     );
+
+    EmployeeApproval findByEmployeeId(Long employeeId);
 }

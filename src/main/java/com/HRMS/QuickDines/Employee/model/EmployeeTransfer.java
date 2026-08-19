@@ -1,6 +1,5 @@
 package com.HRMS.QuickDines.Employee.model;
 
-import com.HRMS.QuickDines.Auth.model.Users;
 import com.HRMS.QuickDines.Company.model.Branch;
 import com.HRMS.QuickDines.Organization.model.Department;
 import com.HRMS.QuickDines.Organization.model.Team;

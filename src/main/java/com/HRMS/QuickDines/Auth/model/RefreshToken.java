@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Auth.model;
 
+import com.HRMS.QuickDines.Employee.model.Employee;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -15,9 +16,9 @@ public class RefreshToken{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name="user_id")
-    private Users users;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "Employee_id")
+    private Employee employee;
 
 
     private String token;

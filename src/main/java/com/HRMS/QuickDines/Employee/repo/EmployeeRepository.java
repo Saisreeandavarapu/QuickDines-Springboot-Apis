@@ -30,4 +30,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
             @Param("keyword") String keyword);
     List<Employee> findByDepartmentId(Long departmentId);
 
+    boolean existsByRole_RoleNameIgnoreCase(String superAdmin);
+
+    Employee findByEmail(String email);
+
+    Optional<Employee> findByEmployee(Employee employee);
 }

@@ -1,9 +1,6 @@
 package com.HRMS.QuickDines.Auth.services;
 
 
-import com.HRMS.QuickDines.Auth.model.Users;
-import com.HRMS.QuickDines.Auth.model.Users;
-import com.HRMS.QuickDines.Auth.repo.UserRepository;
 import com.HRMS.QuickDines.Auth.repo.UserRepository;
 import lombok.RequiredArgsConstructor;
 

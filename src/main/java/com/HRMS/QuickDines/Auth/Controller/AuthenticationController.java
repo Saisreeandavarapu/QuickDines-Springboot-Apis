@@ -1,495 +1,404 @@
 package com.HRMS.QuickDines.Auth.Controller;
 
-import com.HRMS.QuickDines.Auth.DTO.ChangePasswordRequest;
 import com.HRMS.QuickDines.Auth.DTO.LoginRequest;
-import com.HRMS.QuickDines.Auth.DTO.LoginResponse;
-import com.HRMS.QuickDines.Auth.DTO.ResetPasswordRequest;
-import com.HRMS.QuickDines.Auth.Entity.LoginStatus;
-import com.HRMS.QuickDines.Auth.Entity.UserStatus;
-import com.HRMS.QuickDines.Auth.model.*;
+import com.HRMS.QuickDines.Auth.DTO.*;
+import com.HRMS.QuickDines.Auth.model.Permission;
+import com.HRMS.QuickDines.Auth.model.Role;
 import com.HRMS.QuickDines.Auth.services.AuthenticationService;
-import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
-import com.HRMS.QuickDines.Organization.model.Department;
-import com.HRMS.QuickDines.Organization.repo.DepartmentRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api")
 @RequiredArgsConstructor
+@CrossOrigin("*")
 public class AuthenticationController {
 
-    private final AuthenticationService service;
+    private final AuthenticationService authService;
 
 
-    // Registration
-
-    @PostMapping("/super-admin/register")
-    public ResponseEntity<String> registerSuperAdmin(
-            @RequestBody Users request) {
-
-        return ResponseEntity.ok(service.registerSuperAdmin(request));
-
-    }
-
+    // =========================================================
+    // AUTHENTICATION
+    // =========================================================
 
     // Login
-
-    @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(
-            @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+    @PostMapping("/auth/login")
+    public ResponseEntity<?> login(
+            @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest) {
 
         return ResponseEntity.ok(
-                service.login(request,httpRequest));
-
+                authService.login(request, httpRequest)
+        );
     }
 
 
     // Logout
+    @PostMapping("/auth/logout")
+    public ResponseEntity<?> logout(
+            HttpServletRequest httpRequest) {
 
-    @PostMapping("/logout")
-    public ResponseEntity<String> logout(HttpServletRequest httpRequest) {
         return ResponseEntity.ok(
-                service.logout(httpRequest));
-
+                authService.logout(httpRequest)
+        );
     }
 
 
-    // Password APIs
 
-    @PostMapping("/forgot-password")
-    public ResponseEntity<String> forgotPassword(@RequestParam String email) {
+
+
+    // Forgot Password
+    @PostMapping("/auth/forgot-password")
+    public ResponseEntity<?> forgotPassword(
+            @RequestParam String email) {
 
         return ResponseEntity.ok(
-                service.forgotPassword(email));
-
+                authService.forgotPassword(email)
+        );
     }
 
 
-    @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(
+    // Reset Password
+    @PostMapping("/auth/reset-password")
+    public ResponseEntity<?> resetPassword(
             @RequestBody ResetPasswordRequest request) {
 
         return ResponseEntity.ok(
-                service.resetPassword(request.getEmail(), request.getOtp(), request.getNewPassword())
-
+                authService.resetPassword(
+                        request
+                )
         );
-
     }
 
 
-    @PostMapping("/change-password")
-    public ResponseEntity<String> changePassword(
+    // Change Password
+    @PostMapping("/auth/change-password")
+    public ResponseEntity<?> changePassword(
             @RequestBody ChangePasswordRequest request) {
 
         return ResponseEntity.ok(
-                service.changePassword(request)
+                authService.changePassword(request)
         );
-
     }
 
 
-    // OTP APIs
+    // =========================================================
+    // OTP
+    // =========================================================
 
-    @PostMapping("/send-otp")
-    public ResponseEntity<String> sendOTP(@RequestParam String email) {
+    // Send OTP
+    @PostMapping("/auth/send-otp")
+    public ResponseEntity<?> sendOTP(
+            @RequestParam String email) {
 
         return ResponseEntity.ok(
-                service.sendOTP(email));
-
+                authService.sendOTP(email)
+        );
     }
 
 
-    @PostMapping("/verify-otp")
-    public ResponseEntity<String> verifyOTP(@RequestParam String email, @RequestParam String otp) {
+    // Verify OTP
+    @PostMapping("/auth/verify-otp")
+    public ResponseEntity<?> verifyOTP(
+            @RequestParam String email,
+            @RequestParam String otp) {
 
         return ResponseEntity.ok(
-                service.verifyOTP(email, otp));
-
+                authService.verifyOTP(email, otp)
+        );
     }
 
 
-    @PostMapping("/resend-otp")
-    public ResponseEntity<String> resendOTP(@RequestParam String email) {
+    // Resend OTP
+    @PostMapping("/auth/resend-otp")
+    public ResponseEntity<?> resendOTP(
+            @RequestParam String email) {
 
         return ResponseEntity.ok(
-                service.resendOTP(email));
-
+                authService.resendOTP(email)
+        );
     }
 
 
-    // JWT
+    // =========================================================
+    // ROLES
+    // =========================================================
 
-    @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(
-            @RequestParam String refreshToken) {
-
-        return ResponseEntity.ok(
-                service.refreshToken(refreshToken));
-
-    }
-
-
-    // Profile
-
-    @GetMapping("/profile")
-    @PreAuthorize("hasAuthority('PROFILE_READ')")
-    public ResponseEntity<Users> getProfile(@RequestParam String employeeId) {
-        return ResponseEntity.ok(service.getProfile(employeeId));}
-
-
-
-    @PutMapping("/profile/{id}")
-    @PreAuthorize("hasAuthority('PROFILE_UPDATE')")
-    public ResponseEntity<String> updateProfile(@PathVariable String employeeId,@RequestBody Users request) {
-
-        return ResponseEntity.ok(
-                service.updateProfile(employeeId,request));
-
-    }
-
-
-    // Login History
-
-    @GetMapping("/login-history")
-    @PreAuthorize("hasAuthority('LOGIN_HISTORY_READ')")
-    public ResponseEntity<LoginHistory> loginHistory() {
-        return ResponseEntity.ok((LoginHistory) service.getLoginHistory());
-
-    }
-
-
-    // Devices
-
-    @GetMapping("/devices")
-    @PreAuthorize("hasAuthority('DEVICE_READ')")
-    public ResponseEntity<UserDevice> devices() {
-
-        return ResponseEntity.ok(
-                (UserDevice) service.getDevices());
-
-    }
-
-
-    @DeleteMapping("/remove-device/{id}")
-    @PreAuthorize("hasAuthority('DEVICE_DELETE')")
-    public ResponseEntity<?> removeDevice(
-            @PathVariable Long id) {
-        return ResponseEntity.ok(
-                service.removeDevice(id));
-    }
-    // User Management
-
-    @PostMapping("/create-user")
-    @PreAuthorize("hasAuthority('USER_CREATE')")
-    public ResponseEntity<String> createUser(@RequestBody Users request) {
-
-        return ResponseEntity.ok(
-                service.createUser(request));
-
-    }
-
-
-    @PutMapping("/block-user/{id}")
-    @PreAuthorize("hasAuthority('USER_UPDATE')")
-    public ResponseEntity<?> blockUser(
-            @PathVariable Long id) {
-
-        return ResponseEntity.ok(
-                service.blockUser(id));
-
-    }
-
-
-    @PutMapping("/unblock-user/{id}")
-    @PreAuthorize("hasAuthority('USER_UPDATE')")
-    public ResponseEntity<?> unblockUser(
-            @PathVariable Long id) {
-
-        return ResponseEntity.ok(
-                service.unblockUser(id));
-
-    }
-
-
-    @DeleteMapping("/delete-user/{id}")
-    @PreAuthorize("hasAuthority('USER_DELETE')")
-    public ResponseEntity<?> deleteUser(
-            @PathVariable Long id) {
-
-        return ResponseEntity.ok(
-                service.deleteUser(id));
-
-    }
-
-
-    // Roles
-
+    // Create Role
     @PostMapping("/roles")
-    @PreAuthorize("hasAuthority('ROLE_CREATE')")
-    public ResponseEntity<?> createRole(@RequestBody Role role) {
+    public ResponseEntity<?> createRole(
+            @RequestBody Role request) {
 
         return ResponseEntity.ok(
-                service.createRole(role));
-
+                authService.createRole(request)
+        );
     }
 
 
+    // Get All Roles
     @GetMapping("/roles")
-    @PreAuthorize("hasAuthority('ROLE_READ')")
     public ResponseEntity<?> getRoles() {
 
         return ResponseEntity.ok(
-                service.getRoles());
-
+                authService.getRoles()
+        );
     }
 
 
+    // Get Role
     @GetMapping("/roles/{id}")
-    @PreAuthorize("hasAuthority('ROLE_READ')")
     public ResponseEntity<?> getRole(
             @PathVariable Long id) {
 
         return ResponseEntity.ok(
-                service.getRole(id));
-
+                authService.getRole(id)
+        );
     }
 
 
+    // Update Role
     @PutMapping("/roles/{id}")
-    @PreAuthorize("hasAuthority('ROLE_UPDATE')")
     public ResponseEntity<?> updateRole(
-            @PathVariable Long id,@RequestBody Role role) {
+            @PathVariable Long id,
+            @RequestBody Role request) {
 
         return ResponseEntity.ok(
-                service.updateRole(id,role));
-
+                authService.updateRole(id, request)
+        );
     }
 
 
+    // Delete Role
     @DeleteMapping("/roles/{id}")
-    @PreAuthorize("hasAuthority('ROLE_DELETE')")
     public ResponseEntity<?> deleteRole(
             @PathVariable Long id) {
 
         return ResponseEntity.ok(
-                service.deleteRole(id));
-
+                authService.deleteRole(id)
+        );
     }
 
 
-    // User Roles
+    // =========================================================
+    // ROLE - PERMISSIONS
+    // =========================================================
 
-    @PutMapping("/assign-role/{userId}/{roleId}")
-    public ResponseEntity<?> assignRole(@PathVariable String userId, @PathVariable Long roleId) {
+    // Get permissions assigned to role
+    @GetMapping("/roles/{id}/permissions")
+    public ResponseEntity<?> getRolePermissions(
+            @PathVariable Long id) {
 
         return ResponseEntity.ok(
-                service.assignRole(userId, roleId));
-
+                authService.getRolePermissions(id)
+        );
     }
 
 
-    @DeleteMapping("/remove-role/{userId}")
-    public ResponseEntity<?> removeRole(
-            @PathVariable String userId) {
+    // Assign permission to role
+    @PostMapping("/roles/{id}/permissions/{permissionId}")
+    public ResponseEntity<?> assignPermission(
+            @PathVariable Long id,
+            @PathVariable Long permissionId) {
 
         return ResponseEntity.ok(
-                service.removeRole(userId));
-
+                authService.assignPermission(id, permissionId)
+        );
     }
 
-    // PERMISSION APIs
 
+    // Remove permission from role
+    @DeleteMapping("/roles/{id}/permissions/{permissionId}")
+    public ResponseEntity<?> removePermission(
+            @PathVariable Long id,
+            @PathVariable Long permissionId) {
+
+        return ResponseEntity.ok(
+                authService.removePermission(id, permissionId)
+        );
+    }
+
+
+    // =========================================================
+    // PERMISSIONS
+    // =========================================================
+
+    // Create Permission
     @PostMapping("/permissions")
-    @PreAuthorize("hasAuthority('PERMISSION_CREATE')")
     public ResponseEntity<?> createPermission(
-            @RequestBody Permission permission){
+            @RequestBody Permission request) {
 
         return ResponseEntity.ok(
-                service.createPermission(permission)
+                authService.createPermission(request)
         );
-
-    }
-    @PostMapping("/all/permissions")
-    @PreAuthorize("hasAuthority('PERMISSION_CREATE')")
-    public ResponseEntity<?> createAllPermission(
-            @RequestBody List<Permission> permission){
-
-        return ResponseEntity.ok(
-                service.createAllPermission(permission)
-        );
-
     }
 
 
+    // Get All Permissions
     @GetMapping("/permissions")
-    @PreAuthorize("hasAuthority('PERMISSION_READ')")
-    public ResponseEntity<?> getPermissions(){
+    public ResponseEntity<?> getPermissions() {
 
         return ResponseEntity.ok(
-                service.getPermissions()
+                authService.getPermissions()
         );
-
     }
 
 
+    // Get Permission
     @GetMapping("/permissions/{id}")
-    @PreAuthorize("hasAuthority('PERMISSION_READ')")
     public ResponseEntity<?> getPermission(
-            @PathVariable Long id){
+            @PathVariable Long id) {
 
         return ResponseEntity.ok(
-                service.getPermission(id)
+                authService.getPermission(id)
         );
-
     }
 
 
+    // Update Permission
     @PutMapping("/permissions/{id}")
-    @PreAuthorize("hasAuthority('PERMISSION_UPDATE')")
     public ResponseEntity<?> updatePermission(
             @PathVariable Long id,
-            @RequestBody Permission permission){
+            @RequestBody Permission request) {
 
         return ResponseEntity.ok(
-                service.updatePermission(id,permission)
+                authService.updatePermission(id, request)
         );
-
     }
 
 
+    // Delete Permission
     @DeleteMapping("/permissions/{id}")
-    @PreAuthorize("hasAuthority('PERMISSION_DELETE')")
     public ResponseEntity<?> deletePermission(
-            @PathVariable Long id){
+            @PathVariable Long id) {
 
         return ResponseEntity.ok(
-                service.deletePermission(id)
+                authService.deletePermission(id)
         );
-
     }
 
 
+    // Get permissions by module
     @GetMapping("/permissions/module/{moduleName}")
     public ResponseEntity<?> getModulePermissions(
-            @PathVariable String moduleName){
+            @PathVariable String moduleName) {
 
         return ResponseEntity.ok(
-                service.getModulePermissions(moduleName)
+                authService.getModulePermissions(moduleName)
         );
-
     }
+
+
     // =========================================================
-    // USERS BY STATUS
+    // LOGIN HISTORY
     // =========================================================
 
-    @GetMapping("/users/status/{status}")
-    public ResponseEntity<?> getUsersByStatus(
-            @PathVariable UserStatus status) {
+    // Get all login history
+    @GetMapping("/login-history")
+    public ResponseEntity<?> getLoginHistory() {
 
         return ResponseEntity.ok(
-                service.getUsersByStatus(status));
+                authService.getLoginHistory()
+        );
     }
 
 
-    // =========================================================
-    // USERS BY ROLE
-    // =========================================================
-
-    @GetMapping("/users/role/{role}")
-    public ResponseEntity<?> getUsersByRole(
-            @PathVariable String role) {
+    // Get employee login history
+    @GetMapping("/login-history/employee/{employeeId}")
+    public ResponseEntity<?> getEmployeeLoginHistory(
+            @PathVariable String employeeId) {
 
         return ResponseEntity.ok(
-                service.getUsersByRole(role));
+                authService.getEmployeeLoginHistory(employeeId)
+        );
     }
 
 
-    // =========================================================
-    // USERS BY STATUS + ROLE
-    // =========================================================
-
-    @GetMapping("/users/filter")
-    public ResponseEntity<?> getUsersByStatusAndRole(
-            @RequestParam UserStatus status,
-            @RequestParam String role) {
+    // Successful logins
+    @GetMapping("/login-history/employee/{employeeId}/success")
+    public ResponseEntity<?> getSuccessfulLogins(
+            @PathVariable String employeeId) {
 
         return ResponseEntity.ok(
-                service.getUsersByStatusAndRole(
-                        status,
-                        role));
+                authService.getSuccessfulLogins(employeeId)
+        );
     }
 
-    // =========================================================
-    // FILTER BY LOGIN STATUS
-    // =========================================================
 
-    @GetMapping("/status/{status}")
-    public ResponseEntity<?> getByLoginStatus(
-            @PathVariable LoginStatus status) {
+    // Failed logins
+    @GetMapping("/login-history/employee/{employeeId}/failed")
+    public ResponseEntity<?> getFailedLogins(
+            @PathVariable String employeeId) {
 
         return ResponseEntity.ok(
-                service.getByLoginStatus(status));
+                authService.getFailedLogins(employeeId)
+        );
     }
 
 
-    // =========================================================
-    // USER LOGIN HISTORY
-    // =========================================================
-
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<?> getUserLoginHistory(
-            @PathVariable Long userId) {
-
-        return ResponseEntity.ok(
-                service.getUserLoginHistory(userId));
-    }
-
-
-    // =========================================================
-    // USER + STATUS
-    // =========================================================
-
-    @GetMapping("/user/{userId}/status/{status}")
-    public ResponseEntity<?> getUserLoginHistoryByStatus(
-            @PathVariable Long userId,
-            @PathVariable LoginStatus status) {
-
-        return ResponseEntity.ok(
-                service.getUserLoginHistoryByStatus(
-                        userId,
-                        status));
-    }
-
-
-    // =========================================================
-    // DATE RANGE
-    // =========================================================
-
-    @GetMapping("/date-range")
+    // Login history by date range
+    @GetMapping("/login-history/date-range")
     public ResponseEntity<?> getLoginHistoryByDateRange(
-            @RequestParam LocalDate fromDate,
-            @RequestParam LocalDate toDate) {
+            @RequestParam String fromDate,
+            @RequestParam String toDate) {
 
         return ResponseEntity.ok(
-                service.getLoginHistoryByDateRange(
+                authService.getLoginHistoryByDateRange(
                         fromDate,
-                        toDate));
+                        toDate
+                )
+        );
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<?> searchLoginHistory(
-            @RequestParam String search) {
+
+    // =========================================================
+    // DEVICES
+    // =========================================================
+
+    // Get employee devices
+    @GetMapping("/devices/employee/{employeeId}")
+    public ResponseEntity<?> getEmployeeDevices(
+            @PathVariable String employeeId) {
 
         return ResponseEntity.ok(
-                service.searchLoginHistory(search));
+                authService.getEmployeeDevices(employeeId)
+        );
     }
 
 
+    // Logout device
+    @PatchMapping("/devices/{id}/logout")
+    public ResponseEntity<?> logoutDevice(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                authService.logoutDevice(id)
+        );
+    }
+
+
+    // Block device
+    @PatchMapping("/devices/{id}/block")
+    public ResponseEntity<?> blockDevice(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                authService.blockDevice(id)
+        );
+    }
+
+
+    // Remove device
+    @DeleteMapping("/devices/{id}")
+    public ResponseEntity<?> removeDevice(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                authService.removeDevice(id)
+        );
+    }
 }

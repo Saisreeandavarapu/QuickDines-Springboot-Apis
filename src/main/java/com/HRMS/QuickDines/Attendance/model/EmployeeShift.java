@@ -1,9 +1,7 @@
 package com.HRMS.QuickDines.Attendance.model;
 
 
-import com.HRMS.QuickDines.Auth.model.Users;
 import com.HRMS.QuickDines.Employee.model.Employee;
-import com.HRMS.QuickDines.Auth.model.Users;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
