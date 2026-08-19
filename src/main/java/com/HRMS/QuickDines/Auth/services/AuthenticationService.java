@@ -12,7 +12,10 @@ import com.HRMS.QuickDines.Auth.Entity.UserStatus;
 import com.HRMS.QuickDines.Auth.model.*;
 import com.HRMS.QuickDines.Auth.repo.*;
 import com.HRMS.QuickDines.AdvanceServices.EmailService;
+import com.HRMS.QuickDines.Employee.Entity.ApprovalStatus;
 import com.HRMS.QuickDines.Employee.model.Employee;
+import com.HRMS.QuickDines.Employee.model.EmployeeApproval;
+import com.HRMS.QuickDines.Employee.repo.EmployeeApprovalRepository;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
 import com.HRMS.QuickDines.Organization.model.Department;
 import com.HRMS.QuickDines.Organization.repo.DepartmentRepository;
@@ -68,6 +71,7 @@ public class AuthenticationService {
     private final AuditLogsService auditLogsService;
     private final ClientInfoService clientInfoService;
     private final ObjectMapper objectMapper;
+    private final EmployeeApprovalRepository employeeApprovalRepository;
 
     private String getLoggedInEmployeeId() {
 
@@ -153,6 +157,22 @@ public class AuthenticationService {
         if (employee.getStatus() != null && employee.getStatus().equalsIgnoreCase("INACTIVE")) {
 
             throw new RuntimeException("Employee account is inactive");
+        }
+
+        // =====================================================
+        // CHECK APPROVAL
+        // =====================================================
+
+        EmployeeApproval approval = employeeApprovalRepository.findByEmployee(employee.getEmployeeId()).orElseThrow(() -> new RuntimeException("Employee approval record not found"));
+
+
+        // =====================================================
+        // FINAL APPROVAL CHECK
+        // =====================================================
+
+        if (approval.getFinalStatus() != ApprovalStatus.APPROVED) {
+
+            throw new RuntimeException("Your employee profile is not approved yet");
         }
 
 
@@ -315,9 +335,6 @@ public class AuthenticationService {
 
         return "Logout Successful";
     }
-
-
-
 
 
     @Transactional
@@ -958,13 +975,9 @@ public class AuthenticationService {
 
     public List<LoginHistory> getSuccessfulLogins(String employeeId) {
 
-        Employee employee = employeeRepository.findByEmployeeId(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        return historyRepository.findByEmployeeAndLoginStatus(
-                employee.getEmployeeId(),
-                LoginStatus.SUCCESS
-        );
+        return historyRepository.findByEmployee_EmployeeIdAndLoginStatus(employee.getEmployeeId(), LoginStatus.SUCCESS);
     }
 
 
@@ -972,10 +985,7 @@ public class AuthenticationService {
 
         Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        return historyRepository.findByEmployeeAndLoginStatus(
-                employee.getEmployeeId(),
-                LoginStatus.FAILED
-        );
+        return historyRepository.findByEmployee_EmployeeIdAndLoginStatus(employee.getEmployeeId(), LoginStatus.FAILED);
     }
 
 

@@ -27,4 +27,6 @@ public interface EmployeeApprovalRepository
     );
 
     EmployeeApproval findByEmployeeId(Long employeeId);
+
+    Optional<EmployeeApproval> findByEmployee(String employeeId);
 }

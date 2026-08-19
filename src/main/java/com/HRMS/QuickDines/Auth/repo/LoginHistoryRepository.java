@@ -51,9 +51,15 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Inte
 
    // List<LoginHistory> findFailedLogins(String employeeId);
 
-    List<LoginHistory> findByEmployeeAndLoginStatus(
-            String employeeId,
-            LoginStatus loginStatus
+    @Query("""
+    SELECT l
+    FROM LoginHistory l
+    WHERE l.employee.employeeId = :employeeId
+    AND l.loginStatus = :status
+""")
+    List<LoginHistory> findByEmployee_EmployeeIdAndLoginStatus(
+            @Param("employeeId") String employeeId,
+            @Param("status") LoginStatus status
     );
 
     Optional<LoginHistory> findTopByEmployeeAndLogoutTimeIsNullOrderByIdDesc(Employee employee);
