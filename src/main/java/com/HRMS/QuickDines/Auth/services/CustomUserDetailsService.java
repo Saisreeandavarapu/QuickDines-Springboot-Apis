@@ -1,7 +1,8 @@
 package com.HRMS.QuickDines.Auth.services;
 
 
-import com.HRMS.QuickDines.Auth.repo.UserRepository;
+import com.HRMS.QuickDines.Employee.model.Employee;
+import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,13 +19,13 @@ public class CustomUserDetailsService
         implements UserDetailsService {
 
 
-    private final UserRepository userRepository;
+    private final EmployeeRepository userRepository;
 
 
     @Override
     public UserDetails loadUserByUsername(String employeeId) throws UsernameNotFoundException {
 
-        Users user= userRepository.findByEmployeeId(employeeId).orElseThrow(()->new UsernameNotFoundException("User Not Found"));
+        Employee user= userRepository.findByEmployeeId(employeeId).orElseThrow(()->new UsernameNotFoundException("User Not Found"));
         return (UserDetails) user;
 
     }
