@@ -175,7 +175,7 @@ public class CalendarService {
 
         getEventById(eventId);
 
-        List<Employee> employees = employeeRepository.findAllById(employeeIds);
+        List<Employee> employees = employeeRepository.findByEmployeeIdIn(employeeIds);
 
         /*
          * Create MeetingSchedule records here
