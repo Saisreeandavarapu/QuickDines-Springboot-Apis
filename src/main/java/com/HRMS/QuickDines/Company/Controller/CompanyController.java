@@ -21,7 +21,7 @@ public class CompanyController {
     // =========================================================
 
     @PostMapping("/create")
-    @PreAuthorize("hasAuthority('COMPANY_CREATE')")
+  //  @PreAuthorize("hasAuthority('COMPANY_CREATE')")
     public ResponseEntity<?> createCompany(
             @RequestBody Company company) {
 
@@ -31,7 +31,7 @@ public class CompanyController {
 
 
     @GetMapping("/all")
-    @PreAuthorize("hasAuthority('COMPANY_VIEW')")
+   // @PreAuthorize("hasAuthority('COMPANY_VIEW')")
     public ResponseEntity<?> getAllCompanies() {
 
         return ResponseEntity.ok(
@@ -75,7 +75,7 @@ public class CompanyController {
     // =========================================================
 
     @PostMapping("/branch/{companyId}")
-    @PreAuthorize("hasAuthority('BRANCH_CREATE')")
+   // @PreAuthorize("hasAuthority('BRANCH_CREATE')")
     public ResponseEntity<?> createBranch(
             @PathVariable Long companyId,
             @RequestBody Branch branch) {
@@ -86,7 +86,7 @@ public class CompanyController {
 
 
     @GetMapping("/branches")
-    @PreAuthorize("hasAuthority('BRANCH_VIEW')")
+   // @PreAuthorize("hasAuthority('BRANCH_VIEW')")
     public ResponseEntity<?> getAllBranches() {
 
         return ResponseEntity.ok(
