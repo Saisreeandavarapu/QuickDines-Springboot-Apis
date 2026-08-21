@@ -31,8 +31,8 @@ public class MeetingSchedule {
     // =========================
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "calendar_event_id", nullable = false)
-    private CalendarEvent calendarEvent;
+    @JoinColumn(name = "event_id", nullable = false)
+    private CalendarEvent event;
 
     // =========================
     // EMPLOYEE

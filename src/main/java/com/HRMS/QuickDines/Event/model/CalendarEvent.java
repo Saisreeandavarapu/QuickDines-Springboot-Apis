@@ -96,12 +96,12 @@ public class CalendarEvent {
     // =========================
 
     @OneToMany(
-            mappedBy = "calendarEvent",
+            mappedBy = "event",
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
     @JsonIgnore
-    private List<MeetingSchedule> participants;
+    private List<MeetingSchedule> participants = new ArrayList<>();
 
     // =========================
     // AUDIT
