@@ -100,19 +100,23 @@ public class SecurityConfig {
 //    }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http) throws Exception {
 
         http
                 .csrf(csrf -> csrf.disable())
 
                 .cors(Customizer.withDefaults())
 
-                .authenticationProvider(authenticationProvider())
-
+                // IMPORTANT:
+                // Do NOT use STATELESS
+                // We want HttpSession authentication
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(
-                                SessionCreationPolicy.STATELESS
-                        )
+                        session
+                                .sessionCreationPolicy(
+                                        org.springframework.security.config.http
+                                                .SessionCreationPolicy.IF_REQUIRED
+                                )
                 )
 
                 .authorizeHttpRequests(auth -> auth
@@ -124,14 +128,9 @@ public class SecurityConfig {
                                 "/api/auth/**"
                         ).permitAll()
 
-                        // Everything else requires JWT
+                        // Everything else requires login
                         .anyRequest().authenticated()
                 );
-
-//                .addFilterBefore(
-//                        jwtFilter,
-//                        UsernamePasswordAuthenticationFilter.class
-//                );
 
         return http.build();
     }
