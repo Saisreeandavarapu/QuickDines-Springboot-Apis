@@ -100,7 +100,8 @@ public class CalendarEvent {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
-    private List<MeetingSchedule> participants = new ArrayList<>();
+    @JsonIgnore
+    private List<MeetingSchedule> participants;
 
     // =========================
     // AUDIT
