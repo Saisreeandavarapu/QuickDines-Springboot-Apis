@@ -96,7 +96,7 @@ public class CalendarEvent {
     // =========================
 
     @OneToMany(
-            mappedBy = "event",
+            mappedBy = "calendarEvents",
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )

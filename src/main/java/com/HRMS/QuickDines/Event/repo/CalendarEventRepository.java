@@ -24,15 +24,12 @@ public interface CalendarEventRepository
     );
 
     @Query("""
-        SELECT DISTINCT ce
-        FROM CalendarEvent ce
-        JOIN MeetingSchedule ms
-            ON ms.calendarEvent.id = ce.id
-        WHERE ms.employee.id = :employeeId
-        """)
-    List<CalendarEvent> findEventsByEmployeeId(
-            @Param("employeeId") String employeeId
-    );
+    SELECT DISTINCT ce
+    FROM CalendarEvent ce
+    JOIN ce.participants ms
+    WHERE ms.employee.id = :employeeId
+""")
+    List<CalendarEvent> findEventsByEmployeeId(String employeeId);
 
     @Query("""
         SELECT DISTINCT ce
