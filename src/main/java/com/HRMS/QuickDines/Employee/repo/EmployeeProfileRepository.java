@@ -13,4 +13,6 @@ public interface EmployeeProfileRepository extends JpaRepository<EmployeeProfile
 
 
     Optional<EmployeeProfile> findByEmployee(Employee employee);
+    void deleteByEmployee(Employee employee);
+
 }

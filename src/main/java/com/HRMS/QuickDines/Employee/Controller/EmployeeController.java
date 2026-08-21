@@ -3,6 +3,7 @@ package com.HRMS.QuickDines.Employee.Controller;
 import com.HRMS.QuickDines.Employee.DTO.ApprovalRequestdto;
 import com.HRMS.QuickDines.Employee.DTO.EmployeeApprovalRequest;
 import com.HRMS.QuickDines.Employee.DTO.EmployeeCreateRequest;
+import com.HRMS.QuickDines.Employee.DTO.EmployeeUpdateRequest;
 import com.HRMS.QuickDines.Employee.Service.EmployeeService;
 import com.HRMS.QuickDines.Employee.model.*;
 import com.HRMS.QuickDines.Workflow.model.ApprovalRequest;
@@ -103,7 +104,7 @@ public class EmployeeController {
 
     @PostMapping("/upload-document/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_DOCUMENT_CREATE)")
-    public ResponseEntity<?> uploadDocument(@PathVariable Long employeeId, @RequestParam("file") MultipartFile file,
+    public ResponseEntity<?> uploadDocument(@PathVariable String employeeId, @RequestParam("file") MultipartFile file,
             @RequestParam("documentType") String documentType) {
 
         return ResponseEntity.ok(
@@ -114,7 +115,7 @@ public class EmployeeController {
     @GetMapping("/documents/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_DOCUMENT_READ)")
     public ResponseEntity<?> getDocuments(
-            @PathVariable Long employeeId) {
+            @PathVariable String employeeId) {
 
         return ResponseEntity.ok(
                 service.getDocuments(employeeId));
@@ -1082,6 +1083,36 @@ public class EmployeeController {
         return ResponseEntity.ok(
                 service.sendWelcomeMail(
                         employeeId));
+    }
+
+    @GetMapping("/employees")
+    @PreAuthorize("hasAuthority('EMPLOYEE_READ')")
+    public ResponseEntity<List<Employee>> getAllEmployeeDetails() {
+
+        return ResponseEntity.ok(
+                service.getAllEmployeeDetails()
+        );
+    }
+
+    @GetMapping("/employees/{employeeId}")
+    @PreAuthorize("hasAuthority('EMPLOYEE_READ')")
+    public ResponseEntity<Employee> getEmployeeById(
+            @PathVariable String employeeId) {
+
+        return ResponseEntity.ok(
+                service.getEmployeeByEmployeeIdDetails(employeeId)
+        );
+    }
+
+    @PutMapping("/employees/{employeeId}")
+    @PreAuthorize("hasAuthority('EMPLOYEE_UPDATE')")
+    public ResponseEntity<Employee> updateEmployee(
+            @PathVariable String employeeId,
+            @RequestBody EmployeeUpdateRequest request) {
+
+        return ResponseEntity.ok(
+                service.updateEmployee(employeeId, request)
+        );
     }
 
 //    //-------------------------

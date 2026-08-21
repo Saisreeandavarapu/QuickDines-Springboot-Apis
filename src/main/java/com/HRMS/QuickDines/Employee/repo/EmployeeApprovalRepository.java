@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Employee.repo;
 
+import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.model.EmployeeApproval;
 import com.HRMS.QuickDines.Employee.Entity.ApprovalStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -29,4 +30,6 @@ public interface EmployeeApprovalRepository
     EmployeeApproval findByEmployeeId(Long employeeId);
 
     Optional<EmployeeApproval> findByEmployee(String employeeId);
+    void deleteByEmployee(Employee employee);
+
 }

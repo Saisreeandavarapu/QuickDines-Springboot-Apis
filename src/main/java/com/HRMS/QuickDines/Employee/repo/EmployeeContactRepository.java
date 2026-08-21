@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Employee.repo;
 
+import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.model.EmployeeContacts;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -12,4 +13,6 @@ public interface EmployeeContactRepository extends JpaRepository<EmployeeContact
     List<EmployeeContacts> findByEmployeeId(String employeeId);
 
     Optional<Object> findById(String id);
+    void deleteByEmployee(Employee employee);
+
 }

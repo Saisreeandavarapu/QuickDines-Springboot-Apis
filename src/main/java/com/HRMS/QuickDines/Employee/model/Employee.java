@@ -66,46 +66,54 @@ public class Employee {
     private LocalDateTime updatedAt;
 
 
-    //----------------- Relationships -----------------//
+    // ================= RELATIONSHIPS =================
 
-
-    @OneToOne(mappedBy = "employee",
-            cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "employee", cascade = CascadeType.ALL)
     private EmployeeProfile profile;
 
-
-    @OneToOne(mappedBy = "employee",
-            cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "employee", cascade = CascadeType.ALL)
     private EmployeeDocuments documents;
 
-
-    @OneToOne(mappedBy = "employee",
-            cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "employee", cascade = CascadeType.ALL)
     private EmployeeBankDetails bankDetails;
 
-
-    @OneToMany(mappedBy = "employee",
-            cascade = CascadeType.ALL)
-    private List<EmployeeContacts> contacts;
-
-
-    @OneToMany(mappedBy = "employee",
-            cascade = CascadeType.ALL)
-    private List<EmployeeDesignation> designations;
-
-
-    @OneToOne(mappedBy = "employee",
-            cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "employee", cascade = CascadeType.ALL)
     private EmployeeExitManagement exitManagement;
-    // =====================================================
-    // APPROVAL
-    // =====================================================
 
     @OneToOne(mappedBy = "employee",
             cascade = CascadeType.ALL,
             orphanRemoval = true)
     private EmployeeApproval approval;
 
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
+    private List<EmployeeContacts> contacts;
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
+    private List<EmployeeDesignation> designations;
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
+    private List<EmployeeAddress> addresses;
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
+    private List<EmployeeCertification> certifications;
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
+    private List<EmployeeExperience> experiences;
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
+    private List<EmployeeFamilyMember> familyMembers;
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
+    private List<EmployeeLanguage> languages;
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
+    private List<EmployeePromotion> promotions;
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
+    private List<EmployeeSkill> skills;
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
+    private List<EmployeeTransfer> transfers;
 
 
 }

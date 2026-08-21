@@ -23,6 +23,7 @@ public interface EmployeeDesignationRepository extends JpaRepository<EmployeeDes
     List<Employee> findEmployeesByDesignationName(
             @Param("designationName") String designationName
     );
+    void deleteByEmployee(Employee employee);
 
 
 }

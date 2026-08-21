@@ -24,6 +24,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.hibernate.Hibernate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -827,7 +828,7 @@ public class EmployeeService {
     }
 
 
-    public String uploadDocument(Long employeeId, MultipartFile file, String documentType) {
+    public String uploadDocument(String employeeId, MultipartFile file, String documentType) {
 
         Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
@@ -897,7 +898,7 @@ public class EmployeeService {
 
     // --------------------------------------------
 
-    public EmployeeDocuments getDocuments(Long employeeId) {
+    public EmployeeDocuments getDocuments(String employeeId) {
 
         return employeeDocumentRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Documents Not Found"));
     }
@@ -3409,6 +3410,236 @@ public class EmployeeService {
         // =====================================================
 
         return "Welcome mail sent successfully";
+    }
+
+    @Transactional
+    public List<Employee> getAllEmployeeDetails() {
+
+        List<Employee> employees = employeeRepository.findAll();
+
+        employees.forEach(employee -> {
+
+            // Basic relationships
+            Hibernate.initialize(employee.getCompany());
+            Hibernate.initialize(employee.getBranch());
+            Hibernate.initialize(employee.getDepartment());
+            Hibernate.initialize(employee.getRole());
+
+            // One-to-one relationships
+            Hibernate.initialize(employee.getProfile());
+            Hibernate.initialize(employee.getDocuments());
+            Hibernate.initialize(employee.getBankDetails());
+            Hibernate.initialize(employee.getExitManagement());
+            Hibernate.initialize(employee.getApproval());
+
+            // One-to-many relationships
+            Hibernate.initialize(employee.getContacts());
+            Hibernate.initialize(employee.getDesignations());
+            Hibernate.initialize(employee.getAddresses());
+            Hibernate.initialize(employee.getCertifications());
+            Hibernate.initialize(employee.getExperiences());
+            Hibernate.initialize(employee.getFamilyMembers());
+            Hibernate.initialize(employee.getLanguages());
+            Hibernate.initialize(employee.getPromotions());
+            Hibernate.initialize(employee.getSkills());
+            Hibernate.initialize(employee.getTransfers());
+        });
+
+        return employees;
+    }
+
+    @Transactional
+    public Employee getEmployeeByEmployeeIdDetails(String employeeId) {
+
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found with employeeId: " + employeeId));
+
+        Hibernate.initialize(employee.getCompany());
+        Hibernate.initialize(employee.getBranch());
+        Hibernate.initialize(employee.getDepartment());
+        Hibernate.initialize(employee.getRole());
+
+        Hibernate.initialize(employee.getProfile());
+        Hibernate.initialize(employee.getDocuments());
+        Hibernate.initialize(employee.getBankDetails());
+        Hibernate.initialize(employee.getExitManagement());
+        Hibernate.initialize(employee.getApproval());
+
+        Hibernate.initialize(employee.getContacts());
+        Hibernate.initialize(employee.getDesignations());
+        Hibernate.initialize(employee.getAddresses());
+        Hibernate.initialize(employee.getCertifications());
+        Hibernate.initialize(employee.getExperiences());
+        Hibernate.initialize(employee.getFamilyMembers());
+        Hibernate.initialize(employee.getLanguages());
+        Hibernate.initialize(employee.getPromotions());
+        Hibernate.initialize(employee.getSkills());
+        Hibernate.initialize(employee.getTransfers());
+
+        return employee;
+    }
+
+    @Transactional
+    public Employee updateEmployee(String employeeId, EmployeeUpdateRequest request) {
+
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found with employeeId: " + employeeId));
+
+        // =========================
+        // EMPLOYEE
+        // =========================
+
+        employee.setFirstName(request.getFirstName());
+        employee.setLastName(request.getLastName());
+        employee.setEmail(request.getEmail());
+        employee.setMobileNumber(request.getMobileNumber());
+        employee.setGender(request.getGender());
+        employee.setDateOfBirth(request.getDateOfBirth());
+        employee.setJoiningDate(request.getJoiningDate());
+        employee.setStatus(request.getStatus());
+
+        // =========================
+        // PROFILE
+        // =========================
+
+        if (request.getProfile() != null) {
+
+            EmployeeProfile profile = employee.getProfile();
+
+            if (profile == null) {
+                profile = new EmployeeProfile();
+                profile.setEmployee(employee);
+                employee.setProfile(profile);
+            }
+
+            EmployeeProfile requestProfile = request.getProfile();
+
+            profile.setProfileImage(requestProfile.getProfileImage());
+            profile.setFatherName(requestProfile.getFatherName());
+            profile.setMotherName(requestProfile.getMotherName());
+            profile.setMaritalStatus(requestProfile.getMaritalStatus());
+            profile.setBloodGroup(requestProfile.getBloodGroup());
+            profile.setNationality(requestProfile.getNationality());
+            profile.setEmergencyContact(requestProfile.getEmergencyContact());
+            profile.setAlternateMobile(requestProfile.getAlternateMobile());
+            profile.setAddress(requestProfile.getAddress());
+            profile.setCity(requestProfile.getCity());
+            profile.setState(requestProfile.getState());
+            profile.setPincode(requestProfile.getPincode());
+            profile.setCountry(requestProfile.getCountry());
+            profile.setProfileCompletion(requestProfile.getProfileCompletion());
+            profile.setProfileStatus(requestProfile.getProfileStatus());
+        }
+
+        // =========================
+        // BANK DETAILS
+        // =========================
+
+        if (request.getBankDetails() != null) {
+
+            EmployeeBankDetails bank = employee.getBankDetails();
+
+            if (bank == null) {
+                bank = new EmployeeBankDetails();
+                bank.setEmployee(employee);
+                employee.setBankDetails(bank);
+            }
+
+            EmployeeBankDetails requestBank = request.getBankDetails();
+
+            bank.setAccountHolderName(requestBank.getAccountHolderName());
+            bank.setBankName(requestBank.getBankName());
+            bank.setAccountNumber(requestBank.getAccountNumber());
+            bank.setIfscCode(requestBank.getIfscCode());
+            bank.setBranchName(requestBank.getBranchName());
+            bank.setUpiId(requestBank.getUpiId());
+            bank.setAccountStatus(requestBank.getAccountStatus());
+        }
+
+        // =========================
+        // DOCUMENTS
+        // =========================
+
+        if (request.getDocuments() != null) {
+
+            EmployeeDocuments documents = employee.getDocuments();
+
+            if (documents == null) {
+                documents = new EmployeeDocuments();
+                documents.setEmployee(employee);
+                employee.setDocuments(documents);
+            }
+
+            EmployeeDocuments requestDocuments = request.getDocuments();
+
+            documents.setAadhaarNumber(requestDocuments.getAadhaarNumber());
+            documents.setPanNumber(requestDocuments.getPanNumber());
+            documents.setPassportNumber(requestDocuments.getPassportNumber());
+            documents.setResumeUrl(requestDocuments.getResumeUrl());
+            documents.setAadhaarDocument(requestDocuments.getAadhaarDocument());
+            documents.setPanDocument(requestDocuments.getPanDocument());
+            documents.setDegreeCertificate(requestDocuments.getDegreeCertificate());
+            documents.setPgCertificate(requestDocuments.getPgCertificate());
+            documents.setOfferLetter(requestDocuments.getOfferLetter());
+            documents.setJoiningLetter(requestDocuments.getJoiningLetter());
+            documents.setSalarySlips(requestDocuments.getSalarySlips());
+            documents.setExperienceLetter(requestDocuments.getExperienceLetter());
+            documents.setStatus(requestDocuments.getStatus());
+        }
+
+        return employeeRepository.save(employee);
+    }
+
+    @Transactional
+    public void deleteEmployee(String employeeId) {
+
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found with employeeId: " + employeeId));
+
+        // Delete child records first
+
+        employeeAddressRepository.deleteByEmployee(employee);
+
+        employeeCertificationRepository.deleteByEmployee(employee);
+
+        employeeExperienceRepository.deleteByEmployee(employee);
+
+        employeeFamilyMemberRepository.deleteByEmployee(employee);
+
+        employeeLanguageRepository.deleteByEmployee(employee);
+
+        employeePromotionRepository.deleteByEmployee(employee);
+
+        employeeSkillRepository.deleteByEmployee(employee);
+
+        employeeTransferRepository.deleteByEmployee(employee);
+
+        employeeContactRepository.deleteByEmployee(employee);
+
+        employeeDesignationRepository.deleteByEmployee(employee);
+
+        // One-to-one records
+        if (employee.getProfile() != null) {
+            employeeProfileRepository.delete(employee.getProfile());
+        }
+
+        if (employee.getDocuments() != null) {
+            employeeDocumentRepository.delete(employee.getDocuments());
+        }
+
+        if (employee.getBankDetails() != null) {
+            employeeBankRepository.delete(employee.getBankDetails());
+        }
+
+        if (employee.getApproval() != null) {
+            employeeApprovalRepository.delete(employee.getApproval());
+        }
+
+        // Exit management requires special care because
+        // it contains exitApprovedBy -> Employee
+        if (employee.getExitManagement() != null) {
+            employeeExitRepository.delete(employee.getExitManagement());
+        }
+
+        // Finally delete employee
+        employeeRepository.delete(employee);
     }
 //    public Object getAttendance(Long id){
 //
