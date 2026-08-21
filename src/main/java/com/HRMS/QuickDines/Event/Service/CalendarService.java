@@ -3,6 +3,7 @@ package com.HRMS.QuickDines.Event.Service;
 import com.HRMS.QuickDines.Event.Entity.CalendarEventStatus;
 import com.HRMS.QuickDines.Event.Entity.CalendarEventType;
 import com.HRMS.QuickDines.Event.Entity.EventAttendanceStatus;
+import com.HRMS.QuickDines.Event.Entity.InvitationStatus;
 import com.HRMS.QuickDines.Event.model.CalendarEvent;
 import com.HRMS.QuickDines.Event.repo.CalendarEventRepository;
 import com.HRMS.QuickDines.Event.repo.MeetingScheduleRepository;
@@ -217,7 +218,7 @@ public class CalendarService {
 
         Employee employee = getLoggedInEmployee();
 
-        return meetingScheduleRepository.findByEmployeeId(employee.getId());
+        return meetingScheduleRepository.findByEmployee_EmployeeId(employee.getEmployeeId());
     }
 
     // =========================================================
@@ -228,7 +229,7 @@ public class CalendarService {
 
         Employee employee = getLoggedInEmployee();
 
-        var schedule = meetingScheduleRepository.findByEventIdAndEmployeeId(eventId, employee.getEmployeeId()).orElseThrow(() -> new EntityNotFoundException("Invitation not found"));
+        var schedule = meetingScheduleRepository.findByCalendarEvent_IdAndEmployee_EmployeeId(eventId, employee.getEmployeeId()).orElseThrow(() -> new EntityNotFoundException("Invitation not found"));
 
         schedule.setAttendanceStatus(EventAttendanceStatus.valueOf("ACCEPTED"));
 
@@ -243,7 +244,7 @@ public class CalendarService {
 
         Employee employee = getLoggedInEmployee();
 
-        var schedule = meetingScheduleRepository.findByEventIdAndEmployeeId(eventId, employee.getEmployeeId()).orElseThrow(() -> new EntityNotFoundException("Invitation not found"));
+        var schedule = meetingScheduleRepository.findByCalendarEvent_IdAndEmployee_EmployeeId(eventId, employee.getEmployeeId()).orElseThrow(() -> new EntityNotFoundException("Invitation not found"));
 
         schedule.setAttendanceStatus(EventAttendanceStatus.valueOf("DECLINED"));
 
@@ -291,7 +292,7 @@ public class CalendarService {
 
         dashboard.put("upcomingEvents", calendarEventRepository.findUpcomingEventsByEmployeeId(employee.getEmployeeId()));
 
-        dashboard.put("invitations", meetingScheduleRepository.findByEmployeeIdAndStatus(employee.getEmployeeId(), "PENDING"));
+        dashboard.put("invitations", meetingScheduleRepository.findByEmployee_EmployeeIdAndInvitationStatus(employee.getEmployeeId(), InvitationStatus.valueOf("PENDING")));
 
         return dashboard;
     }

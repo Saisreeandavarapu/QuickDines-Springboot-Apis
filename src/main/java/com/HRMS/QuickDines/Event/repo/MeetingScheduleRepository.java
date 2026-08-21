@@ -12,7 +12,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface MeetingScheduleRepository extends JpaRepository<MeetingSchedule,Long> {
+public interface MeetingScheduleRepository
+        extends JpaRepository<MeetingSchedule, Long> {
+
+    // =====================================================
+    // FIND EMPLOYEES BY EVENT
+    // =====================================================
+
     @Query("""
         SELECT ms.employee
         FROM MeetingSchedule ms
@@ -22,25 +28,45 @@ public interface MeetingScheduleRepository extends JpaRepository<MeetingSchedule
             @Param("eventId") Long eventId
     );
 
-    List<MeetingSchedule> findByEmployeeId(
-            Long employeeId
+
+    // =====================================================
+    // FIND BY EMPLOYEE EMPLOYEE-ID
+    // =====================================================
+
+    List<MeetingSchedule> findByEmployee_EmployeeId(
+            String employeeId
     );
 
-    List<MeetingSchedule> findByEmployeeIdAndStatus(
+
+    // =====================================================
+    // FIND BY EMPLOYEE + INVITATION STATUS
+    // =====================================================
+
+    List<MeetingSchedule> findByEmployee_EmployeeIdAndInvitationStatus(
             String employeeId,
-            String status
+            com.HRMS.QuickDines.Event.Entity.InvitationStatus invitationStatus
     );
 
-    Optional<MeetingSchedule> findByEventIdAndEmployeeId(
+
+    // =====================================================
+    // FIND PARTICIPANT BY EVENT + EMPLOYEE
+    // =====================================================
+
+    Optional<MeetingSchedule> findByCalendarEvent_IdAndEmployee_EmployeeId(
             Long eventId,
             String employeeId
     );
+
+
+    // =====================================================
+    // DELETE PARTICIPANT FROM EVENT
+    // =====================================================
 
     @Modifying
     @Query("""
         DELETE FROM MeetingSchedule ms
         WHERE ms.calendarEvent.id = :eventId
-        AND ms.employee.id = :employeeId
+        AND ms.employee.employeeId = :employeeId
         """)
     void deleteByEventIdAndEmployeeId(
             @Param("eventId") Long eventId,
