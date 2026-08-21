@@ -27,13 +27,13 @@ public interface MeetingScheduleRepository extends JpaRepository<MeetingSchedule
     );
 
     List<MeetingSchedule> findByEmployeeIdAndStatus(
-            Long employeeId,
+            String employeeId,
             String status
     );
 
     Optional<MeetingSchedule> findByEventIdAndEmployeeId(
             Long eventId,
-            Long employeeId
+            String employeeId
     );
 
     @Modifying
@@ -44,6 +44,6 @@ public interface MeetingScheduleRepository extends JpaRepository<MeetingSchedule
         """)
     void deleteByEventIdAndEmployeeId(
             @Param("eventId") Long eventId,
-            @Param("employeeId") Long employeeId
+            @Param("employeeId") String employeeId
     );
 }

@@ -31,7 +31,7 @@ public interface CalendarEventRepository
         WHERE ms.employee.id = :employeeId
         """)
     List<CalendarEvent> findEventsByEmployeeId(
-            @Param("employeeId") Long employeeId
+            @Param("employeeId") String employeeId
     );
 
     @Query("""
@@ -44,7 +44,7 @@ public interface CalendarEventRepository
         ORDER BY ce.startDateTime ASC
         """)
     List<CalendarEvent> findUpcomingEventsByEmployeeId(
-            @Param("employeeId") Long employeeId
+            @Param("employeeId") String employeeId
     );
 
     @Query("""
@@ -58,13 +58,13 @@ public interface CalendarEventRepository
         ORDER BY ce.startDateTime ASC
         """)
     List<CalendarEvent> findEventsByEmployeeAndDate(
-            @Param("employeeId") Long employeeId,
+            @Param("employeeId") String employeeId,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
     );
 
     default List<CalendarEvent> findEventsByEmployeeAndDate(
-            Long employeeId,
+            String employeeId,
             LocalDate date
     ) {
         return findEventsByEmployeeAndDate(

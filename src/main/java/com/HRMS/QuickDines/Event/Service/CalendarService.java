@@ -128,7 +128,7 @@ public class CalendarService {
 
         Employee employee = getLoggedInEmployee();
 
-        return calendarEventRepository.findEventsByEmployeeId(employee.getId());
+        return calendarEventRepository.findEventsByEmployeeId(employee.getEmployeeId());
     }
 
     // =========================================================
@@ -140,14 +140,14 @@ public class CalendarService {
 
         Employee employee = getLoggedInEmployee();
 
-        return calendarEventRepository.findUpcomingEventsByEmployeeId(employee.getId());
+        return calendarEventRepository.findUpcomingEventsByEmployeeId(employee.getEmployeeId());
     }
 
     // =========================================================
     // ADD SINGLE PARTICIPANT
     // =========================================================
 
-    public Object addParticipant(Long eventId, Long employeeId) {
+    public Object addParticipant(Long eventId, String employeeId) {
 
         CalendarEvent event = getEventById(eventId);
 
@@ -171,7 +171,7 @@ public class CalendarService {
     // ADD MULTIPLE PARTICIPANTS
     // =========================================================
 
-    public List<Employee> addParticipants(Long eventId, List<Long> employeeIds) {
+    public List<Employee> addParticipants(Long eventId, List<String> employeeIds) {
 
         getEventById(eventId);
 
@@ -201,7 +201,7 @@ public class CalendarService {
     // REMOVE PARTICIPANT
     // =========================================================
 
-    public void removeParticipant(Long eventId, Long employeeId) {
+    public void removeParticipant(Long eventId, String employeeId) {
 
         getEventById(eventId);
 
@@ -228,7 +228,7 @@ public class CalendarService {
 
         Employee employee = getLoggedInEmployee();
 
-        var schedule = meetingScheduleRepository.findByEventIdAndEmployeeId(eventId, employee.getId()).orElseThrow(() -> new EntityNotFoundException("Invitation not found"));
+        var schedule = meetingScheduleRepository.findByEventIdAndEmployeeId(eventId, employee.getEmployeeId()).orElseThrow(() -> new EntityNotFoundException("Invitation not found"));
 
         schedule.setAttendanceStatus(EventAttendanceStatus.valueOf("ACCEPTED"));
 
@@ -243,7 +243,7 @@ public class CalendarService {
 
         Employee employee = getLoggedInEmployee();
 
-        var schedule = meetingScheduleRepository.findByEventIdAndEmployeeId(eventId, employee.getId()).orElseThrow(() -> new EntityNotFoundException("Invitation not found"));
+        var schedule = meetingScheduleRepository.findByEventIdAndEmployeeId(eventId, employee.getEmployeeId()).orElseThrow(() -> new EntityNotFoundException("Invitation not found"));
 
         schedule.setAttendanceStatus(EventAttendanceStatus.valueOf("DECLINED"));
 
@@ -287,11 +287,11 @@ public class CalendarService {
 
         Map<String, Object> dashboard = new HashMap<>();
 
-        dashboard.put("todayEvents", calendarEventRepository.findEventsByEmployeeAndDate(employee.getId(), LocalDate.now()));
+        dashboard.put("todayEvents", calendarEventRepository.findEventsByEmployeeAndDate(employee.getEmployeeId(), LocalDate.now()));
 
-        dashboard.put("upcomingEvents", calendarEventRepository.findUpcomingEventsByEmployeeId(employee.getId()));
+        dashboard.put("upcomingEvents", calendarEventRepository.findUpcomingEventsByEmployeeId(employee.getEmployeeId()));
 
-        dashboard.put("invitations", meetingScheduleRepository.findByEmployeeIdAndStatus(employee.getId(), "PENDING"));
+        dashboard.put("invitations", meetingScheduleRepository.findByEmployeeIdAndStatus(employee.getEmployeeId(), "PENDING"));
 
         return dashboard;
     }

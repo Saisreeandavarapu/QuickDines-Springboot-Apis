@@ -179,7 +179,7 @@ public class CalendarController {
     @PreAuthorize("hasAuthority('CALENDAR_UPDATE')")
     public ResponseEntity<?> addParticipant(
             @PathVariable Long eventId,
-            @RequestParam Long employeeId) {
+            @RequestParam String employeeId) {
 
         return ResponseEntity.ok(
                 calendarService.addParticipant(
@@ -197,7 +197,7 @@ public class CalendarController {
     @PreAuthorize("hasAuthority('CALENDAR_UPDATE')")
     public ResponseEntity<?> addParticipants(
             @PathVariable Long eventId,
-            @RequestBody List<Long> employeeIds) {
+            @RequestBody List<String> employeeIds) {
 
         return ResponseEntity.ok(
                 calendarService.addParticipants(
@@ -229,7 +229,7 @@ public class CalendarController {
     @PreAuthorize("hasAuthority('CALENDAR_UPDATE')")
     public ResponseEntity<String> removeParticipant(
             @PathVariable Long eventId,
-            @PathVariable Long employeeId) {
+            @PathVariable String employeeId) {
 
         calendarService.removeParticipant(
                 eventId,
