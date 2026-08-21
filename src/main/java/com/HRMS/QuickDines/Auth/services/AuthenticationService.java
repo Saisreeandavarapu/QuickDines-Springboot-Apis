@@ -51,7 +51,7 @@ public class AuthenticationService {
 
     // Security
 
-  //  private final AuthenticationManager authenticationManager;
+  private final AuthenticationManager authenticationManager;
 
     private final PasswordEncoder passwordEncoder;
 
