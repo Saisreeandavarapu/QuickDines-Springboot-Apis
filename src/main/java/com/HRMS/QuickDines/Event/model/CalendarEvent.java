@@ -95,12 +95,7 @@ public class CalendarEvent {
     // PARTICIPANTS
     // =========================
 
-    @OneToMany(
-            mappedBy = "calendarEvents",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    @JsonIgnore
+    @OneToMany(mappedBy = "calendarEvent", cascade = CascadeType.ALL)
     private List<MeetingSchedule> participants = new ArrayList<>();
 
     // =========================
