@@ -1,6 +1,5 @@
 package com.HRMS.QuickDines.Event.model;
 
-
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Event.Entity.EventAttendanceStatus;
 import com.HRMS.QuickDines.Event.Entity.InvitationStatus;
@@ -32,8 +31,9 @@ public class MeetingSchedule {
     // =========================
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id")
-    private CalendarEvent event;
+    @JoinColumn(name = "calendar_event_id", nullable = false)
+    private CalendarEvent calendarEvent;
+
     // =========================
     // EMPLOYEE
     // =========================
@@ -56,7 +56,8 @@ public class MeetingSchedule {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private EventAttendanceStatus attendanceStatus = EventAttendanceStatus.PENDING;
+    private EventAttendanceStatus attendanceStatus =
+            EventAttendanceStatus.PENDING;
 
     // =========================
     // NOTIFICATION
