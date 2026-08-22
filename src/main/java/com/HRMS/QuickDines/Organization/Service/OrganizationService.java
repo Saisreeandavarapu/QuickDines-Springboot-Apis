@@ -130,31 +130,31 @@ public class OrganizationService {
 
         //String newValue = convertToJson(leaveType);
 
-        auditLogsService.logCreate(
-                "ORGANIZATION",
-                String.valueOf(department.getId()),
-                performedBy,
-                department.getId().toString(),
-                "department  created successfully"
-
-        );
-
-        auditLogsService.logActivity(
-                performedBy,
-                "CREATE_DEPARTMENT",
-                "ORGANIZATION",
-                "department created successfully",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
-
-        auditLogsService.logInfo(
-                "ORGANIZATION",
-                "DepartmentService",
-                "department  created successfully"
-        );
+//        auditLogsService.logCreate(
+//                "ORGANIZATION",
+//                String.valueOf(department.getId()),
+//                performedBy,
+//                department.getId().toString(),
+//                "department  created successfully"
+//
+//        );
+//
+//        auditLogsService.logActivity(
+//                performedBy,
+//                "CREATE_DEPARTMENT",
+//                "ORGANIZATION",
+//                "department created successfully",
+//                ActivityStatus.SUCCESS,
+//                getIpAddress(),
+//                getBrowser(),
+//                getOperatingSystem()
+//        );
+//
+//        auditLogsService.logInfo(
+//                "ORGANIZATION",
+//                "DepartmentService",
+//                "department  created successfully"
+//        );
         return "Department Created Successfully";
     }
 
@@ -270,32 +270,32 @@ public class OrganizationService {
         String performedBy = getLoggedInEmployeeId();
 
         //String newValue = convertToJson(leaveType);
-
-        auditLogsService.logCreate(
-                "ORGANIZATION",
-                String.valueOf(designation.getId()),
-                performedBy,
-                designation.getId().toString(),
-                "designation  created successfully"
-
-        );
-
-        auditLogsService.logActivity(
-                performedBy,
-                "CREATE_DESIGNATION",
-                "ORGANIZATION",
-                "designation created successfully",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
-
-        auditLogsService.logInfo(
-                "ORGANIZATION",
-                "DESIGNATIONService",
-                "designation  created successfully"
-        );
+//
+//        auditLogsService.logCreate(
+//                "ORGANIZATION",
+//                String.valueOf(designation.getId()),
+//                performedBy,
+//                designation.getId().toString(),
+//                "designation  created successfully"
+//
+//        );
+//
+//        auditLogsService.logActivity(
+//                performedBy,
+//                "CREATE_DESIGNATION",
+//                "ORGANIZATION",
+//                "designation created successfully",
+//                ActivityStatus.SUCCESS,
+//                getIpAddress(),
+//                getBrowser(),
+//                getOperatingSystem()
+//        );
+//
+//        auditLogsService.logInfo(
+//                "ORGANIZATION",
+//                "DESIGNATIONService",
+//                "designation  created successfully"
+//        );
 
         return "Designation Created Successfully";
     }
@@ -411,31 +411,31 @@ public class OrganizationService {
 
         //String newValue = convertToJson(leaveType);
 
-        auditLogsService.logCreate(
-                "ORGANIZATION",
-                String.valueOf(team.getId()),
-                performedBy,
-                team.getId().toString(),
-                "team  created successfully"
-
-        );
-
-        auditLogsService.logActivity(
-                performedBy,
-                "CREATE_TEAM",
-                "ORGANIZATION",
-                "team created successfully",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
-
-        auditLogsService.logInfo(
-                "ORGANIZATION",
-                "TeamService",
-                "team  created successfully"
-        );
+//        auditLogsService.logCreate(
+//                "ORGANIZATION",
+//                String.valueOf(team.getId()),
+//                performedBy,
+//                team.getId().toString(),
+//                "team  created successfully"
+//
+//        );
+//
+//        auditLogsService.logActivity(
+//                performedBy,
+//                "CREATE_TEAM",
+//                "ORGANIZATION",
+//                "team created successfully",
+//                ActivityStatus.SUCCESS,
+//                getIpAddress(),
+//                getBrowser(),
+//                getOperatingSystem()
+//        );
+//
+//        auditLogsService.logInfo(
+//                "ORGANIZATION",
+//                "TeamService",
+//                "team  created successfully"
+//        );
 
         return "Team Created Successfully";
     }
