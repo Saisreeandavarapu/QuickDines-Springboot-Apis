@@ -6,11 +6,14 @@ import com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType;
 import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
 import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
 import com.HRMS.QuickDines.CRM.repo.CustomerRepository;
+import com.HRMS.QuickDines.Company.model.Branch;
 import com.HRMS.QuickDines.Company.model.Company;
+import com.HRMS.QuickDines.Company.repo.BranchRepository;
 import com.HRMS.QuickDines.Company.repo.CompanyRepository;
 import com.HRMS.QuickDines.Employee.Service.EmployeeService;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
+import com.HRMS.QuickDines.Leave.DTO.LeaveTypeRequest;
 import com.HRMS.QuickDines.Leave.model.*;
 import com.HRMS.QuickDines.Leave.repo.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,6 +24,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -37,9 +41,11 @@ public class LeaveService {
     private final LeaveEncashmentRepository leaveEncashmentRepository;
     private final LeaveCancellationRepository leaveCancellationRepository;
     private final CompanyRepository companyRepository;
+    private final BranchRepository branchRepository;
 
     private final AuditLogsService auditLogsService;
     private final ClientInfoService clientInfoService;
+
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -130,43 +136,72 @@ public class LeaveService {
     }
 
 
-    public String createLeaveType(LeaveType leaveType) {
+    public String createLeaveType(LeaveTypeRequest request) {
 
+        // Find Company
+        Company company = companyRepository.findById(request.getCompanyId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Company Not Found: " + request.getCompanyId()
+                        )
+                );
+
+        // Find Branch
+        Branch branch = branchRepository.findById(request.getBranchId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Branch Not Found: " + request.getBranchId()
+                        )
+                );
+
+        // Create LeaveType entity
+        LeaveType leaveType = new LeaveType();
+
+        leaveType.setLeaveName(request.getLeaveName());
+        leaveType.setTotalLeaves(request.getTotalLeaves());
+        leaveType.setDescription(request.getDescription());
+        leaveType.setStatus(request.getStatus());
+
+        // Set relationships
+        leaveType.setCompany(company);
+        leaveType.setBranch(branch);
+
+        // Save
         leaveTypeRepository.save(leaveType);
 
-        String performedBy = getLoggedInEmployeeId();
-
-        //String newValue = convertToJson(leaveType);
-
-        auditLogsService.logCreate(
-                "LEAVE",
-                String.valueOf(leaveType.getId()),
-                performedBy,
-                leaveType.getId().toString(),
-                "Leave Type created successfully"
-
-        );
-
-        auditLogsService.logActivity(
-                performedBy,
-                "CREATE_LEAVE_TYPE",
-                "LEAVE",
-                "Leave Type created successfully",
-                ActivityStatus.SUCCESS,
-                getIpAddress(),
-                getBrowser(),
-                getOperatingSystem()
-        );
-
-        auditLogsService.logInfo(
-                "LEAVE",
-                "LeaveService",
-                "Leave Type created successfully"
-        );
+//        String performedBy = getLoggedInEmployeeId();
+//
+//        // Audit Log
+//        auditLogsService.logCreate(
+//                "LEAVE",
+//                String.valueOf(leaveType.getId()),
+//                performedBy,
+//                leaveType.getId().toString(),
+//                "Leave Type created successfully"
+//        );
+//
+//        // Activity Log
+//        auditLogsService.logActivity(
+//                performedBy,
+//                "CREATE_LEAVE_TYPE",
+//                "LEAVE",
+//                "Leave Type created successfully",
+//                ActivityStatus.SUCCESS,
+//                getIpAddress(),
+//                getBrowser(),
+//                getOperatingSystem()
+//        );
+//
+//        // System Log
+//        auditLogsService.logInfo(
+//                "LEAVE",
+//                "LeaveService",
+//                "Leave Type created successfully. ID: "
+//                        + leaveType.getId()
+//        );
 
         return "Leave Type Created Successfully";
     }
-
 
     public Object getAllLeaveTypes() {
 
@@ -290,6 +325,42 @@ public class LeaveService {
         );
 
         return "Leave Type Deleted Successfully";
+    }
+
+    public String createLeaveTypes(List<LeaveTypeRequest> requests) {
+
+        List<LeaveType> leaveTypes = new ArrayList<>();
+
+        for (LeaveTypeRequest request : requests) {
+
+            Company company = companyRepository.findById(request.getCompanyId())
+                    .orElseThrow(() ->
+                            new RuntimeException(
+                                    "Company Not Found: " + request.getCompanyId()
+                            ));
+
+            Branch branch = branchRepository.findById(request.getBranchId())
+                    .orElseThrow(() ->
+                            new RuntimeException(
+                                    "Branch Not Found: " + request.getBranchId()
+                            ));
+
+            LeaveType leaveType = new LeaveType();
+
+            leaveType.setLeaveName(request.getLeaveName());
+            leaveType.setTotalLeaves(request.getTotalLeaves());
+            leaveType.setDescription(request.getDescription());
+            leaveType.setStatus(request.getStatus());
+
+            leaveType.setCompany(company);
+            leaveType.setBranch(branch);
+
+            leaveTypes.add(leaveType);
+        }
+
+        leaveTypeRepository.saveAll(leaveTypes);
+
+        return leaveTypes.size() + " Leave Types Created Successfully";
     }
 
 

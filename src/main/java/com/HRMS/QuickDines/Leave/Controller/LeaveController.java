@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Leave.Controller;
 
+import com.HRMS.QuickDines.Leave.DTO.LeaveTypeRequest;
 import com.HRMS.QuickDines.Leave.Service.LeaveService;
 import com.HRMS.QuickDines.Leave.model.*;
 
@@ -8,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/leaves")
@@ -21,9 +24,9 @@ public class LeaveController {
     //=========================================================
 
     @PostMapping("/type")
-    @PreAuthorize("hasAuthority('LEAVE_TYPE_CREATE')")
+    //@PreAuthorize("hasAuthority('LEAVE_TYPE_CREATE')")
     public ResponseEntity<?> createLeaveType(
-            @RequestBody LeaveType leaveType) {
+            @RequestBody LeaveTypeRequest leaveType) {
 
         return ResponseEntity.ok(
                 service.createLeaveType(leaveType));
@@ -63,6 +66,14 @@ public class LeaveController {
 
         return ResponseEntity.ok(
                 service.deleteLeaveType(id));
+    }
+    @PostMapping("/leave-types")
+    public ResponseEntity<?> createLeaveTypes(
+            @RequestBody List<LeaveTypeRequest> requests) {
+
+        return ResponseEntity.ok(
+                service.createLeaveTypes(requests)
+        );
     }
 
 
