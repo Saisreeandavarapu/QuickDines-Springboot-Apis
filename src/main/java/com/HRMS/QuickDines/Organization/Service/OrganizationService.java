@@ -3,6 +3,13 @@ package com.HRMS.QuickDines.Organization.Service;
 import com.HRMS.QuickDines.AuditLogs.Entity.ActivityStatus;
 import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
 import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
+import com.HRMS.QuickDines.Company.model.Branch;
+import com.HRMS.QuickDines.Company.model.Company;
+import com.HRMS.QuickDines.Company.repo.BranchRepository;
+import com.HRMS.QuickDines.Company.repo.CompanyRepository;
+import com.HRMS.QuickDines.Organization.DTO.DepartmentRequest;
+import com.HRMS.QuickDines.Organization.DTO.DesignationRequest;
+import com.HRMS.QuickDines.Organization.DTO.TeamRequest;
 import com.HRMS.QuickDines.Organization.model.Department;
 import com.HRMS.QuickDines.Organization.model.Designation;
 import com.HRMS.QuickDines.Organization.model.OrganizationHierarchy;
@@ -30,6 +37,8 @@ public class OrganizationService {
     private final OrganizationHierarchyRepository hierarchyRepository;
     private final AuditLogsService auditLogsService;
     private final ClientInfoService clientInfoService;
+    private final CompanyRepository companyRepository;
+    private final BranchRepository branchRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -124,26 +133,41 @@ public class OrganizationService {
     // Department Services
     // =====================================
 
-    public String createDepartment(Department department) {
+    public String createDepartment(DepartmentRequest request) {
+
+        Company company = companyRepository.findById(request.getCompanyId())
+                .orElseThrow(() -> new RuntimeException("Company Not Found"));
+
+        Branch branch = branchRepository.findById(request.getBranchId())
+                .orElseThrow(() -> new RuntimeException("Branch Not Found"));
+
+        Department department = new Department();
+
+        department.setDepartmentName(request.getDepartmentName());
+        department.setDepartmentCode(request.getDepartmentCode());
+        department.setDescription(request.getDescription());
+        department.setStatus(request.getStatus());
+
+        department.setCompany(company);
+        department.setBranch(branch);
+
         departmentRepository.save(department);
-        String performedBy = getLoggedInEmployeeId();
 
-        //String newValue = convertToJson(leaveType);
-
+//        String performedBy = getLoggedInEmployeeId();
+//
 //        auditLogsService.logCreate(
 //                "ORGANIZATION",
 //                String.valueOf(department.getId()),
 //                performedBy,
 //                department.getId().toString(),
-//                "department  created successfully"
-//
+//                "Department created successfully"
 //        );
 //
 //        auditLogsService.logActivity(
 //                performedBy,
 //                "CREATE_DEPARTMENT",
 //                "ORGANIZATION",
-//                "department created successfully",
+//                "Department created successfully",
 //                ActivityStatus.SUCCESS,
 //                getIpAddress(),
 //                getBrowser(),
@@ -153,8 +177,9 @@ public class OrganizationService {
 //        auditLogsService.logInfo(
 //                "ORGANIZATION",
 //                "DepartmentService",
-//                "department  created successfully"
+//                "Department created successfully"
 //        );
+
         return "Department Created Successfully";
     }
 
@@ -264,10 +289,37 @@ public class OrganizationService {
     // Designation Services
     // =====================================
 
-    public String createDesignation(Designation designation) {
+    public String createDesignation(DesignationRequest request) {
+
+        Company company = companyRepository.findById(request.getCompanyId())
+                .orElseThrow(() ->
+                        new RuntimeException("Company Not Found"));
+
+        Department department = departmentRepository.findById(request.getDepartmentId())
+                .orElseThrow(() ->
+                        new RuntimeException("Department Not Found"));
+
+        // Validate department belongs to company
+        if (!department.getCompany().getId().equals(company.getId())) {
+            throw new RuntimeException(
+                    "Department does not belong to selected company"
+            );
+        }
+
+        Designation designation = new Designation();
+
+        designation.setDesignationName(request.getDesignationName());
+        designation.setDesignationCode(request.getDesignationCode());
+        designation.setLevel(request.getLevel());
+        designation.setSalaryGrade(request.getSalaryGrade());
+
+        designation.setCompany(company);
+        designation.setDepartment(department);
 
         designationRepository.save(designation);
-        String performedBy = getLoggedInEmployeeId();
+
+
+        //String performedBy = getLoggedInEmployeeId();
 
         //String newValue = convertToJson(leaveType);
 //
@@ -404,10 +456,50 @@ public class OrganizationService {
     // Team Services
     // =====================================
 
-    public String createTeam(Team team) {
+    public String createTeam(TeamRequest request) {
+
+        Company company = companyRepository.findById(request.getCompanyId())
+                .orElseThrow(() ->
+                        new RuntimeException("Company Not Found"));
+
+        Branch branch = branchRepository.findById(request.getBranchId())
+                .orElseThrow(() ->
+                        new RuntimeException("Branch Not Found"));
+
+        Department department = departmentRepository.findById(request.getDepartmentId())
+                .orElseThrow(() ->
+                        new RuntimeException("Department Not Found"));
+
+        // Validate branch belongs to company
+        if (!branch.getCompany().getId().equals(company.getId())) {
+            throw new RuntimeException(
+                    "Branch does not belong to selected company"
+            );
+        }
+
+        // Validate department belongs to company
+        if (!department.getCompany().getId().equals(company.getId())) {
+            throw new RuntimeException(
+                    "Department does not belong to selected company"
+            );
+        }
+
+        Team team = new Team();
+
+        team.setTeamName(request.getTeamName());
+        team.setTeamLead(request.getTeamLead());
+        team.setNumberOfMembers(request.getNumberOfMembers());
+        team.setDescription(request.getDescription());
+        team.setStatus(request.getStatus());
+
+        team.setCompany(company);
+        team.setBranch(branch);
+        team.setDepartment(department);
 
         teamRepository.save(team);
-        String performedBy = getLoggedInEmployeeId();
+
+
+   //     String performedBy = getLoggedInEmployeeId();
 
         //String newValue = convertToJson(leaveType);
 

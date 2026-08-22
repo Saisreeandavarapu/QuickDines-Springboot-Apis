@@ -1,5 +1,8 @@
 package com.HRMS.QuickDines.Organization.Controller;
 
+import com.HRMS.QuickDines.Organization.DTO.DepartmentRequest;
+import com.HRMS.QuickDines.Organization.DTO.DesignationRequest;
+import com.HRMS.QuickDines.Organization.DTO.TeamRequest;
 import com.HRMS.QuickDines.Organization.Service.OrganizationService;
 import com.HRMS.QuickDines.Organization.model.Department;
 import com.HRMS.QuickDines.Organization.model.Designation;
@@ -25,7 +28,7 @@ public class OrganizationController {
     @PostMapping("/department")
    // @PreAuthorize("hasAuthority('DEPARTMENT_CREATE')")
     public ResponseEntity<?> createDepartment(
-            @RequestBody Department department) {
+            @RequestBody DepartmentRequest department) {
 
         return ResponseEntity.ok(
                 service.createDepartment(department));
@@ -69,7 +72,7 @@ public class OrganizationController {
     @PostMapping("/designation")
    // @PreAuthorize("hasAuthority('DESIGNATION_CREATE')")
     public ResponseEntity<?> createDesignation(
-            @RequestBody Designation designation) {
+            @RequestBody DesignationRequest designation) {
 
         return ResponseEntity.ok(
                 service.createDesignation(designation));
@@ -113,7 +116,7 @@ public class OrganizationController {
     @PostMapping("/team")
   //  @PreAuthorize("hasAuthority('TEAM_CREATE')")
     public ResponseEntity<?> createTeam(
-            @RequestBody Team team) {
+            @RequestBody TeamRequest team) {
 
         return ResponseEntity.ok(
                 service.createTeam(team));
