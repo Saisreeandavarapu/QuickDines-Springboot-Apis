@@ -26,8 +26,10 @@ import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.hibernate.Hibernate;
+import org.springdoc.core.service.SecurityService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
@@ -65,7 +67,8 @@ public class EmployeeService {
     private final CompanyRepository companyRepository;
     private final RoleRepository roleRepository;
     private final EmailService emailService;
-
+    private final SecurityService securityService;
+    private final PasswordEncoder passwordEncoder;
     private final AuditLogsService auditLogsService;
     private final ClientInfoService clientInfoService;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -173,7 +176,9 @@ public class EmployeeService {
         employee.setGender(request.getGender());
         employee.setDateOfBirth(request.getDateOfBirth());
         employee.setJoiningDate(request.getJoiningDate());
-        employee.setPassword(request.getPassword());
+        employee.setPassword(
+                passwordEncoder.encode(request.getPassword())
+        );
         // =====================================================
 // 3. REPORTING MANAGER
 // =====================================================
@@ -3653,9 +3658,36 @@ public class EmployeeService {
     }
 
     @Transactional
-    public List<EmployeeApproval> getPendingHrApprovals() {
+    public List<PendingHrApprovalResponse> getPendingHrApprovals() {
 
-        return employeeApprovalRepository.findByApprovalTypeAndHrStatusOrderByCreatedAtAsc(ApprovalType.HR, ApprovalStatus.PENDING);
+        List<EmployeeApproval> approvals =
+                employeeApprovalRepository
+                        .findByApprovalTypeAndHrStatusOrderByCreatedAtAsc(
+                                ApprovalType.HR,
+                                ApprovalStatus.PENDING
+                        );
+
+        return approvals.stream()
+                .map(approval -> {
+
+                    Employee employee = approval.getEmployee();
+
+                    PendingHrApprovalResponse response =
+                            new PendingHrApprovalResponse();
+
+                    response.setApprovalId(approval.getId());
+                    response.setEmployeeId(employee.getId());
+                    response.setEmployeeCode(employee.getEmployeeId());
+                    response.setFirstName(employee.getFirstName());
+                    response.setLastName(employee.getLastName());
+                    response.setEmail(employee.getEmail());
+
+                    response.setHrStatus(approval.getHrStatus().name());
+                    response.setFinalStatus(approval.getFinalStatus().name());
+
+                    return response;
+                })
+                .toList();
     }
 
     @Transactional
