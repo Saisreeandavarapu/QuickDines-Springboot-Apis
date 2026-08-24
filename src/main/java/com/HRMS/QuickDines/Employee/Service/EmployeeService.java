@@ -591,35 +591,31 @@ public class EmployeeService {
 
 
 // =====================================================
-// ROLE / DEPARTMENT
+// DETERMINE APPROVAL TYPE
 // =====================================================
 
-//        String roleName =
-//                role.getRoleName() != null
-//                        ? role.getRoleName().trim().toUpperCase()
-//                        : "";
-//
-//        String departmentCode =
-//                department.getDepartmentCode() != null
-//                        ? department.getDepartmentCode().trim().toUpperCase()
-//                        : "";
+        String roleName = request.getRoleName() != null
+                ? request.getRoleName().trim().toUpperCase()
+                : "";
+
+        String departmentCode1 = department.getDepartmentCode() != null
+                ? department.getDepartmentCode().trim().toUpperCase()
+                : "";
 
 
 // =====================================================
 // 1. FIRST SUPER ADMIN
 // =====================================================
 
-        if ("SUPER_ADMIN".equals(request.getRoleName()) && !superAdminExists) {
+        if ("SUPER_ADMIN".equals(roleName) && !superAdminExists) {
 
-
-            approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
-
-            approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
+            approval.setApprovalType(ApprovalType.SUPER_ADMIN);
 
             approval.setSuperAdminStatus(ApprovalStatus.NOT_REQUIRED);
+            approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
+            approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
 
             approval.setFinalStatus(ApprovalStatus.APPROVED);
-
             approval.setFinalApprovedAt(LocalDateTime.now());
 
             employee.setStatus("ACTIVE");
@@ -630,10 +626,14 @@ public class EmployeeService {
 // 2. ANOTHER SUPER ADMIN
 // =====================================================
 
-        else if ("SUPER_ADMIN".equals(request.getRoleName())) {
+        else if ("SUPER_ADMIN".equals(roleName)) {
 
+            approval.setApprovalType(ApprovalType.SUPER_ADMIN);
 
             approval.setSuperAdminStatus(ApprovalStatus.PENDING);
+
+            approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
+            approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
 
             approval.setFinalStatus(ApprovalStatus.PENDING);
 
@@ -645,10 +645,20 @@ public class EmployeeService {
 // 3. HR / HR MANAGER / DEPARTMENT HEAD / ADMIN / MANAGER
 // =====================================================
 
-        else if ("HR".equals(departmentCode) || "HR_MANAGER".equals(request.getRoleName()) || "DEPARTMENT_HEAD".equals(request.getRoleName()) || "ADMIN".equals(request.getRoleName()) || "MANAGER".equals(request.getRoleName())) {
+        else if (
+                "HR".equals(departmentCode1)
+                        || "HR_MANAGER".equals(roleName)
+                        || "DEPARTMENT_HEAD".equals(roleName)
+                        || "ADMIN".equals(roleName)
+                        || "MANAGER".equals(roleName)
+        ) {
 
+            approval.setApprovalType(ApprovalType.SUPER_ADMIN);
 
             approval.setSuperAdminStatus(ApprovalStatus.PENDING);
+
+            approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
+            approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
 
             approval.setFinalStatus(ApprovalStatus.PENDING);
 
@@ -660,10 +670,14 @@ public class EmployeeService {
 // 4. SALES EMPLOYEE
 // =====================================================
 
-        else if ("SALES".equals(departmentCode)) {
+        else if ("SALES".equals(departmentCode1)) {
 
+            approval.setApprovalType(ApprovalType.SALES_MANAGER);
 
             approval.setSalesManagerStatus(ApprovalStatus.PENDING);
+
+            approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
+            approval.setSuperAdminStatus(ApprovalStatus.NOT_REQUIRED);
 
             approval.setFinalStatus(ApprovalStatus.PENDING);
 
@@ -672,18 +686,23 @@ public class EmployeeService {
 
 
 // =====================================================
-// 5. NORMAL EMPLOYEE / IT / FINANCE / OTHER
+// 5. IT / FINANCE / NORMAL / OTHER EMPLOYEES
 // =====================================================
 
         else {
 
+            approval.setApprovalType(ApprovalType.HR);
 
             approval.setHrStatus(ApprovalStatus.PENDING);
+
+            approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
+            approval.setSuperAdminStatus(ApprovalStatus.NOT_REQUIRED);
 
             approval.setFinalStatus(ApprovalStatus.PENDING);
 
             employee.setStatus("PENDING_APPROVAL");
         }
+
 
 
 // =====================================================
