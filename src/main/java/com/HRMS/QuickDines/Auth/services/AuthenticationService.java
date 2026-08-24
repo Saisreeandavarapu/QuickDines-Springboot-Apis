@@ -21,6 +21,7 @@ import com.HRMS.QuickDines.Organization.model.Department;
 import com.HRMS.QuickDines.Organization.repo.DepartmentRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Jwts;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.transaction.Transactional;
@@ -37,6 +38,7 @@ import com.HRMS.QuickDines.Auth.DTO.LoginResponse;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -135,127 +137,149 @@ public class AuthenticationService {
         }
     }
 
+
     // Email Service
 
     private final EmailService emailService;
 
 
     @Transactional
-    public LoginResponse login(LoginRequest request, HttpServletRequest httpRequest) {
+    public LoginResponse login(
+            LoginRequest request,
+            HttpServletRequest httpRequest) {
 
         // =====================================================
         // 1. FIND EMPLOYEE
         // =====================================================
 
-        Employee employee = employeeRepository.findByEmployeeId(request.getEmployeeId()).orElseThrow(() -> new RuntimeException("Invalid employee ID or password"));
+        Employee employee = employeeRepository
+                .findByEmailId(request.getEmailId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Invalid employee ID or password"));
 
 
         // =====================================================
         // 2. CHECK EMPLOYEE STATUS
         // =====================================================
 
-        if (employee.getStatus() != null && employee.getStatus().equalsIgnoreCase("INACTIVE")) {
+        if (employee.getStatus() == null ||
+                !employee.getStatus().equalsIgnoreCase("ACTIVE")) {
 
-            throw new RuntimeException("Employee account is inactive");
-        }
-
-        // =====================================================
-        // CHECK APPROVAL
-        // =====================================================
-
-        EmployeeApproval approval = employeeApprovalRepository.findByEmployee(employee.getEmployeeId()).orElseThrow(() -> new RuntimeException("Employee approval record not found"));
-
-
-        // =====================================================
-        // FINAL APPROVAL CHECK
-        // =====================================================
-
-        if (approval.getFinalStatus() != ApprovalStatus.APPROVED) {
-
-            throw new RuntimeException("Your employee profile is not approved yet");
+            throw new RuntimeException(
+                    "Employee account is not active");
         }
 
 
         // =====================================================
-        // 3. VERIFY PASSWORD
+        // 3. FIND APPROVAL
         // =====================================================
 
-        boolean passwordValid = passwordEncoder.matches(request.getPassword(), employee.getPassword());
+        EmployeeApproval approval =
+                employeeApprovalRepository
+                        .findByEmployee_EmployeeId(
+                                employee.getEmployeeId());
+
+
+        // =====================================================
+        // 4. CHECK FINAL APPROVAL
+        // =====================================================
+
+        if (approval.getFinalStatus()
+                != ApprovalStatus.APPROVED) {
+
+            throw new RuntimeException(
+                    "Your employee profile is not approved yet");
+        }
+
+
+        // =====================================================
+        // 5. CHECK PASSWORD
+        // =====================================================
+
+        boolean passwordValid =
+                passwordEncoder.matches(
+                        request.getPassword(),
+                        employee.getPassword());
 
         if (!passwordValid) {
 
-            throw new RuntimeException("Invalid employee ID or password");
+            throw new RuntimeException(
+                    "Invalid employee ID or password");
         }
 
 
         // =====================================================
-        // 4. SAVE LOGIN HISTORY
+        // 6. LOGIN HISTORY
         // =====================================================
 
         LoginHistory history = new LoginHistory();
 
         history.setEmployee(employee);
-
         history.setLoginDate(LocalDate.now());
-
         history.setLoginTime(LocalTime.now());
-
         history.setIpAddress(getIpAddress());
-
         history.setBrowserName(getBrowser());
-
         history.setOperatingSystem(getOperatingSystem());
-
         history.setLoginStatus(LoginStatus.SUCCESS);
-
         history.setRemarks("Login successful");
 
         historyRepository.save(history);
 
 
         // =====================================================
-        // 5. SAVE / UPDATE USER DEVICE
+        // 7. DEVICE
         // =====================================================
 
-        String deviceId = httpRequest.getHeader("X-Device-Id");
+        String deviceId =
+                httpRequest.getHeader("X-Device-Id");
 
         if (deviceId == null || deviceId.isBlank()) {
-
             deviceId = "UNKNOWN";
         }
 
-
-        UserDevice device = deviceRepository.findByEmployeeAndDeviceId(employee, deviceId).orElse(new UserDevice());
-
+        UserDevice device =
+                deviceRepository
+                        .findByEmployeeAndDeviceId(
+                                employee,
+                                deviceId)
+                        .orElse(new UserDevice());
 
         device.setEmployee(employee);
-
         device.setDeviceId(deviceId);
-
-        device.setDeviceName(httpRequest.getHeader("X-Device-Name"));
-
+        device.setDeviceName(
+                httpRequest.getHeader("X-Device-Name"));
         device.setBrowserName(getBrowser());
-
         device.setOperatingSystem(getOperatingSystem());
-
         device.setIpAddress(getIpAddress());
-
         device.setLastLogin(LocalDateTime.now());
-
         device.setDeviceStatus("ACTIVE");
 
         deviceRepository.save(device);
 
 
+        String token =
+                jwtService.generateToken(employee.getEmployeeId());
+
+        String refreshToken =
+                jwtService.generateRefreshToken(employee.getEmployeeId());
+
         // =====================================================
-// 6. CREATE LOGIN RESPONSE
-// =====================================================
+        // 9. LOGIN RESPONSE
+        // =====================================================
 
-        LoginResponse response = LoginResponse.builder().employeeId(employee.getEmployeeId()).email(employee.getEmail()).role(employee.getRole() != null ? employee.getRole().getRoleName() : null).build();
-
-        return response;
+        return LoginResponse.builder()
+                .token(token)
+                .refreshToken(refreshToken)
+                .employeeId(employee.getEmployeeId())
+                .email(employee.getEmail())
+                .role(
+                        employee.getRole() != null
+                                ? employee.getRole().getRoleName()
+                                : null
+                )
+                .build();
     }
-
 
     @Transactional
     public String logout(HttpServletRequest httpRequest) {
