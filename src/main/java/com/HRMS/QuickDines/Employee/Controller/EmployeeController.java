@@ -28,7 +28,7 @@ public class EmployeeController {
     //-------------------------
 
     @PostMapping("/create")
-    @PreAuthorize("hasAuthority('EMPLOYEE_CREATE')")
+   // @PreAuthorize("hasAuthority('EMPLOYEE_CREATE')")
     public ResponseEntity<?> createEmployee(
             @RequestBody EmployeeCreateRequest request) {
 
@@ -919,20 +919,20 @@ public class EmployeeController {
     // DEPARTMENT HEAD APPROVAL
     // =====================================================
 
-    @PutMapping("/{employeeId}/approval/department-head")
-    public ResponseEntity<?> departmentHeadApproval(
-            @PathVariable String employeeId,
-            @RequestBody ApprovalRequestdto request,
-            @RequestParam Long approverId) {
-
-        return ResponseEntity.ok(
-                service.departmentHeadApproval(
-                        employeeId,
-                        request,
-                        approverId
-                )
-        );
-    }
+//    @PutMapping("/{employeeId}/approval/department-head")
+//    public ResponseEntity<?> departmentHeadApproval(
+//            @PathVariable String employeeId,
+//            @RequestBody ApprovalRequestdto request,
+//            @RequestParam Long approverId) {
+//
+//        return ResponseEntity.ok(
+//                service.departmentHeadApproval(
+//                        employeeId,
+//                        request,
+//                        approverId
+//                )
+//        );
+//    }
 
 
     // =====================================================
@@ -1009,7 +1009,7 @@ public class EmployeeController {
     @PutMapping("/hr/{employeeId}")
     @PreAuthorize("hasAuthority('EMPLOYEE_APPROVAL_HR')")
     public ResponseEntity<?> hrApproval(
-            @PathVariable Long employeeId,
+            @PathVariable String employeeId,
             @RequestBody EmployeeApprovalRequest request) {
 
         return ResponseEntity.ok(
@@ -1026,7 +1026,7 @@ public class EmployeeController {
     @PutMapping("/admin/{employeeId}")
     @PreAuthorize("hasAuthority('EMPLOYEE_APPROVAL_ADMIN')")
     public ResponseEntity<?> adminApproval(
-            @PathVariable Long employeeId,
+            @PathVariable String employeeId,
             @RequestBody EmployeeApprovalRequest request) {
 
         return ResponseEntity.ok(
@@ -1040,17 +1040,17 @@ public class EmployeeController {
     // DEPARTMENT HEAD APPROVAL
     // =====================================================
 
-    @PutMapping("/department-head/{employeeId}")
-    @PreAuthorize("hasAuthority('EMPLOYEE_APPROVAL_DEPARTMENT_HEAD')")
-    public ResponseEntity<?> departmentHeadApproval(
-            @PathVariable Long employeeId,
-            @RequestBody EmployeeApprovalRequest request) {
-
-        return ResponseEntity.ok(
-                service.departmentHeadApproval(
-                        employeeId,
-                        request));
-    }
+//    @PutMapping("/department-head/{employeeId}")
+//    @PreAuthorize("hasAuthority('EMPLOYEE_APPROVAL_DEPARTMENT_HEAD')")
+//    public ResponseEntity<?> departmentHeadApproval(
+//            @PathVariable Long employeeId,
+//            @RequestBody EmployeeApprovalRequest request) {
+//
+//        return ResponseEntity.ok(
+//                service.departmentHeadApproval(
+//                        employeeId,
+//                        request));
+//    }
 
 
     // =====================================================
@@ -1060,7 +1060,7 @@ public class EmployeeController {
     @PutMapping("/final/{employeeId}")
     @PreAuthorize("hasAuthority('EMPLOYEE_APPROVAL_FINAL')")
     public ResponseEntity<?> finalApproval(
-            @PathVariable Long employeeId) {
+            @PathVariable String employeeId) {
 
         return ResponseEntity.ok(
                 service.finalApproval(
@@ -1078,7 +1078,7 @@ public class EmployeeController {
     @PostMapping("/welcome-mail/{employeeId}")
     @PreAuthorize("hasAuthority('EMPLOYEE_WELCOME_MAIL')")
     public ResponseEntity<?> sendWelcomeMail(
-            @PathVariable Long employeeId) {
+            @PathVariable String employeeId) {
 
         return ResponseEntity.ok(
                 service.sendWelcomeMail(

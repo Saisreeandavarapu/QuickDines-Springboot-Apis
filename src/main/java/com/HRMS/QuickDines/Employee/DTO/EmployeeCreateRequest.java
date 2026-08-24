@@ -12,9 +12,9 @@ public class EmployeeCreateRequest {
 
     private Long companyId;
     private Long branchId;
-    private Long departmentId;
-    private Long roleId;
-    private Long reportingManagerId;
+    private String departmentName;
+    private String roleName;
+    private String reportingManagerId;
     private Long userId;
 
     private String firstName;

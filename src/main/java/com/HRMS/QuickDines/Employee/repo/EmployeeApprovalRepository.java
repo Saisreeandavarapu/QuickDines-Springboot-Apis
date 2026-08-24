@@ -27,9 +27,12 @@ public interface EmployeeApprovalRepository
             ApprovalStatus status
     );
 
-    EmployeeApproval findByEmployeeId(Long employeeId);
+
 
     Optional<EmployeeApproval> findByEmployee(String employeeId);
     void deleteByEmployee(Employee employee);
+
+    EmployeeApproval findByEmployeeId(String employeeId);
+
 
 }

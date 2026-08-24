@@ -149,9 +149,9 @@ public class EmployeeService {
 
         Branch branch = branchRepository.findById(request.getBranchId()).orElseThrow(() -> new RuntimeException("Branch not found"));
 
-        Department department = departmentRepository.findById(request.getDepartmentId()).orElseThrow(() -> new RuntimeException("Department not found"));
+        Department department = departmentRepository.findByDepartmentName(request.getDepartmentName()).orElseThrow(() -> new RuntimeException("Department not found"));
 
-        Role role = roleRepository.findById(request.getRoleId()).orElseThrow(() -> new RuntimeException("Role not found"));
+        Role role = roleRepository.findByRoleName(request.getRoleName()).orElseThrow(() -> new RuntimeException("Role not found"));
 
 
         // =====================================================
@@ -550,70 +550,70 @@ public class EmployeeService {
 
 
 // =====================================================
-// CHECK WHETHER SUPER ADMIN ALREADY EXISTS
+// DEFAULT
+// =====================================================
+
+        approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
+        approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
+        approval.setSuperAdminStatus(ApprovalStatus.NOT_REQUIRED);
+
+        approval.setFinalStatus(ApprovalStatus.PENDING);
+
+        approval.setAccountCreated(false);
+        approval.setWelcomeMailSent(false);
+
+
+// =====================================================
+// CHECK SUPER ADMIN
 // =====================================================
 
         boolean superAdminExists = employeeRepository.existsByRole_RoleNameIgnoreCase("SUPER_ADMIN");
 
 
 // =====================================================
-// SUPER ADMIN LOGIC
+// ROLE / DEPARTMENT
 // =====================================================
 
-        if ("SUPER_ADMIN".equalsIgnoreCase(role.getRoleName())) {
+//        String roleName =
+//                role.getRoleName() != null
+//                        ? role.getRoleName().trim().toUpperCase()
+//                        : "";
+//
+//        String departmentCode =
+//                department.getDepartmentCode() != null
+//                        ? department.getDepartmentCode().trim().toUpperCase()
+//                        : "";
 
-            if (!superAdminExists) {
 
-                // =================================================
-                // FIRST SUPER ADMIN
-                // =================================================
-                // No Super Admin exists yet.
-                // Automatically approve.
+// =====================================================
+// 1. FIRST SUPER ADMIN
+// =====================================================
 
-                approval.setHrStatus(ApprovalStatus.APPROVED);
+        if ("SUPER_ADMIN".equals(request.getRoleName()) && !superAdminExists) {
 
-                approval.setAdminStatus(ApprovalStatus.APPROVED);
 
-                approval.setDepartmentHeadStatus(ApprovalStatus.APPROVED);
+            approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
 
-                approval.setFinalStatus(ApprovalStatus.APPROVED);
+            approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
 
-                approval.setFinalApprovedAt(LocalDateTime.now());
+            approval.setSuperAdminStatus(ApprovalStatus.NOT_REQUIRED);
 
-                employee.setStatus("ACTIVE");
+            approval.setFinalStatus(ApprovalStatus.APPROVED);
 
-            } else {
+            approval.setFinalApprovedAt(LocalDateTime.now());
 
-                // =================================================
-                // ANOTHER SUPER ADMIN
-                // =================================================
-                // Super Admin already exists.
-                // Therefore this new Super Admin requires
-                // normal approval.
+            employee.setStatus("ACTIVE");
+        }
 
-                approval.setHrStatus(ApprovalStatus.PENDING);
 
-                approval.setAdminStatus(ApprovalStatus.PENDING);
+// =====================================================
+// 2. ANOTHER SUPER ADMIN
+// =====================================================
 
-                approval.setDepartmentHeadStatus(ApprovalStatus.PENDING);
+        else if ("SUPER_ADMIN".equals(request.getRoleName())) {
 
-                approval.setFinalStatus(ApprovalStatus.PENDING);
 
-                employee.setStatus("PENDING_APPROVAL");
-            }
-
-        } else {
-
-            // =====================================================
-            // NORMAL EMPLOYEE / OTHER ROLE
-            // =====================================================
-            // Always follows normal approval process.
-
-            approval.setHrStatus(ApprovalStatus.PENDING);
-
-            approval.setAdminStatus(ApprovalStatus.PENDING);
-
-            approval.setDepartmentHeadStatus(ApprovalStatus.PENDING);
+            approval.setSuperAdminStatus(ApprovalStatus.PENDING);
 
             approval.setFinalStatus(ApprovalStatus.PENDING);
 
@@ -622,23 +622,55 @@ public class EmployeeService {
 
 
 // =====================================================
-// ACCOUNT STATUS
+// 3. HR / HR MANAGER / DEPARTMENT HEAD / ADMIN / MANAGER
 // =====================================================
 
-        approval.setAccountCreated(false);
-        approval.setWelcomeMailSent(false);
+        else if ("HR".equals(departmentCode) || "HR_MANAGER".equals(request.getRoleName()) || "DEPARTMENT_HEAD".equals(request.getRoleName()) || "ADMIN".equals(request.getRoleName()) || "MANAGER".equals(request.getRoleName())) {
+
+
+            approval.setSuperAdminStatus(ApprovalStatus.PENDING);
+
+            approval.setFinalStatus(ApprovalStatus.PENDING);
+
+            employee.setStatus("PENDING_APPROVAL");
+        }
 
 
 // =====================================================
-// SAVE EMPLOYEE STATUS
+// 4. SALES EMPLOYEE
+// =====================================================
+
+        else if ("SALES".equals(departmentCode)) {
+
+
+            approval.setSalesManagerStatus(ApprovalStatus.PENDING);
+
+            approval.setFinalStatus(ApprovalStatus.PENDING);
+
+            employee.setStatus("PENDING_APPROVAL");
+        }
+
+
+// =====================================================
+// 5. NORMAL EMPLOYEE / IT / FINANCE / OTHER
+// =====================================================
+
+        else {
+
+
+            approval.setHrStatus(ApprovalStatus.PENDING);
+
+            approval.setFinalStatus(ApprovalStatus.PENDING);
+
+            employee.setStatus("PENDING_APPROVAL");
+        }
+
+
+// =====================================================
+// SAVE
 // =====================================================
 
         employeeRepository.save(employee);
-
-
-// =====================================================
-// SAVE APPROVAL
-// =====================================================
 
         employeeApprovalRepository.save(approval);
 
@@ -651,22 +683,22 @@ public class EmployeeService {
         // =====================================================
         // AUDIT LOG
         // =====================================================
-        String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logCreate("EMPLOYEE", savedEmployee.getEmployeeId(), performedBy, savedEmployee.getEmployeeId(), "Employee created successfully");
-
-
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-
-        auditLogsService.logActivity(savedEmployee.getEmployeeId(), "CREATE_EMPLOYEE", "EMPLOYEE", "New employee created: " + savedEmployee.getEmployeeId(), ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
-
-
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-
-        auditLogsService.logInfo("EMPLOYEE", "EmployeeService", "Employee created successfully: " + savedEmployee.getEmployeeId());
+//        String performedBy = getLoggedInEmployeeId();
+//        auditLogsService.logCreate("EMPLOYEE", savedEmployee.getEmployeeId(), performedBy, savedEmployee.getEmployeeId(), "Employee created successfully");
+//
+//
+//        // =====================================================
+//        // ACTIVITY LOG
+//        // =====================================================
+//
+//        auditLogsService.logActivity(savedEmployee.getEmployeeId(), "CREATE_EMPLOYEE", "EMPLOYEE", "New employee created: " + savedEmployee.getEmployeeId(), ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+//
+//
+//        // =====================================================
+//        // SYSTEM LOG
+//        // =====================================================
+//
+//        auditLogsService.logInfo("EMPLOYEE", "EmployeeService", "Employee created successfully: " + savedEmployee.getEmployeeId());
 
         return "Employee Created Successfully";
 
@@ -2897,8 +2929,7 @@ public class EmployeeService {
         approval.setEmployee(employee);
 
         approval.setHrStatus(ApprovalStatus.PENDING);
-        approval.setAdminStatus(ApprovalStatus.PENDING);
-        approval.setDepartmentHeadStatus(ApprovalStatus.PENDING);
+        approval.setSuperAdminStatus(ApprovalStatus.PENDING);
         approval.setFinalStatus(ApprovalStatus.PENDING);
 
         approval.setAccountCreated(false);
@@ -2963,10 +2994,10 @@ public class EmployeeService {
 
         Employee approver = getEmployeeById(approverId);
 
-        approval.setAdminStatus(request.getStatus());
-        approval.setAdminApprovedBy(approver);
-        approval.setAdminApprovedAt(LocalDateTime.now());
-        approval.setAdminRemarks(request.getRemarks());
+        approval.setSuperAdminStatus(request.getStatus());
+        approval.setSuperAdminApprovedBy(approver);
+        approval.setSuperAdminApprovedAt(LocalDateTime.now());
+        approval.setSuperAdminRemarks(request.getRemarks());
 
         checkFinalApproval(approval);
 
@@ -2978,22 +3009,7 @@ public class EmployeeService {
     // DEPARTMENT HEAD APPROVAL
     // =====================================================
 
-    @Transactional
-    public EmployeeApproval departmentHeadApproval(String employeeId, ApprovalRequestdto request, Long approverId) {
 
-        EmployeeApproval approval = getApproval(employeeId);
-
-        Employee approver = getEmployeeById(approverId);
-
-        approval.setDepartmentHeadStatus(request.getStatus());
-        approval.setDepartmentHeadApprovedBy(approver);
-        approval.setDepartmentHeadApprovedAt(LocalDateTime.now());
-        approval.setDepartmentHeadRemarks(request.getRemarks());
-
-        checkFinalApproval(approval);
-
-        return employeeApprovalRepository.save(approval);
-    }
 
 
     // =====================================================
@@ -3003,7 +3019,7 @@ public class EmployeeService {
     private void checkFinalApproval(EmployeeApproval approval) {
 
         // If anyone rejects
-        if (approval.getHrStatus() == ApprovalStatus.REJECTED || approval.getAdminStatus() == ApprovalStatus.REJECTED || approval.getDepartmentHeadStatus() == ApprovalStatus.REJECTED) {
+        if (approval.getHrStatus() == ApprovalStatus.REJECTED || approval.getSuperAdminStatus() == ApprovalStatus.REJECTED || approval.getSuperAdminStatus() == ApprovalStatus.REJECTED) {
 
             approval.setFinalStatus(ApprovalStatus.REJECTED);
 
@@ -3014,7 +3030,7 @@ public class EmployeeService {
 
 
         // All three approved
-        if (approval.getHrStatus() == ApprovalStatus.APPROVED && approval.getAdminStatus() == ApprovalStatus.APPROVED && approval.getDepartmentHeadStatus() == ApprovalStatus.APPROVED) {
+        if (approval.getHrStatus() == ApprovalStatus.APPROVED && approval.getSuperAdminStatus() == ApprovalStatus.APPROVED) {
 
             approval.setFinalStatus(ApprovalStatus.APPROVED);
 
@@ -3145,7 +3161,7 @@ public class EmployeeService {
     }
 
     @Transactional
-    public String hrApproval(Long employeeId, EmployeeApprovalRequest request) {
+    public String hrApproval(String employeeId, EmployeeApprovalRequest request) {
 
         EmployeeApproval approval = employeeApprovalRepository.findByEmployeeId(employeeId);
 
@@ -3190,7 +3206,7 @@ public class EmployeeService {
     }
 
     @Transactional
-    public String adminApproval(Long employeeId, EmployeeApprovalRequest request) {
+    public String adminApproval(String employeeId, EmployeeApprovalRequest request) {
 
         EmployeeApproval approval = employeeApprovalRepository.findByEmployeeId(employeeId);
 
@@ -3199,7 +3215,7 @@ public class EmployeeService {
             throw new RuntimeException("HR approval is required before Admin approval");
         }
 
-        if (approval.getAdminStatus() != ApprovalStatus.PENDING) {
+        if (approval.getSuperAdminStatus() != ApprovalStatus.PENDING) {
 
             throw new RuntimeException("Admin approval has already been processed");
         }
@@ -3208,13 +3224,13 @@ public class EmployeeService {
 
         if (request.getAdminStatus() == ApprovalStatus.APPROVED) {
 
-            approval.setAdminStatus(ApprovalStatus.APPROVED);
+            approval.setSuperAdminStatus(ApprovalStatus.APPROVED);
 
-            approval.setAdminApprovedBy(approver);
+            approval.setSuperAdminApprovedBy(approver);
 
-            approval.setAdminApprovedAt(LocalDateTime.now());
+            approval.setSuperAdminApprovedAt(LocalDateTime.now());
 
-            approval.setAdminRemarks(request.getAdminRemarks());
+            approval.setSuperAdminRemarks(request.getAdminRemarks());
 
             employeeApprovalRepository.save(approval);
 
@@ -3222,13 +3238,13 @@ public class EmployeeService {
 
         } else if (request.getAdminStatus() == ApprovalStatus.REJECTED) {
 
-            approval.setAdminStatus(ApprovalStatus.REJECTED);
+            approval.setSuperAdminStatus(ApprovalStatus.REJECTED);
 
-            approval.setAdminApprovedBy(approver);
+            approval.setSuperAdminApprovedBy(approver);
 
-            approval.setAdminApprovedAt(LocalDateTime.now());
+            approval.setSuperAdminApprovedAt(LocalDateTime.now());
 
-            approval.setAdminRemarks(request.getAdminRemarks());
+            approval.setSuperAdminRemarks(request.getAdminRemarks());
 
             approval.setFinalStatus(ApprovalStatus.REJECTED);
 
@@ -3240,98 +3256,116 @@ public class EmployeeService {
         throw new RuntimeException("Invalid Admin approval status");
     }
 
-    @Transactional
-    public String departmentHeadApproval(Long employeeId, EmployeeApprovalRequest request) {
-
-        EmployeeApproval approval = employeeApprovalRepository.findByEmployeeId(employeeId);
-
-        if (approval.getHrStatus() != ApprovalStatus.APPROVED) {
-
-            throw new RuntimeException("HR approval is required");
-        }
-
-        if (approval.getAdminStatus() != ApprovalStatus.APPROVED) {
-
-            throw new RuntimeException("Admin approval is required");
-        }
-
-        if (approval.getDepartmentHeadStatus() != ApprovalStatus.PENDING) {
-
-            throw new RuntimeException("Department Head approval has already been processed");
-        }
-
-        Employee approver = employeeRepository.findByEmployeeId(getLoggedInEmployeeId()).orElseThrow(() -> new RuntimeException("Approving employee not found"));
-
-        if (request.getDepartmentHeadStatus() == ApprovalStatus.APPROVED) {
-
-            approval.setDepartmentHeadStatus(ApprovalStatus.APPROVED);
-
-            approval.setDepartmentHeadApprovedBy(approver);
-
-            approval.setDepartmentHeadApprovedAt(LocalDateTime.now());
-
-            approval.setDepartmentHeadRemarks(request.getDepartmentHeadRemarks());
-
-            employeeApprovalRepository.save(approval);
-
-            return "Employee approved by Department Head";
-
-        } else if (request.getDepartmentHeadStatus() == ApprovalStatus.REJECTED) {
-
-            approval.setDepartmentHeadStatus(ApprovalStatus.REJECTED);
-
-            approval.setDepartmentHeadApprovedBy(approver);
-
-            approval.setDepartmentHeadApprovedAt(LocalDateTime.now());
-
-            approval.setDepartmentHeadRemarks(request.getDepartmentHeadRemarks());
-
-            approval.setFinalStatus(ApprovalStatus.REJECTED);
-
-            employeeApprovalRepository.save(approval);
-
-            return "Employee rejected by Department Head";
-        }
-
-        throw new RuntimeException("Invalid Department Head approval status");
-    }
 
     @Transactional
-    public String finalApproval(Long employeeId) {
+    public String finalApproval(String employeeId) {
 
-        EmployeeApproval approval = employeeApprovalRepository.findByEmployeeId(employeeId);
+        EmployeeApproval approval =
+                employeeApprovalRepository.findByEmployeeId(employeeId);
 
-        if (approval.getHrStatus() != ApprovalStatus.APPROVED) {
+        if (approval == null) {
+            throw new RuntimeException("Employee approval record not found");
+        }
 
+        Employee employee = approval.getEmployee();
+
+        if (employee == null) {
+            throw new RuntimeException("Employee not found");
+        }
+
+        // =====================================================
+        // CHECK WHETHER REQUIRED APPROVAL IS COMPLETED
+        // =====================================================
+
+        boolean hrApproved =
+                approval.getHrStatus() == ApprovalStatus.APPROVED;
+
+        boolean salesManagerApproved =
+                approval.getSalesManagerStatus() == ApprovalStatus.APPROVED;
+
+        boolean superAdminApproved =
+                approval.getSuperAdminStatus() == ApprovalStatus.APPROVED;
+
+        boolean hrRequired =
+                approval.getHrStatus() != ApprovalStatus.NOT_REQUIRED;
+
+        boolean salesManagerRequired =
+                approval.getSalesManagerStatus() != ApprovalStatus.NOT_REQUIRED;
+
+        boolean superAdminRequired =
+                approval.getSuperAdminStatus() != ApprovalStatus.NOT_REQUIRED;
+
+
+        // =====================================================
+        // VALIDATE REQUIRED APPROVAL
+        // =====================================================
+
+        if (hrRequired && !hrApproved) {
             throw new RuntimeException("HR approval is pending");
         }
 
-        if (approval.getAdminStatus() != ApprovalStatus.APPROVED) {
-
-            throw new RuntimeException("Admin approval is pending");
+        if (salesManagerRequired && !salesManagerApproved) {
+            throw new RuntimeException("Sales Manager approval is pending");
         }
 
-        if (approval.getDepartmentHeadStatus() != ApprovalStatus.APPROVED) {
-
-            throw new RuntimeException("Department Head approval is pending");
+        if (superAdminRequired && !superAdminApproved) {
+            throw new RuntimeException("Super Admin approval is pending");
         }
 
-        if (approval.getFinalStatus() != ApprovalStatus.PENDING) {
 
-            throw new RuntimeException("Final approval has already been processed");
+        // =====================================================
+        // CHECK FINAL STATUS
+        // =====================================================
+
+        if (approval.getFinalStatus() == ApprovalStatus.APPROVED) {
+            throw new RuntimeException("Employee is already finally approved");
         }
+
+
+        // =====================================================
+        // FINAL APPROVAL
+        // =====================================================
 
         approval.setFinalStatus(ApprovalStatus.APPROVED);
-
         approval.setFinalApprovedAt(LocalDateTime.now());
 
+        employee.setStatus("ACTIVE");
+
+        employeeRepository.save(employee);
         employeeApprovalRepository.save(approval);
 
-        return "Employee finally approved";
+
+        // =====================================================
+        // AUTOMATIC WELCOME MAIL
+        // =====================================================
+
+        if (!Boolean.TRUE.equals(approval.getWelcomeMailSent())) {
+
+            if (employee.getEmail() == null ||
+                    employee.getEmail().isBlank()) {
+
+                throw new RuntimeException(
+                        "Employee email address not available"
+                );
+            }
+
+            emailService.sendWelcomeMail(
+                    employee.getEmail(),
+                    employee.getFirstName()
+            );
+
+            approval.setWelcomeMailSent(true);
+            approval.setWelcomeMailSentAt(LocalDateTime.now());
+
+            employeeApprovalRepository.save(approval);
+        }
+
+
+        return "Employee finally approved and welcome mail sent successfully";
     }
 
     @Transactional
-    public String sendWelcomeMail(Long employeeId) {
+    public String sendWelcomeMail(String employeeId) {
 
         // =====================================================
         // 1. FIND APPROVAL

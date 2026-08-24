@@ -34,10 +34,10 @@ public class Employee {
     @JsonIgnore
     private Branch branch;
     @ManyToOne
-    @JoinColumn(name = "department_id")
+    @JoinColumn(name = "department_name")
     private Department department;
     @ManyToOne
-    @JoinColumn(name = "role_id")
+    @JoinColumn(name = "role_name")
     private Role role;
 
     private String firstName;
