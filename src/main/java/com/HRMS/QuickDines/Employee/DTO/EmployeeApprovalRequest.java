@@ -6,19 +6,19 @@ import lombok.Data;
 @Data
 public class EmployeeApprovalRequest {
 
-    private Long hrApprovedBy;
+    private String hrApprovedBy;
     private String hrRemarks;
     private ApprovalStatus hrStatus;
 
 
-    private Long adminApprovedBy;
+    private String adminApprovedBy;
     private String adminRemarks;
     private ApprovalStatus adminStatus;
 
 
-    private Long departmentHeadApprovedBy;
-    private String departmentHeadRemarks;
-    private ApprovalStatus departmentHeadStatus;
+    private String salesManagerApprovedBy;
+    private String salesManagerRemarks;
+    private ApprovalStatus salesManagerStatus;
 
 
 }

@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Employee.repo;
 
+import com.HRMS.QuickDines.Employee.Entity.ApprovalType;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.model.EmployeeApproval;
 import com.HRMS.QuickDines.Employee.Entity.ApprovalStatus;
@@ -17,7 +18,7 @@ public interface EmployeeApprovalRepository
 
     List<EmployeeApproval> findByHrStatus(ApprovalStatus status);
 
-    List<EmployeeApproval> findByAdminStatus(ApprovalStatus status);
+    List<EmployeeApproval> findBySuperAdminStatus(ApprovalStatus status);
 
     List<EmployeeApproval> findByDepartmentHeadStatus(
             ApprovalStatus status
@@ -33,6 +34,21 @@ public interface EmployeeApprovalRepository
     void deleteByEmployee(Employee employee);
 
     EmployeeApproval findByEmployee_EmployeeId(String employeeId);
+
+    List<EmployeeApproval> findByApprovalTypeAndHrStatusOrderByCreatedAtAsc(
+            ApprovalType approvalType,
+            ApprovalStatus status
+    );
+
+    List<EmployeeApproval> findByApprovalTypeAndSalesManagerStatusOrderByCreatedAtAsc(
+            ApprovalType approvalType,
+            ApprovalStatus status
+    );
+
+    List<EmployeeApproval> findByApprovalTypeAndSuperAdminStatusOrderByCreatedAtAsc(
+            ApprovalType approvalType,
+            ApprovalStatus status
+    );
 
 
 }

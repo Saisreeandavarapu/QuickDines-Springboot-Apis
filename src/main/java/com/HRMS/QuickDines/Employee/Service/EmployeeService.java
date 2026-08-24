@@ -11,6 +11,7 @@ import com.HRMS.QuickDines.Company.repo.BranchRepository;
 import com.HRMS.QuickDines.Company.repo.CompanyRepository;
 import com.HRMS.QuickDines.Employee.DTO.*;
 import com.HRMS.QuickDines.Employee.Entity.ApprovalStatus;
+import com.HRMS.QuickDines.Employee.Entity.ApprovalType;
 import com.HRMS.QuickDines.Employee.model.*;
 import com.HRMS.QuickDines.Employee.repo.*;
 import com.HRMS.QuickDines.Organization.model.Department;
@@ -3063,7 +3064,7 @@ public class EmployeeService {
 
     public List<EmployeeApproval> getPendingAdmin() {
 
-        return employeeApprovalRepository.findByAdminStatus(ApprovalStatus.PENDING);
+        return employeeApprovalRepository.findBySuperAdminStatus(ApprovalStatus.PENDING);
     }
 
 
@@ -3203,6 +3204,139 @@ public class EmployeeService {
         }
 
         throw new RuntimeException("Invalid HR approval status");
+    }
+
+    @Transactional
+    public String salesManagerApproval(
+            String employeeId,
+            EmployeeApprovalRequest request) {
+
+        // =====================================================
+        // 1. FIND APPROVAL
+        // =====================================================
+
+        EmployeeApproval approval =
+                employeeApprovalRepository
+                        .findByEmployee_EmployeeId(employeeId);
+
+        if (approval == null) {
+            throw new RuntimeException(
+                    "Employee approval record not found");
+        }
+
+        Employee employee = approval.getEmployee();
+
+        if (employee == null) {
+            throw new RuntimeException("Employee not found");
+        }
+
+
+        // =====================================================
+        // 2. CHECK SALES MANAGER APPROVAL REQUIRED
+        // =====================================================
+
+        if (approval.getSalesManagerStatus()
+                == ApprovalStatus.NOT_REQUIRED) {
+
+            throw new RuntimeException(
+                    "Sales Manager approval is not required for this employee");
+        }
+
+
+        // =====================================================
+        // 3. CHECK ALREADY PROCESSED
+        // =====================================================
+
+        if (approval.getSalesManagerStatus()
+                != ApprovalStatus.PENDING) {
+
+            throw new RuntimeException(
+                    "Sales Manager approval has already been processed");
+        }
+
+
+        // =====================================================
+        // 4. GET LOGGED-IN EMPLOYEE
+        // =====================================================
+
+        Employee approver =
+                employeeRepository
+                        .findByEmployeeId(getLoggedInEmployeeId())
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Approving employee not found"));
+
+
+        // =====================================================
+        // 5. VERIFY SALES MANAGER
+        // =====================================================
+
+        if (approver.getRole() == null ||
+                !"MANAGER".equalsIgnoreCase(
+                        approver.getRole().getRoleName())) {
+
+            throw new RuntimeException(
+                    "Only Sales Manager can approve this employee");
+        }
+
+
+        // =====================================================
+        // 6. APPROVE
+        // =====================================================
+
+        if (request.getSalesManagerStatus()
+                == ApprovalStatus.APPROVED) {
+
+            approval.setSalesManagerStatus(
+                    ApprovalStatus.APPROVED);
+
+            approval.setSalesManager(approver);
+
+            approval.setSalesManagerApprovedAt(
+                    LocalDateTime.now());
+
+            approval.setSalesManagerRemarks(
+                    request.getSalesManagerRemarks());
+
+            employeeApprovalRepository.save(approval);
+
+            return "Employee approved by Sales Manager";
+        }
+
+
+        // =====================================================
+        // 7. REJECT
+        // =====================================================
+
+        if (request.getSalesManagerStatus()
+                == ApprovalStatus.REJECTED) {
+
+            approval.setSalesManagerStatus(
+                    ApprovalStatus.REJECTED);
+
+            approval.setSalesManager(approver);
+
+            approval.setSalesManagerApprovedAt(
+                    LocalDateTime.now());
+
+            approval.setSalesManagerRemarks(
+                    request.getSalesManagerRemarks());
+
+            approval.setFinalStatus(
+                    ApprovalStatus.REJECTED);
+
+            employee.setStatus("REJECTED");
+
+            employeeRepository.save(employee);
+
+            employeeApprovalRepository.save(approval);
+
+            return "Employee rejected by Sales Manager";
+        }
+
+
+        throw new RuntimeException(
+                "Invalid Sales Manager approval status");
     }
 
     @Transactional
@@ -3444,6 +3578,34 @@ public class EmployeeService {
         // =====================================================
 
         return "Welcome mail sent successfully";
+    }
+
+    @Transactional
+    public List<EmployeeApproval> getPendingHrApprovals() {
+
+        return employeeApprovalRepository
+                .findByApprovalTypeAndHrStatusOrderByCreatedAtAsc(
+                        ApprovalType.HR,
+                        ApprovalStatus.PENDING
+                );
+    }
+    @Transactional
+    public List<EmployeeApproval> getPendingSalesManagerApprovals() {
+
+        return employeeApprovalRepository
+                .findByApprovalTypeAndSalesManagerStatusOrderByCreatedAtAsc(
+                        ApprovalType.SALES_MANAGER,
+                        ApprovalStatus.PENDING
+                );
+    }
+    @Transactional
+    public List<EmployeeApproval> getPendingSuperAdminApprovals() {
+
+        return employeeApprovalRepository
+                .findByApprovalTypeAndSuperAdminStatusOrderByCreatedAtAsc(
+                        ApprovalType.SUPER_ADMIN,
+                        ApprovalStatus.PENDING
+                );
     }
 
     @Transactional

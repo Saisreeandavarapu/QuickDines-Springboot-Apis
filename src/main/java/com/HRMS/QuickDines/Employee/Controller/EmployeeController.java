@@ -1034,7 +1034,40 @@ public class EmployeeController {
                         employeeId,
                         request));
     }
+    @PostMapping("/sales-manager/{employeeId}")
+    @PreAuthorize("hasAuthority('SALES_MANAGER_APPROVAL')")
+    public ResponseEntity<?> salesManagerApproval(
+            @PathVariable String employeeId,
+            @RequestBody EmployeeApprovalRequest request) {
 
+        return ResponseEntity.ok(
+                service.salesManagerApproval(employeeId, request)
+        );
+    }
+    @GetMapping("/hr/pending")
+    @PreAuthorize("hasAuthority('EMPLOYEE_APPROVAL_HR')")
+    public ResponseEntity<?> getPendingHrApprovals() {
+
+        return ResponseEntity.ok(
+                service.getPendingHrApprovals()
+        );
+    }
+    @GetMapping("/sales-manager/pending")
+    @PreAuthorize("hasAuthority('SALES_MANAGER_APPROVAL')")
+    public ResponseEntity<?> getPendingSalesManagerApprovals() {
+
+        return ResponseEntity.ok(
+                service.getPendingSalesManagerApprovals()
+        );
+    }
+    @GetMapping("/super-admin/pending")
+    @PreAuthorize("hasAuthority('SUPER_ADMIN_APPROVAL')")
+    public ResponseEntity<?> getPendingSuperAdminApprovals() {
+
+        return ResponseEntity.ok(
+                service.getPendingSuperAdminApprovals()
+        );
+    }
 
     // =====================================================
     // DEPARTMENT HEAD APPROVAL
