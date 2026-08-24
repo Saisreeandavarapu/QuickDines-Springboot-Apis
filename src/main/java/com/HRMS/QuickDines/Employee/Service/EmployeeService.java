@@ -3163,7 +3163,7 @@ public class EmployeeService {
     @Transactional
     public String hrApproval(String employeeId, EmployeeApprovalRequest request) {
 
-        EmployeeApproval approval = employeeApprovalRepository.findByEmployeeId(employeeId);
+        EmployeeApproval approval = employeeApprovalRepository.findByEmployee_EmployeeId(employeeId);
 
         if (approval.getHrStatus() != ApprovalStatus.PENDING) {
             throw new RuntimeException("HR approval has already been processed");
@@ -3208,7 +3208,7 @@ public class EmployeeService {
     @Transactional
     public String adminApproval(String employeeId, EmployeeApprovalRequest request) {
 
-        EmployeeApproval approval = employeeApprovalRepository.findByEmployeeId(employeeId);
+        EmployeeApproval approval = employeeApprovalRepository.findByEmployee_EmployeeId(employeeId);
 
         if (approval.getHrStatus() != ApprovalStatus.APPROVED) {
 
@@ -3261,7 +3261,7 @@ public class EmployeeService {
     public String finalApproval(String employeeId) {
 
         EmployeeApproval approval =
-                employeeApprovalRepository.findByEmployeeId(employeeId);
+                employeeApprovalRepository.findByEmployee_EmployeeId(employeeId);
 
         if (approval == null) {
             throw new RuntimeException("Employee approval record not found");
@@ -3371,7 +3371,7 @@ public class EmployeeService {
         // 1. FIND APPROVAL
         // =====================================================
 
-        EmployeeApproval approval = employeeApprovalRepository.findByEmployeeId(employeeId);
+        EmployeeApproval approval = employeeApprovalRepository.findByEmployee_EmployeeId(employeeId);
 
 
         // =====================================================

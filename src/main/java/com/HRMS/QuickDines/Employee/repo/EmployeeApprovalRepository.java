@@ -32,7 +32,7 @@ public interface EmployeeApprovalRepository
     Optional<EmployeeApproval> findByEmployee(String employeeId);
     void deleteByEmployee(Employee employee);
 
-    EmployeeApproval findByEmployeeId(String employeeId);
+    EmployeeApproval findByEmployee_EmployeeId(String employeeId);
 
 
 }
