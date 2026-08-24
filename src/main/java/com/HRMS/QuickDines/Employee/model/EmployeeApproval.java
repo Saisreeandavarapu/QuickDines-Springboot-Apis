@@ -1,6 +1,7 @@
 package com.HRMS.QuickDines.Employee.model;
 
 import com.HRMS.QuickDines.Employee.Entity.ApprovalStatus;
+import com.HRMS.QuickDines.Employee.Entity.ApprovalType;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -29,7 +30,8 @@ public class EmployeeApproval {
             unique = true
     )
     private Employee employee;
-
+    @Enumerated(EnumType.STRING)
+    private ApprovalType approvalType;
 
 
 
