@@ -174,6 +174,7 @@ public class EmployeeService {
         employee.setDateOfBirth(request.getDateOfBirth());
         employee.setJoiningDate(request.getJoiningDate());
         employee.setPassword(request.getPassword());
+        employee.setEmployee(null);
 
         employee.setStatus("ACTIVE");
 
