@@ -2921,7 +2921,7 @@ public class EmployeeService {
 
         Employee employee = getEmployeeByEmployeeId(employeeId);
 
-        if (employeeApprovalRepository.existsByEmployee_Id(employee.getId())) {
+        if (employeeApprovalRepository.existsByEmployee_Id(employee.getEmployeeId())) {
             throw new RuntimeException("Approval already exists for employee: " + employeeId);
         }
 
@@ -2958,7 +2958,7 @@ public class EmployeeService {
 
         Employee employee = getEmployeeByEmployeeId(employeeId);
 
-        return employeeApprovalRepository.findByEmployee_Id(employee.getId()).orElseThrow(() -> new RuntimeException("Approval record not found for employee: " + employeeId));
+        return employeeApprovalRepository.findByEmployee_Id(employee.getEmployeeId()).orElseThrow(() -> new RuntimeException("Approval record not found for employee: " + employeeId));
     }
 
 
@@ -3072,10 +3072,7 @@ public class EmployeeService {
     // PENDING DEPARTMENT HEAD
     // =====================================================
 
-    public List<EmployeeApproval> getPendingDepartmentHead() {
 
-        return employeeApprovalRepository.findByDepartmentHeadStatus(ApprovalStatus.PENDING);
-    }
 
 
     // =====================================================

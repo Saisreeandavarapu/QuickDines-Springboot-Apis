@@ -965,13 +965,13 @@ public class EmployeeController {
     // PENDING DEPARTMENT HEAD
     // =====================================================
 
-    @GetMapping("/approvals/pending/department-head")
-    public ResponseEntity<?> getPendingDepartmentHead() {
-
-        return ResponseEntity.ok(
-                service.getPendingDepartmentHead()
-        );
-    }
+//    @GetMapping("/approvals/pending/department-head")
+//    public ResponseEntity<?> getPendingDepartmentHead() {
+//
+//        return ResponseEntity.ok(
+//                service.getPendingDepartmentHead()
+//        );
+//    }
 
 
     // =====================================================

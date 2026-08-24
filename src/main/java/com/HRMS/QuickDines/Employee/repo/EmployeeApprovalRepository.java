@@ -12,17 +12,15 @@ import java.util.Optional;
 public interface EmployeeApprovalRepository
         extends JpaRepository<EmployeeApproval, Long> {
 
-    Optional<EmployeeApproval> findByEmployee_Id(Long employeeId);
+    Optional<EmployeeApproval> findByEmployee_Id(String employeeId);
 
-    boolean existsByEmployee_Id(Long employeeId);
+    boolean existsByEmployee_Id(String employeeId);
 
     List<EmployeeApproval> findByHrStatus(ApprovalStatus status);
 
     List<EmployeeApproval> findBySuperAdminStatus(ApprovalStatus status);
 
-    List<EmployeeApproval> findByDepartmentHeadStatus(
-            ApprovalStatus status
-    );
+
 
     List<EmployeeApproval> findByFinalStatus(
             ApprovalStatus status
