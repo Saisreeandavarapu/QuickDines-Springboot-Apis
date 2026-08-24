@@ -153,7 +153,7 @@ public class AuthenticationService {
         // =====================================================
 
         Employee employee = employeeRepository
-                .findByEmailId(request.getEmailId())
+                .findByEmployee_Email(request.getEmailId())
                 .orElseThrow(() ->
                         new RuntimeException(
                                 "Invalid employee ID or password"));
