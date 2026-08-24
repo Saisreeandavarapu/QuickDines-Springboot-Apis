@@ -152,7 +152,7 @@ public class EmployeeService {
 
         Department department = departmentRepository.findByDepartmentName(request.getDepartmentName()).orElseThrow(() -> new RuntimeException("Department not found"));
 
-       // Role role = roleRepository.findByRoleName(request.getRoleName()).orElseThrow(() -> new RuntimeException("Role not found"));
+        // Role role = roleRepository.findByRoleName(request.getRoleName()).orElseThrow(() -> new RuntimeException("Role not found"));
 
 
         // =====================================================
@@ -174,7 +174,20 @@ public class EmployeeService {
         employee.setDateOfBirth(request.getDateOfBirth());
         employee.setJoiningDate(request.getJoiningDate());
         employee.setPassword(request.getPassword());
-        employee.setEmployee(null);
+        // =====================================================
+// 3. REPORTING MANAGER
+// =====================================================
+
+        if (request.getReportingManagerId() != null) {
+
+            Employee manager = employeeRepository.findById(request.getReportingManagerId()).orElseThrow(() -> new RuntimeException("Reporting manager not found"));
+
+            employee.setEmployee(manager);
+
+        } else {
+
+            employee.setEmployee(null);
+        }
 
         employee.setStatus("ACTIVE");
 
@@ -3012,8 +3025,6 @@ public class EmployeeService {
     // =====================================================
 
 
-
-
     // =====================================================
     // CHECK FINAL APPROVAL
     // =====================================================
@@ -3072,8 +3083,6 @@ public class EmployeeService {
     // =====================================================
     // PENDING DEPARTMENT HEAD
     // =====================================================
-
-
 
 
     // =====================================================
@@ -3160,21 +3169,16 @@ public class EmployeeService {
     }
 
     @Transactional
-    public String hrApproval(
-            String employeeId,
-            EmployeeApprovalRequest request) {
+    public String hrApproval(String employeeId, EmployeeApprovalRequest request) {
 
         // =====================================================
         // 1. FIND APPROVAL
         // =====================================================
 
-        EmployeeApproval approval =
-                employeeApprovalRepository
-                        .findByEmployee_EmployeeId(employeeId);
+        EmployeeApproval approval = employeeApprovalRepository.findByEmployee_EmployeeId(employeeId);
 
         if (approval == null) {
-            throw new RuntimeException(
-                    "Employee approval record not found");
+            throw new RuntimeException("Employee approval record not found");
         }
 
 
@@ -3184,8 +3188,7 @@ public class EmployeeService {
 
         if (approval.getHrStatus() != ApprovalStatus.PENDING) {
 
-            throw new RuntimeException(
-                    "HR approval has already been processed");
+            throw new RuntimeException("HR approval has already been processed");
         }
 
 
@@ -3197,8 +3200,7 @@ public class EmployeeService {
 
         if (employee == null) {
 
-            throw new RuntimeException(
-                    "Employee not found");
+            throw new RuntimeException("Employee not found");
         }
 
 
@@ -3206,24 +3208,16 @@ public class EmployeeService {
         // 4. GET LOGGED-IN HR
         // =====================================================
 
-        Employee approver =
-                employeeRepository
-                        .findByEmployeeId(getLoggedInEmployeeId())
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Approving employee not found"));
+        Employee approver = employeeRepository.findByEmployeeId(getLoggedInEmployeeId()).orElseThrow(() -> new RuntimeException("Approving employee not found"));
 
 
         // =====================================================
         // 5. VERIFY HR ROLE
         // =====================================================
 
-        if (approver.getRole() == null ||
-                !"HR".equalsIgnoreCase(
-                        approver.getRole().getRoleName())) {
+        if (approver.getRole() == null || !"HR".equalsIgnoreCase(approver.getRole().getRoleName())) {
 
-            throw new RuntimeException(
-                    "Only HR can approve this employee");
+            throw new RuntimeException("Only HR can approve this employee");
         }
 
 
@@ -3240,12 +3234,7 @@ public class EmployeeService {
 
             if (request.getRoleId() != null) {
 
-                Role role =
-                        roleRepository
-                                .findById(request.getRoleId())
-                                .orElseThrow(() ->
-                                        new RuntimeException(
-                                                "Role not found"));
+                Role role = roleRepository.findById(request.getRoleId()).orElseThrow(() -> new RuntimeException("Role not found"));
 
                 employee.setRole(role);
             }
@@ -3257,13 +3246,7 @@ public class EmployeeService {
 
             if (request.getReportingManagerId() != null) {
 
-                Employee manager =
-                        employeeRepository
-                                .findById(
-                                        request.getReportingManagerId())
-                                .orElseThrow(() ->
-                                        new RuntimeException(
-                                                "Reporting manager not found"));
+                Employee manager = employeeRepository.findById(request.getReportingManagerId()).orElseThrow(() -> new RuntimeException("Reporting manager not found"));
 
                 employee.setEmployee(manager);
             }
@@ -3273,16 +3256,13 @@ public class EmployeeService {
             // 6.3 HR APPROVAL
             // =================================================
 
-            approval.setHrStatus(
-                    ApprovalStatus.APPROVED);
+            approval.setHrStatus(ApprovalStatus.APPROVED);
 
             approval.setHrApprovedBy(approver);
 
-            approval.setHrApprovedAt(
-                    LocalDateTime.now());
+            approval.setHrApprovedAt(LocalDateTime.now());
 
-            approval.setHrRemarks(
-                    request.getHrRemarks());
+            approval.setHrRemarks(request.getHrRemarks());
 
 
             // =================================================
@@ -3309,19 +3289,15 @@ public class EmployeeService {
 
         if (request.getHrStatus() == ApprovalStatus.REJECTED) {
 
-            approval.setHrStatus(
-                    ApprovalStatus.REJECTED);
+            approval.setHrStatus(ApprovalStatus.REJECTED);
 
             approval.setHrApprovedBy(approver);
 
-            approval.setHrApprovedAt(
-                    LocalDateTime.now());
+            approval.setHrApprovedAt(LocalDateTime.now());
 
-            approval.setHrRemarks(
-                    request.getHrRemarks());
+            approval.setHrRemarks(request.getHrRemarks());
 
-            approval.setFinalStatus(
-                    ApprovalStatus.REJECTED);
+            approval.setFinalStatus(ApprovalStatus.REJECTED);
 
             employee.setStatus("REJECTED");
 
@@ -3339,26 +3315,20 @@ public class EmployeeService {
         // 8. INVALID STATUS
         // =====================================================
 
-        throw new RuntimeException(
-                "Invalid HR approval status");
+        throw new RuntimeException("Invalid HR approval status");
     }
 
     @Transactional
-    public String salesManagerApproval(
-            String employeeId,
-            EmployeeApprovalRequest request) {
+    public String salesManagerApproval(String employeeId, EmployeeApprovalRequest request) {
 
         // =====================================================
         // 1. FIND APPROVAL
         // =====================================================
 
-        EmployeeApproval approval =
-                employeeApprovalRepository
-                        .findByEmployee_EmployeeId(employeeId);
+        EmployeeApproval approval = employeeApprovalRepository.findByEmployee_EmployeeId(employeeId);
 
         if (approval == null) {
-            throw new RuntimeException(
-                    "Employee approval record not found");
+            throw new RuntimeException("Employee approval record not found");
         }
 
         Employee employee = approval.getEmployee();
@@ -3372,11 +3342,9 @@ public class EmployeeService {
         // 2. CHECK SALES MANAGER APPROVAL REQUIRED
         // =====================================================
 
-        if (approval.getSalesManagerStatus()
-                == ApprovalStatus.NOT_REQUIRED) {
+        if (approval.getSalesManagerStatus() == ApprovalStatus.NOT_REQUIRED) {
 
-            throw new RuntimeException(
-                    "Sales Manager approval is not required for this employee");
+            throw new RuntimeException("Sales Manager approval is not required for this employee");
         }
 
 
@@ -3384,11 +3352,9 @@ public class EmployeeService {
         // 3. CHECK ALREADY PROCESSED
         // =====================================================
 
-        if (approval.getSalesManagerStatus()
-                != ApprovalStatus.PENDING) {
+        if (approval.getSalesManagerStatus() != ApprovalStatus.PENDING) {
 
-            throw new RuntimeException(
-                    "Sales Manager approval has already been processed");
+            throw new RuntimeException("Sales Manager approval has already been processed");
         }
 
 
@@ -3396,24 +3362,16 @@ public class EmployeeService {
         // 4. GET LOGGED-IN EMPLOYEE
         // =====================================================
 
-        Employee approver =
-                employeeRepository
-                        .findByEmployeeId(getLoggedInEmployeeId())
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Approving employee not found"));
+        Employee approver = employeeRepository.findByEmployeeId(getLoggedInEmployeeId()).orElseThrow(() -> new RuntimeException("Approving employee not found"));
 
 
         // =====================================================
         // 5. VERIFY SALES MANAGER
         // =====================================================
 
-        if (approver.getRole() == null ||
-                !"MANAGER".equalsIgnoreCase(
-                        approver.getRole().getRoleName())) {
+        if (approver.getRole() == null || !"MANAGER".equalsIgnoreCase(approver.getRole().getRoleName())) {
 
-            throw new RuntimeException(
-                    "Only Sales Manager can approve this employee");
+            throw new RuntimeException("Only Sales Manager can approve this employee");
         }
 
 
@@ -3421,19 +3379,15 @@ public class EmployeeService {
         // 6. APPROVE
         // =====================================================
 
-        if (request.getSalesManagerStatus()
-                == ApprovalStatus.APPROVED) {
+        if (request.getSalesManagerStatus() == ApprovalStatus.APPROVED) {
 
-            approval.setSalesManagerStatus(
-                    ApprovalStatus.APPROVED);
+            approval.setSalesManagerStatus(ApprovalStatus.APPROVED);
 
             approval.setSalesManager(approver);
 
-            approval.setSalesManagerApprovedAt(
-                    LocalDateTime.now());
+            approval.setSalesManagerApprovedAt(LocalDateTime.now());
 
-            approval.setSalesManagerRemarks(
-                    request.getSalesManagerRemarks());
+            approval.setSalesManagerRemarks(request.getSalesManagerRemarks());
 
             employeeApprovalRepository.save(approval);
 
@@ -3445,22 +3399,17 @@ public class EmployeeService {
         // 7. REJECT
         // =====================================================
 
-        if (request.getSalesManagerStatus()
-                == ApprovalStatus.REJECTED) {
+        if (request.getSalesManagerStatus() == ApprovalStatus.REJECTED) {
 
-            approval.setSalesManagerStatus(
-                    ApprovalStatus.REJECTED);
+            approval.setSalesManagerStatus(ApprovalStatus.REJECTED);
 
             approval.setSalesManager(approver);
 
-            approval.setSalesManagerApprovedAt(
-                    LocalDateTime.now());
+            approval.setSalesManagerApprovedAt(LocalDateTime.now());
 
-            approval.setSalesManagerRemarks(
-                    request.getSalesManagerRemarks());
+            approval.setSalesManagerRemarks(request.getSalesManagerRemarks());
 
-            approval.setFinalStatus(
-                    ApprovalStatus.REJECTED);
+            approval.setFinalStatus(ApprovalStatus.REJECTED);
 
             employee.setStatus("REJECTED");
 
@@ -3472,8 +3421,7 @@ public class EmployeeService {
         }
 
 
-        throw new RuntimeException(
-                "Invalid Sales Manager approval status");
+        throw new RuntimeException("Invalid Sales Manager approval status");
     }
 
     @Transactional
@@ -3531,8 +3479,7 @@ public class EmployeeService {
     @Transactional
     public String finalApproval(String employeeId) {
 
-        EmployeeApproval approval =
-                employeeApprovalRepository.findByEmployee_EmployeeId(employeeId);
+        EmployeeApproval approval = employeeApprovalRepository.findByEmployee_EmployeeId(employeeId);
 
         if (approval == null) {
             throw new RuntimeException("Employee approval record not found");
@@ -3548,23 +3495,17 @@ public class EmployeeService {
         // CHECK WHETHER REQUIRED APPROVAL IS COMPLETED
         // =====================================================
 
-        boolean hrApproved =
-                approval.getHrStatus() == ApprovalStatus.APPROVED;
+        boolean hrApproved = approval.getHrStatus() == ApprovalStatus.APPROVED;
 
-        boolean salesManagerApproved =
-                approval.getSalesManagerStatus() == ApprovalStatus.APPROVED;
+        boolean salesManagerApproved = approval.getSalesManagerStatus() == ApprovalStatus.APPROVED;
 
-        boolean superAdminApproved =
-                approval.getSuperAdminStatus() == ApprovalStatus.APPROVED;
+        boolean superAdminApproved = approval.getSuperAdminStatus() == ApprovalStatus.APPROVED;
 
-        boolean hrRequired =
-                approval.getHrStatus() != ApprovalStatus.NOT_REQUIRED;
+        boolean hrRequired = approval.getHrStatus() != ApprovalStatus.NOT_REQUIRED;
 
-        boolean salesManagerRequired =
-                approval.getSalesManagerStatus() != ApprovalStatus.NOT_REQUIRED;
+        boolean salesManagerRequired = approval.getSalesManagerStatus() != ApprovalStatus.NOT_REQUIRED;
 
-        boolean superAdminRequired =
-                approval.getSuperAdminStatus() != ApprovalStatus.NOT_REQUIRED;
+        boolean superAdminRequired = approval.getSuperAdminStatus() != ApprovalStatus.NOT_REQUIRED;
 
 
         // =====================================================
@@ -3612,18 +3553,12 @@ public class EmployeeService {
 
         if (!Boolean.TRUE.equals(approval.getWelcomeMailSent())) {
 
-            if (employee.getEmail() == null ||
-                    employee.getEmail().isBlank()) {
+            if (employee.getEmail() == null || employee.getEmail().isBlank()) {
 
-                throw new RuntimeException(
-                        "Employee email address not available"
-                );
+                throw new RuntimeException("Employee email address not available");
             }
 
-            emailService.sendWelcomeMail(
-                    employee.getEmail(),
-                    employee.getFirstName()
-            );
+            emailService.sendWelcomeMail(employee.getEmail(), employee.getFirstName());
 
             approval.setWelcomeMailSent(true);
             approval.setWelcomeMailSentAt(LocalDateTime.now());
@@ -3720,29 +3655,19 @@ public class EmployeeService {
     @Transactional
     public List<EmployeeApproval> getPendingHrApprovals() {
 
-        return employeeApprovalRepository
-                .findByApprovalTypeAndHrStatusOrderByCreatedAtAsc(
-                        ApprovalType.HR,
-                        ApprovalStatus.PENDING
-                );
+        return employeeApprovalRepository.findByApprovalTypeAndHrStatusOrderByCreatedAtAsc(ApprovalType.HR, ApprovalStatus.PENDING);
     }
+
     @Transactional
     public List<EmployeeApproval> getPendingSalesManagerApprovals() {
 
-        return employeeApprovalRepository
-                .findByApprovalTypeAndSalesManagerStatusOrderByCreatedAtAsc(
-                        ApprovalType.SALES_MANAGER,
-                        ApprovalStatus.PENDING
-                );
+        return employeeApprovalRepository.findByApprovalTypeAndSalesManagerStatusOrderByCreatedAtAsc(ApprovalType.SALES_MANAGER, ApprovalStatus.PENDING);
     }
+
     @Transactional
     public List<EmployeeApproval> getPendingSuperAdminApprovals() {
 
-        return employeeApprovalRepository
-                .findByApprovalTypeAndSuperAdminStatusOrderByCreatedAtAsc(
-                        ApprovalType.SUPER_ADMIN,
-                        ApprovalStatus.PENDING
-                );
+        return employeeApprovalRepository.findByApprovalTypeAndSuperAdminStatusOrderByCreatedAtAsc(ApprovalType.SUPER_ADMIN, ApprovalStatus.PENDING);
     }
 
     @Transactional
