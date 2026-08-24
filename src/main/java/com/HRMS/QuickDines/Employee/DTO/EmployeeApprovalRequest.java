@@ -22,6 +22,8 @@ public class EmployeeApprovalRequest {
     private ApprovalStatus salesManagerStatus;
 
     private ApprovalType approvalType;
+    private String reportingManagerId;
+    private Long roleId;
 
 
 }
