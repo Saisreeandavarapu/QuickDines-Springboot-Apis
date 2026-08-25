@@ -3677,7 +3677,7 @@ public class EmployeeService {
     }
 
     @Transactional
-    public List<PendingHrApprovalResponse> getPendingHrApprovals() {
+    public List<PendingApprovalResponse> getPendingHrApprovals() {
 
         List<EmployeeApproval> approvals =
                 employeeApprovalRepository
@@ -3691,8 +3691,8 @@ public class EmployeeService {
 
                     Employee employee = approval.getEmployee();
 
-                    PendingHrApprovalResponse response =
-                            new PendingHrApprovalResponse();
+                    PendingApprovalResponse response =
+                            new PendingApprovalResponse();
 
                     response.setApprovalId(approval.getId());
                     response.setEmployeeId(employee.getId());
@@ -3710,15 +3710,148 @@ public class EmployeeService {
     }
 
     @Transactional
-    public List<EmployeeApproval> getPendingSalesManagerApprovals() {
+    public List<PendingApprovalResponse> getPendingSalesManagerApprovals() {
 
-        return employeeApprovalRepository.findByApprovalTypeAndSalesManagerStatusOrderByCreatedAtAsc(ApprovalType.SALES_MANAGER, ApprovalStatus.PENDING);
+        List<EmployeeApproval> approvals =
+                employeeApprovalRepository
+                        .findByApprovalTypeAndSalesManagerStatusOrderByCreatedAtAsc(
+                                ApprovalType.SALES_MANAGER,
+                                ApprovalStatus.PENDING
+                        );
+
+        return approvals.stream()
+                .map(this::mapToPendingApprovalResponse)
+                .toList();
     }
 
-    @Transactional
-    public List<EmployeeApproval> getPendingSuperAdminApprovals() {
+    private PendingApprovalResponse mapToPendingApprovalResponse(
+            EmployeeApproval approval) {
 
-        return employeeApprovalRepository.findByApprovalTypeAndSuperAdminStatusOrderByCreatedAtAsc(ApprovalType.SUPER_ADMIN, ApprovalStatus.PENDING);
+        Employee employee = approval.getEmployee();
+
+        PendingApprovalResponse response =
+                new PendingApprovalResponse();
+
+        // =========================
+        // APPROVAL
+        // =========================
+
+        response.setApprovalId(approval.getId());
+
+        response.setApprovalType(
+                approval.getApprovalType() != null
+                        ? approval.getApprovalType().name()
+                        : null
+        );
+
+
+        // =========================
+        // EMPLOYEE
+        // =========================
+
+        response.setEmployeeId(employee.getId());
+
+        response.setEmployeeCode(employee.getEmployeeId());
+
+        response.setFirstName(employee.getFirstName());
+
+        response.setLastName(employee.getLastName());
+
+        response.setEmail(employee.getEmail());
+
+
+        // =========================
+        // DEPARTMENT
+        // =========================
+
+        if (employee.getDepartment() != null) {
+
+            response.setDepartment(
+                    employee.getDepartment().getDepartmentName()
+            );
+        }
+
+
+        // =========================
+        // ROLE
+        // =========================
+
+        if (employee.getRole() != null) {
+
+            response.setRole(
+                    employee.getRole().getRoleName()
+            );
+        }
+
+
+        // =========================
+        // STATUS
+        // =========================
+
+        response.setHrStatus(
+                approval.getHrStatus() != null
+                        ? approval.getHrStatus().name()
+                        : null
+        );
+
+        response.setSalesManagerStatus(
+                approval.getSalesManagerStatus() != null
+                        ? approval.getSalesManagerStatus().name()
+                        : null
+        );
+
+        response.setSuperAdminStatus(
+                approval.getSuperAdminStatus() != null
+                        ? approval.getSuperAdminStatus().name()
+                        : null
+        );
+
+        response.setFinalStatus(
+                approval.getFinalStatus() != null
+                        ? approval.getFinalStatus().name()
+                        : null
+        );
+
+
+        // =========================
+        // HR APPROVER
+        // =========================
+
+        if (approval.getHrApprovedBy() != null) {
+
+            response.setHrApprovedBy(
+                    approval.getHrApprovedBy().getEmployeeId()
+            );
+        }
+
+
+        // =========================
+        // SUPER ADMIN APPROVER
+        // =========================
+
+        if (approval.getSuperAdminApprovedBy() != null) {
+
+            response.setSuperAdminApprovedBy(
+                    approval.getSuperAdminApprovedBy().getEmployeeId()
+            );
+        }
+
+
+        return response;
+    }
+    @Transactional
+    public List<PendingApprovalResponse> getPendingSuperAdminApprovals() {
+
+        List<EmployeeApproval> approvals =
+                employeeApprovalRepository
+                        .findByApprovalTypeAndSuperAdminStatusOrderByCreatedAtAsc(
+                                ApprovalType.SUPER_ADMIN,
+                                ApprovalStatus.PENDING
+                        );
+
+        return approvals.stream()
+                .map(this::mapToPendingApprovalResponse)
+                .toList();
     }
 
     @Transactional
