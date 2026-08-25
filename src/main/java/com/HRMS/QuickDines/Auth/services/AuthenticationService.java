@@ -142,7 +142,6 @@ public class AuthenticationService {
 
     private final EmailService emailService;
 
-
     @Transactional
     public LoginResponse login(
             LoginRequest request,
@@ -153,10 +152,7 @@ public class AuthenticationService {
         // =====================================================
 
         Employee employee = employeeRepository
-                .findByEmployee_Email(request.getEmailId())
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Invalid employee ID or password"));
+                .findByEmail(request.getEmailId());
 
 
         // =====================================================
@@ -172,7 +168,7 @@ public class AuthenticationService {
 
 
         // =====================================================
-        // 3. FIND APPROVAL
+        // 3. FIND EMPLOYEE APPROVAL
         // =====================================================
 
         EmployeeApproval approval =
@@ -182,11 +178,11 @@ public class AuthenticationService {
 
 
         // =====================================================
-        // 4. CHECK FINAL APPROVAL
+        // 4. CHECK APPROVAL
         // =====================================================
 
-        if (approval.getFinalStatus()
-                != ApprovalStatus.APPROVED) {
+        if (approval == null ||
+                approval.getFinalStatus() != ApprovalStatus.APPROVED) {
 
             throw new RuntimeException(
                     "Your employee profile is not approved yet");
@@ -243,7 +239,7 @@ public class AuthenticationService {
                         .findByEmployeeAndDeviceId(
                                 employee,
                                 deviceId)
-                        .orElse(new UserDevice());
+                        .orElseGet(UserDevice::new);
 
         device.setEmployee(employee);
         device.setDeviceId(deviceId);
@@ -258,14 +254,21 @@ public class AuthenticationService {
         deviceRepository.save(device);
 
 
+        // =====================================================
+        // 8. GENERATE JWT
+        // =====================================================
+
         String token =
-                jwtService.generateToken(employee.getEmployeeId());
+                jwtService.generateToken(
+                        employee.getEmployeeId());
 
         String refreshToken =
-                jwtService.generateRefreshToken(employee.getEmployeeId());
+                jwtService.generateRefreshToken(
+                        employee.getEmployeeId());
+
 
         // =====================================================
-        // 9. LOGIN RESPONSE
+        // 9. RESPONSE
         // =====================================================
 
         return LoginResponse.builder()

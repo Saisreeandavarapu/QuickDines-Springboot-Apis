@@ -32,7 +32,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     boolean existsByRole_RoleNameIgnoreCase(String superAdmin);
 
-    Employee findByEmail(String email);
+    //Optional<Employee> findByEmail(String email);
 
     Optional<Employee> findByEmployee(Employee employee);
     void deleteByEmployee(Employee employee);
@@ -41,5 +41,5 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
 
 
-    Optional<Employee> findByEmployee_Email(String emailId);
+    Employee findByEmail(String email);
 }
