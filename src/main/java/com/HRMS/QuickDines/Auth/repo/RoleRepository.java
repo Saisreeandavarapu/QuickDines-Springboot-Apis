@@ -20,4 +20,6 @@ public interface RoleRepository extends JpaRepository<Role, Integer> {
     """)
     List<Role> findAllWithPermissions();
     boolean existsByRoleName(String roleName);
+
+    Optional<Role> findByRoleNameIgnoreCase(String roleName);
 }

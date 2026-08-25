@@ -149,17 +149,58 @@ public class EmployeeService {
         // 1. FETCH MASTER DATA
         // =====================================================
 
-        Company company = companyRepository.findById(request.getCompanyId()).orElseThrow(() -> new RuntimeException("Company not found"));
+        Company company = companyRepository
+                .findById(request.getCompanyId())
+                .orElseThrow(() ->
+                        new RuntimeException("Company not found"));
 
-        Branch branch = branchRepository.findById(request.getBranchId()).orElseThrow(() -> new RuntimeException("Branch not found"));
+        Branch branch = branchRepository
+                .findById(request.getBranchId())
+                .orElseThrow(() ->
+                        new RuntimeException("Branch not found"));
 
-        Department department = departmentRepository.findByDepartmentName(request.getDepartmentName()).orElseThrow(() -> new RuntimeException("Department not found"));
-
-        // Role role = roleRepository.findByRoleName(request.getRoleName()).orElseThrow(() -> new RuntimeException("Role not found"));
+        Department department = departmentRepository
+                .findByDepartmentName(request.getDepartmentName())
+                .orElseThrow(() ->
+                        new RuntimeException("Department not found"));
 
 
         // =====================================================
-        // 2. CREATE EMPLOYEE
+        // 2. NORMALIZE ROLE NAME
+        // =====================================================
+
+        String roleName = request.getRoleName() != null
+                ? request.getRoleName().trim().toUpperCase()
+                : "";
+
+
+        if (roleName.isBlank()) {
+            throw new RuntimeException("Role name is required");
+        }
+
+
+        // =====================================================
+        // 3. FETCH ROLE
+        // =====================================================
+
+        Role role = roleRepository
+                .findByRoleNameIgnoreCase(roleName)
+                .orElseThrow(() ->
+                        new RuntimeException("Role not found: " + roleName));
+
+
+        // =====================================================
+        // 4. DEPARTMENT CODE
+        // =====================================================
+
+        String departmentCode =
+                department.getDepartmentCode() != null
+                        ? department.getDepartmentCode().trim().toUpperCase()
+                        : "";
+
+
+        // =====================================================
+        // 5. CREATE EMPLOYEE
         // =====================================================
 
         Employee employee = new Employee();
@@ -167,7 +208,10 @@ public class EmployeeService {
         employee.setCompany(company);
         employee.setBranch(branch);
         employee.setDepartment(department);
-//        employee.setRole(role);
+
+        // IMPORTANT:
+        // Store role for every employee
+        employee.setRole(role);
 
         employee.setFirstName(request.getFirstName());
         employee.setLastName(request.getLastName());
@@ -176,16 +220,24 @@ public class EmployeeService {
         employee.setGender(request.getGender());
         employee.setDateOfBirth(request.getDateOfBirth());
         employee.setJoiningDate(request.getJoiningDate());
+
         employee.setPassword(
                 passwordEncoder.encode(request.getPassword())
         );
+
+
         // =====================================================
-// 3. REPORTING MANAGER
-// =====================================================
+        // 6. REPORTING MANAGER
+        // =====================================================
 
         if (request.getReportingManagerId() != null) {
 
-            Employee manager = employeeRepository.findById(request.getReportingManagerId()).orElseThrow(() -> new RuntimeException("Reporting manager not found"));
+            Employee manager = employeeRepository
+                    .findById(request.getReportingManagerId())
+                    .orElseThrow(() ->
+                            new RuntimeException(
+                                    "Reporting manager not found"
+                            ));
 
             employee.setEmployee(manager);
 
@@ -194,64 +246,55 @@ public class EmployeeService {
             employee.setEmployee(null);
         }
 
-        employee.setStatus("ACTIVE");
+
+        // =====================================================
+        // 7. DEFAULT STATUS
+        // =====================================================
+
+        employee.setStatus("PENDING_APPROVAL");
 
 
         // =====================================================
-        // 3. REPORTING MANAGER
-        // =====================================================
-
-//        if (request.getReportingManagerId() != null) {
-//
-//            Employee manager = employeeRepository.findById(request.getReportingManagerId()).orElseThrow(() -> new RuntimeException("Reporting manager not found"));
-//
-//            employee.setEmployee(manager);
-//        }
-
-
-//        // =====================================================
-//        // 4. USER ACCOUNT
-//        // =====================================================
-//
-//        if (request.getUserId() != null) {
-//
-//            Users user = usersRepository.findById(request.getUserId())
-//                    .orElseThrow(() ->
-//                            new RuntimeException("User not found"));
-//
-//            employee.setUser(user);
-//        }
-
-
-        // =====================================================
-        // 5. GENERATE EMPLOYEE ID
+        // 8. GENERATE EMPLOYEE ID
         // =====================================================
 
         Long count = employeeRepository.count() + 1;
 
-        String departmentCode = department.getDepartmentCode().toUpperCase();
+        String departmentCodeForEmployee =
+                department.getDepartmentCode() != null
+                        ? department.getDepartmentCode().trim().toUpperCase()
+                        : "EMP";
 
-        String employeeCode = "QD-" + departmentCode + "-" + LocalDate.now().getYear() + "-" + String.format("%03d", count);
+        String employeeCode =
+                "QD-"
+                        + departmentCodeForEmployee
+                        + "-"
+                        + LocalDate.now().getYear()
+                        + "-"
+                        + String.format("%03d", count);
 
         employee.setEmployeeId(employeeCode);
 
 
         // =====================================================
-        // 6. SAVE EMPLOYEE FIRST
+        // 9. SAVE EMPLOYEE
         // =====================================================
 
-        Employee savedEmployee = employeeRepository.save(employee);
+        Employee savedEmployee =
+                employeeRepository.save(employee);
 
 
         // =====================================================
-        // 7. PROFILE
+        // 10. PROFILE
         // =====================================================
 
         if (request.getProfile() != null) {
 
-            EmployeeProfileRequest data = request.getProfile();
+            EmployeeProfileRequest data =
+                    request.getProfile();
 
-            EmployeeProfile profile = new EmployeeProfile();
+            EmployeeProfile profile =
+                    new EmployeeProfile();
 
             profile.setEmployee(savedEmployee);
 
@@ -277,14 +320,16 @@ public class EmployeeService {
 
 
         // =====================================================
-        // 8. ADDRESSES
+        // 11. ADDRESSES
         // =====================================================
 
         if (request.getAddresses() != null) {
 
-            for (EmployeeAddressRequest data : request.getAddresses()) {
+            for (EmployeeAddressRequest data :
+                    request.getAddresses()) {
 
-                EmployeeAddress address = new EmployeeAddress();
+                EmployeeAddress address =
+                        new EmployeeAddress();
 
                 address.setEmployee(savedEmployee);
 
@@ -303,24 +348,34 @@ public class EmployeeService {
 
 
         // =====================================================
-        // 9. CONTACTS
+        // 12. EMERGENCY CONTACTS
         // =====================================================
 
         if (request.getContacts() != null) {
 
-            for (EmployeeContactRequest data : request.getContacts()) {
+            for (EmployeeContactRequest data :
+                    request.getContacts()) {
 
-                EmployeeContacts contact = new EmployeeContacts();
+                EmployeeContacts contact =
+                        new EmployeeContacts();
 
                 contact.setEmployee(savedEmployee);
 
-                contact.setEmergencyContactName(data.getEmergencyContactName());
+                contact.setEmergencyContactName(
+                        data.getEmergencyContactName()
+                );
 
-                contact.setRelation(data.getRelation());
+                contact.setRelation(
+                        data.getRelation()
+                );
 
-                contact.setMobileNumber(data.getMobileNumber());
+                contact.setMobileNumber(
+                        data.getMobileNumber()
+                );
 
-                contact.setAlternateNumber(data.getAlternateNumber());
+                contact.setAlternateNumber(
+                        data.getAlternateNumber()
+                );
 
                 employeeContactRepository.save(contact);
             }
@@ -328,170 +383,272 @@ public class EmployeeService {
 
 
         // =====================================================
-        // 10. BANK DETAILS
+        // 13. BANK DETAILS
         // =====================================================
 
         if (request.getBankDetails() != null) {
 
-            EmployeeBankDetailsRequest data = request.getBankDetails();
+            EmployeeBankDetailsRequest data =
+                    request.getBankDetails();
 
-            EmployeeBankDetails bank = new EmployeeBankDetails();
+            EmployeeBankDetails bank =
+                    new EmployeeBankDetails();
 
             bank.setEmployee(savedEmployee);
 
-            bank.setAccountHolderName(data.getAccountHolderName());
+            bank.setAccountHolderName(
+                    data.getAccountHolderName()
+            );
 
-            bank.setBankName(data.getBankName());
+            bank.setBankName(
+                    data.getBankName()
+            );
 
-            bank.setAccountNumber(data.getAccountNumber());
+            bank.setAccountNumber(
+                    data.getAccountNumber()
+            );
 
-            bank.setIfscCode(data.getIfscCode());
+            bank.setIfscCode(
+                    data.getIfscCode()
+            );
 
-            bank.setBranchName(data.getBranchName());
+            bank.setBranchName(
+                    data.getBranchName()
+            );
 
-            bank.setUpiId(data.getUpiId());
+            bank.setUpiId(
+                    data.getUpiId()
+            );
 
-            bank.setAccountStatus(data.getAccountStatus());
+            bank.setAccountStatus(
+                    data.getAccountStatus()
+            );
 
             employeeBankRepository.save(bank);
         }
 
 
         // =====================================================
-        // 11. DOCUMENTS
+        // 14. DOCUMENTS
         // =====================================================
 
         if (request.getDocuments() != null) {
 
-            EmployeeDocumentsRequest data = request.getDocuments();
+            EmployeeDocumentsRequest data =
+                    request.getDocuments();
 
-            EmployeeDocuments documents = new EmployeeDocuments();
+            EmployeeDocuments documents =
+                    new EmployeeDocuments();
 
             documents.setEmployee(savedEmployee);
 
-            documents.setAadhaarNumber(data.getAadhaarNumber());
+            documents.setAadhaarNumber(
+                    data.getAadhaarNumber()
+            );
 
-            documents.setPanNumber(data.getPanNumber());
+            documents.setPanNumber(
+                    data.getPanNumber()
+            );
 
-            documents.setPassportNumber(data.getPassportNumber());
+            documents.setPassportNumber(
+                    data.getPassportNumber()
+            );
 
-            documents.setResumeUrl(data.getResumeUrl());
+            documents.setResumeUrl(
+                    data.getResumeUrl()
+            );
 
-            documents.setAadhaarDocument(data.getAadhaarDocument());
+            documents.setAadhaarDocument(
+                    data.getAadhaarDocument()
+            );
 
-            documents.setPanDocument(data.getPanDocument());
+            documents.setPanDocument(
+                    data.getPanDocument()
+            );
 
-            documents.setDegreeCertificate(data.getDegreeCertificate());
+            documents.setDegreeCertificate(
+                    data.getDegreeCertificate()
+            );
 
-            documents.setPgCertificate(data.getPgCertificate());
+            documents.setPgCertificate(
+                    data.getPgCertificate()
+            );
 
-            documents.setOfferLetter(data.getOfferLetter());
+            documents.setOfferLetter(
+                    data.getOfferLetter()
+            );
 
-            documents.setJoiningLetter(data.getJoiningLetter());
+            documents.setJoiningLetter(
+                    data.getJoiningLetter()
+            );
 
-            documents.setSalarySlips(data.getSalarySlips());
+            documents.setSalarySlips(
+                    data.getSalarySlips()
+            );
 
-            documents.setExperienceLetter(data.getExperienceLetter());
+            documents.setExperienceLetter(
+                    data.getExperienceLetter()
+            );
 
-            documents.setStatus(data.getStatus());
+            documents.setStatus(
+                    data.getStatus()
+            );
 
             employeeDocumentRepository.save(documents);
         }
 
 
         // =====================================================
-        // 12. CERTIFICATIONS
+        // 15. CERTIFICATIONS
         // =====================================================
 
         if (request.getCertifications() != null) {
 
-            for (EmployeeCertificationRequest data : request.getCertifications()) {
+            for (EmployeeCertificationRequest data :
+                    request.getCertifications()) {
 
-                EmployeeCertification certification = new EmployeeCertification();
+                EmployeeCertification certification =
+                        new EmployeeCertification();
 
                 certification.setEmployee(savedEmployee);
 
-                certification.setCertificationName(data.getCertificationName());
+                certification.setCertificationName(
+                        data.getCertificationName()
+                );
 
-                certification.setIssuingOrganization(data.getIssuingOrganization());
+                certification.setIssuingOrganization(
+                        data.getIssuingOrganization()
+                );
 
-                certification.setCertificateNumber(data.getCertificateNumber());
+                certification.setCertificateNumber(
+                        data.getCertificateNumber()
+                );
 
-                certification.setIssueDate(data.getIssueDate());
+                certification.setIssueDate(
+                        data.getIssueDate()
+                );
 
-                certification.setExpiryDate(data.getExpiryDate());
+                certification.setExpiryDate(
+                        data.getExpiryDate()
+                );
 
-                certification.setCredentialUrl(data.getCredentialUrl());
+                certification.setCredentialUrl(
+                        data.getCredentialUrl()
+                );
 
-                certification.setAttachmentUrl(data.getAttachmentUrl());
+                certification.setAttachmentUrl(
+                        data.getAttachmentUrl()
+                );
 
-                certification.setStatus(data.getStatus());
+                certification.setStatus(
+                        data.getStatus()
+                );
 
-                employeeCertificationRepository.save(certification);
+                employeeCertificationRepository.save(
+                        certification
+                );
             }
         }
 
 
         // =====================================================
-        // 13. EXPERIENCE
+        // 16. EXPERIENCE
         // =====================================================
 
         if (request.getExperiences() != null) {
 
-            for (EmployeeExperienceRequest data : request.getExperiences()) {
+            for (EmployeeExperienceRequest data :
+                    request.getExperiences()) {
 
-                EmployeeExperience experience = new EmployeeExperience();
+                EmployeeExperience experience =
+                        new EmployeeExperience();
 
                 experience.setEmployee(savedEmployee);
 
-                experience.setCompanyName(data.getCompanyName());
+                experience.setCompanyName(
+                        data.getCompanyName()
+                );
 
-                experience.setDesignation(data.getDesignation());
+                experience.setDesignation(
+                        data.getDesignation()
+                );
 
-                experience.setEmploymentType(data.getEmploymentType());
+                experience.setEmploymentType(
+                        data.getEmploymentType()
+                );
 
-                experience.setStartDate(data.getStartDate());
+                experience.setStartDate(
+                        data.getStartDate()
+                );
 
-                experience.setEndDate(data.getEndDate());
+                experience.setEndDate(
+                        data.getEndDate()
+                );
 
-                experience.setTotalExperience(data.getTotalExperience());
+                experience.setTotalExperience(
+                        data.getTotalExperience()
+                );
 
-                experience.setCurrentCompany(data.getCurrentCompany());
+                experience.setCurrentCompany(
+                        data.getCurrentCompany()
+                );
 
-                experience.setSalary(data.getSalary());
+                experience.setSalary(
+                        data.getSalary()
+                );
 
-                experience.setReasonForLeaving(data.getReasonForLeaving());
+                experience.setReasonForLeaving(
+                        data.getReasonForLeaving()
+                );
 
-                employeeExperienceRepository.save(experience);
+                employeeExperienceRepository.save(
+                        experience
+                );
             }
         }
 
 
         // =====================================================
-        // 14. FAMILY MEMBERS
+        // 17. FAMILY MEMBERS
         // =====================================================
 
         if (request.getFamilyMembers() != null) {
 
-            for (EmployeeFamilyMemberRequest data : request.getFamilyMembers()) {
+            for (EmployeeFamilyMemberRequest data :
+                    request.getFamilyMembers()) {
 
-                EmployeeFamilyMember family = new EmployeeFamilyMember();
+                EmployeeFamilyMember family =
+                        new EmployeeFamilyMember();
 
                 family.setEmployee(savedEmployee);
 
-                family.setMemberName(data.getMemberName());
+                family.setMemberName(
+                        data.getMemberName()
+                );
 
-                family.setRelationship(data.getRelationship());
+                family.setRelationship(
+                        data.getRelationship()
+                );
 
-                family.setDateOfBirth(data.getDateOfBirth());
+                family.setDateOfBirth(
+                        data.getDateOfBirth()
+                );
 
-                family.setOccupation(data.getOccupation());
+                family.setOccupation(
+                        data.getOccupation()
+                );
 
-                family.setMobileNumber(data.getMobileNumber());
+                family.setMobileNumber(
+                        data.getMobileNumber()
+                );
 
-                family.setDependent(data.getDependent());
+                family.setDependent(
+                        data.getDependent()
+                );
 
-                family.setNominee(data.getNominee());
+                family.setNominee(
+                        data.getNominee()
+                );
 
                 employeeFamilyMemberRepository.save(family);
             }
@@ -499,26 +656,38 @@ public class EmployeeService {
 
 
         // =====================================================
-        // 15. LANGUAGES
+        // 18. LANGUAGES
         // =====================================================
 
         if (request.getLanguages() != null) {
 
-            for (EmployeeLanguageRequest data : request.getLanguages()) {
+            for (EmployeeLanguageRequest data :
+                    request.getLanguages()) {
 
-                EmployeeLanguage language = new EmployeeLanguage();
+                EmployeeLanguage language =
+                        new EmployeeLanguage();
 
                 language.setEmployee(savedEmployee);
 
-                language.setLanguageName(data.getLanguageName());
+                language.setLanguageName(
+                        data.getLanguageName()
+                );
 
-                language.setReadLevel(data.getReadLevel());
+                language.setReadLevel(
+                        data.getReadLevel()
+                );
 
-                language.setWriteLevel(data.getWriteLevel());
+                language.setWriteLevel(
+                        data.getWriteLevel()
+                );
 
-                language.setSpeakLevel(data.getSpeakLevel());
+                language.setSpeakLevel(
+                        data.getSpeakLevel()
+                );
 
-                language.setNativeLanguage(data.getNativeLanguage());
+                language.setNativeLanguage(
+                        data.getNativeLanguage()
+                );
 
                 employeeLanguageRepository.save(language);
             }
@@ -526,192 +695,283 @@ public class EmployeeService {
 
 
         // =====================================================
-        // 16. SKILLS
+        // 19. SKILLS
         // =====================================================
 
         if (request.getSkills() != null) {
 
-            for (EmployeeSkillRequest data : request.getSkills()) {
+            for (EmployeeSkillRequest data :
+                    request.getSkills()) {
 
-                EmployeeSkill skill = new EmployeeSkill();
+                EmployeeSkill skill =
+                        new EmployeeSkill();
 
                 skill.setEmployee(savedEmployee);
 
-                skill.setSkillName(data.getSkillName());
+                skill.setSkillName(
+                        data.getSkillName()
+                );
 
-                skill.setSkillCategory(data.getSkillCategory());
+                skill.setSkillCategory(
+                        data.getSkillCategory()
+                );
 
-                skill.setProficiencyLevel(data.getProficiencyLevel());
+                skill.setProficiencyLevel(
+                        data.getProficiencyLevel()
+                );
 
-                skill.setExperienceYears(data.getExperienceYears());
+                skill.setExperienceYears(
+                        data.getExperienceYears()
+                );
 
-                skill.setLastUsed(data.getLastUsed());
+                skill.setLastUsed(
+                        data.getLastUsed()
+                );
 
-                skill.setCertificationAvailable(data.getCertificationAvailable());
+                skill.setCertificationAvailable(
+                        data.getCertificationAvailable()
+                );
 
-                skill.setRemarks(data.getRemarks());
+                skill.setRemarks(
+                        data.getRemarks()
+                );
 
                 employeeSkillRepository.save(skill);
             }
         }
 
 
-//        // =====================================================
-//        // 17. APPROVAL
-//        // =====================================================
-//
         // =====================================================
-// 17. EMPLOYEE APPROVAL
-// =====================================================
+        // 20. CREATE EMPLOYEE APPROVAL
+        // =====================================================
 
-        EmployeeApproval approval = new EmployeeApproval();
+        EmployeeApproval approval =
+                new EmployeeApproval();
 
         approval.setEmployee(savedEmployee);
 
 
-// =====================================================
-// DEFAULT
-// =====================================================
+        // =====================================================
+        // 21. DEFAULT APPROVAL STATUS
+        // =====================================================
 
-        approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
-        approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
-        approval.setSuperAdminStatus(ApprovalStatus.NOT_REQUIRED);
+        approval.setHrStatus(
+                ApprovalStatus.NOT_REQUIRED
+        );
 
-        approval.setFinalStatus(ApprovalStatus.PENDING);
+        approval.setSalesManagerStatus(
+                ApprovalStatus.NOT_REQUIRED
+        );
+
+        approval.setSuperAdminStatus(
+                ApprovalStatus.NOT_REQUIRED
+        );
+
+        approval.setFinalStatus(
+                ApprovalStatus.PENDING
+        );
 
         approval.setAccountCreated(false);
         approval.setWelcomeMailSent(false);
 
 
-// =====================================================
-// CHECK SUPER ADMIN
-// =====================================================
+        // =====================================================
+        // 22. CHECK EXISTING SUPER ADMIN
+        // =====================================================
 
-        boolean superAdminExists = employeeRepository.existsByRole_RoleNameIgnoreCase("SUPER_ADMIN");
-
-
-// =====================================================
-// DETERMINE APPROVAL TYPE
-// =====================================================
-
-        String roleName = request.getRoleName() != null
-                ? request.getRoleName().trim().toUpperCase()
-                : "";
-
-        String departmentCode1 = department.getDepartmentCode() != null
-                ? department.getDepartmentCode().trim().toUpperCase()
-                : "";
+        boolean superAdminExists =
+                employeeRepository
+                        .existsByRole_RoleNameIgnoreCase(
+                                "SUPER_ADMIN"
+                        );
 
 
-// =====================================================
-// 1. FIRST SUPER ADMIN
-// =====================================================
+        // =====================================================
+        // 23. FIRST SUPER ADMIN
+        // =====================================================
 
-        if ("SUPER_ADMIN".equals(roleName) && !superAdminExists) {
+        if ("SUPER_ADMIN".equals(roleName)
+                && !superAdminExists) {
 
-            approval.setApprovalType(ApprovalType.SUPER_ADMIN);
+            approval.setApprovalType(
+                    ApprovalType.SUPER_ADMIN
+            );
 
-            approval.setSuperAdminStatus(ApprovalStatus.NOT_REQUIRED);
-            approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
-            approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
+            approval.setSuperAdminStatus(
+                    ApprovalStatus.NOT_REQUIRED
+            );
 
-            approval.setFinalStatus(ApprovalStatus.APPROVED);
-            approval.setFinalApprovedAt(LocalDateTime.now());
+            approval.setHrStatus(
+                    ApprovalStatus.NOT_REQUIRED
+            );
+
+            approval.setSalesManagerStatus(
+                    ApprovalStatus.NOT_REQUIRED
+            );
+
+            approval.setFinalStatus(
+                    ApprovalStatus.APPROVED
+            );
+
+            approval.setFinalApprovedAt(
+                    LocalDateTime.now()
+            );
 
             employee.setStatus("ACTIVE");
         }
 
 
-// =====================================================
-// 2. ANOTHER SUPER ADMIN
-// =====================================================
+        // =====================================================
+        // 24. ANOTHER SUPER ADMIN
+        // =====================================================
 
         else if ("SUPER_ADMIN".equals(roleName)) {
 
-            approval.setApprovalType(ApprovalType.SUPER_ADMIN);
+            approval.setApprovalType(
+                    ApprovalType.SUPER_ADMIN
+            );
 
-            approval.setSuperAdminStatus(ApprovalStatus.PENDING);
+            approval.setSuperAdminStatus(
+                    ApprovalStatus.PENDING
+            );
 
-            approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
-            approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
+            approval.setHrStatus(
+                    ApprovalStatus.NOT_REQUIRED
+            );
 
-            approval.setFinalStatus(ApprovalStatus.PENDING);
+            approval.setSalesManagerStatus(
+                    ApprovalStatus.NOT_REQUIRED
+            );
 
-            employee.setStatus("PENDING_APPROVAL");
+            approval.setFinalStatus(
+                    ApprovalStatus.PENDING
+            );
+
+            employee.setStatus(
+                    "PENDING_APPROVAL"
+            );
         }
 
 
-// =====================================================
-// 3. HR / HR MANAGER / DEPARTMENT HEAD / ADMIN / MANAGER
-// =====================================================
+        // =====================================================
+        // 25. HR / HR MANAGER / DEPARTMENT HEAD / ADMIN / MANAGER
+        // =====================================================
 
         else if (
-                "HR".equals(departmentCode1)
+                "HR".equals(departmentCode)
                         || "HR_MANAGER".equals(roleName)
                         || "DEPARTMENT_HEAD".equals(roleName)
                         || "ADMIN".equals(roleName)
                         || "MANAGER".equals(roleName)
         ) {
 
-            approval.setApprovalType(ApprovalType.SUPER_ADMIN);
+            approval.setApprovalType(
+                    ApprovalType.SUPER_ADMIN
+            );
 
-            approval.setSuperAdminStatus(ApprovalStatus.PENDING);
+            approval.setSuperAdminStatus(
+                    ApprovalStatus.PENDING
+            );
 
-            approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
-            approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
+            approval.setHrStatus(
+                    ApprovalStatus.NOT_REQUIRED
+            );
 
-            approval.setFinalStatus(ApprovalStatus.PENDING);
+            approval.setSalesManagerStatus(
+                    ApprovalStatus.NOT_REQUIRED
+            );
 
-            employee.setStatus("PENDING_APPROVAL");
+            approval.setFinalStatus(
+                    ApprovalStatus.PENDING
+            );
+
+            employee.setStatus(
+                    "PENDING_APPROVAL"
+            );
         }
 
 
-// =====================================================
-// 4. SALES EMPLOYEE
-// =====================================================
+        // =====================================================
+        // 26. SALES
+        // =====================================================
 
-        else if ("SALES".equals(departmentCode1)) {
+        else if ("SALES".equals(departmentCode)) {
 
-            approval.setApprovalType(ApprovalType.SALES_MANAGER);
+            approval.setApprovalType(
+                    ApprovalType.SALES_MANAGER
+            );
 
-            approval.setSalesManagerStatus(ApprovalStatus.PENDING);
+            approval.setSalesManagerStatus(
+                    ApprovalStatus.PENDING
+            );
 
-            approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
-            approval.setSuperAdminStatus(ApprovalStatus.NOT_REQUIRED);
+            approval.setHrStatus(
+                    ApprovalStatus.NOT_REQUIRED
+            );
 
-            approval.setFinalStatus(ApprovalStatus.PENDING);
+            approval.setSuperAdminStatus(
+                    ApprovalStatus.NOT_REQUIRED
+            );
 
-            employee.setStatus("PENDING_APPROVAL");
+            approval.setFinalStatus(
+                    ApprovalStatus.PENDING
+            );
+
+            employee.setStatus(
+                    "PENDING_APPROVAL"
+            );
         }
 
 
-// =====================================================
-// 5. IT / FINANCE / NORMAL / OTHER EMPLOYEES
-// =====================================================
+        // =====================================================
+        // 27. IT / FINANCE / OTHER EMPLOYEES
+        // =====================================================
 
         else {
 
-            approval.setApprovalType(ApprovalType.HR);
+            approval.setApprovalType(
+                    ApprovalType.HR
+            );
 
-            approval.setHrStatus(ApprovalStatus.PENDING);
+            approval.setHrStatus(
+                    ApprovalStatus.PENDING
+            );
 
-            approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
-            approval.setSuperAdminStatus(ApprovalStatus.NOT_REQUIRED);
+            approval.setSalesManagerStatus(
+                    ApprovalStatus.NOT_REQUIRED
+            );
 
-            approval.setFinalStatus(ApprovalStatus.PENDING);
+            approval.setSuperAdminStatus(
+                    ApprovalStatus.NOT_REQUIRED
+            );
 
-            employee.setStatus("PENDING_APPROVAL");
+            approval.setFinalStatus(
+                    ApprovalStatus.PENDING
+            );
+
+            employee.setStatus(
+                    "PENDING_APPROVAL"
+            );
         }
 
 
-
-// =====================================================
-// SAVE
-// =====================================================
+        // =====================================================
+        // 28. SAVE FINAL EMPLOYEE STATUS
+        // =====================================================
 
         employeeRepository.save(employee);
 
+
+        // =====================================================
+        // 29. SAVE APPROVAL
+        // =====================================================
+
         employeeApprovalRepository.save(approval);
+
+
+
+
+
 
 
         // =====================================================
