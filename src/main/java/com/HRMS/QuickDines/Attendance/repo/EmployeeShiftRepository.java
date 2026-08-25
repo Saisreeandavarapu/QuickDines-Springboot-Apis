@@ -10,4 +10,6 @@ import java.util.List;
 public interface EmployeeShiftRepository extends JpaRepository<EmployeeShift, Long> {
     List<EmployeeShift> findByShiftShiftCode(
             String shiftCode);
+
+    EmployeeShift findByEmployee_EmployeeIdAndIsCurrentTrue(String employeeId);
 }

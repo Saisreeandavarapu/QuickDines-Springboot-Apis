@@ -1,6 +1,8 @@
 package com.HRMS.QuickDines.Attendance.Service;
 
 import com.HRMS.QuickDines.Attendance.DTO.AttendanceDashboardDTO;
+import com.HRMS.QuickDines.Attendance.DTO.CheckInRequest;
+import com.HRMS.QuickDines.Attendance.DTO.CheckInResponse;
 import com.HRMS.QuickDines.Attendance.Entity.AttendanceStatus;
 import com.HRMS.QuickDines.Attendance.Entity.OvertimeStatus;
 import com.HRMS.QuickDines.Attendance.model.*;
@@ -69,48 +71,180 @@ public class AttendanceService {
 // EMPLOYEE ATTENDANCE
 //---------------------------------
 
-    public String checkIn(String employeeId) {
+    @Transactional
+    public CheckInResponse checkIn(String employeeId, CheckInRequest request) {
 
-        com.HRMS.QuickDines.AuditLogs.model.ClientInfoDTO clientInfo = clientInfoService.getClientInfo();
+        // =====================================================
+        // 1. FIND EMPLOYEE
+        // =====================================================
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+
+
+        // =====================================================
+        // 2. CURRENT DATE/TIME
+        // =====================================================
+
         LocalDate today = LocalDate.now();
+        LocalDateTime now = LocalDateTime.now();
+
         LocalDateTime start = today.atStartOfDay();
         LocalDateTime end = today.atTime(23, 59, 59);
 
+
+        // =====================================================
+        // 3. CHECK TODAY'S ATTENDANCE
+        // =====================================================
+
         Optional<Attendance> attendanceExists = attendanceRepository.findByEmployeeIdAndCreatedAtBetween(employeeId, start, end);
 
-
         if (attendanceExists.isPresent()) {
-            // Activity log
-            auditLogsService.logActivity(employee.getEmployeeId(), "CHECK_IN", "ATTENDANCE", "Employee attempted to check in, but attendance was already marked", ActivityStatus.FAILED, clientInfo.getIpAddress(), clientInfo.getBrowser(), clientInfo.getOperatingSystem());
-            // System log
-            auditLogsService.logWarning("ATTENDANCE", "AttendanceService", "Check-in failed: Attendance already marked for employee " + employeeId);
-            return "Attendance Already Marked Today";
+
+            throw new RuntimeException("Attendance Already Marked Today");
         }
+
+
+        // =====================================================
+        // 4. VALIDATE GPS
+        // =====================================================
+
+        if (request.getLatitude() == null || request.getLatitude().isBlank()) {
+
+            throw new RuntimeException("Latitude is required");
+        }
+
+        if (request.getLongitude() == null || request.getLongitude().isBlank()) {
+
+            throw new RuntimeException("Longitude is required");
+        }
+
+
+        // =====================================================
+        // 5. FIND CURRENT SHIFT
+        // =====================================================
+
+        EmployeeShift employeeShift = employeeShiftRepository.findByEmployee_EmployeeIdAndIsCurrentTrue(employeeId);
+
+
+        Shift shift = employeeShift.getShift();
+
+        if (shift == null) {
+
+            throw new RuntimeException("Shift is not assigned");
+        }
+
+
+        // =====================================================
+        // 6. CALCULATE LATE STATUS
+        // =====================================================
+
+        LocalDateTime shiftStart = today.atTime(shift.getStartTime());
+
+        int graceMinutes = shift.getGraceTime() != null ? shift.getGraceTime() : 0;
+
+        LocalDateTime allowedTime = shiftStart.plusMinutes(graceMinutes);
+
+        boolean late = now.isAfter(allowedTime);
+
+
+        // =====================================================
+        // 7. CREATE ATTENDANCE
+        // =====================================================
 
         Attendance attendance = new Attendance();
 
         attendance.setEmployee(employee);
-        attendance.setLoginTime(LocalDateTime.now());
+
+        // Company
+        attendance.setCompany(employee.getCompany());
+
+        // Branch
+        attendance.setBranch(employee.getBranch());
+
+        // Department
+        attendance.setDepartment(employee.getDepartment());
+
+        // Shift
+        attendance.setShift(shift);
+
+        // Login
+        attendance.setLoginTime(now);
+
+        // Status
         attendance.setAttendanceStatus(AttendanceStatus.PRESENT);
-        attendance.setRemarks("Checked In");
 
-        attendanceRepository.save(attendance);
-        // =====================================================
-        // AUDIT LOG
-        // =====================================================
-        auditLogsService.logCreate("ATTENDANCE", attendance.getEmployee().getEmployeeId(), employee.getEmployeeId(), employee.getEmployeeId(), "Employee checked in successfully");
-        // =====================================================
-        // ACTIVITY LOG
-        // =====================================================
-        auditLogsService.logActivity(employee.getEmployeeId(), "CHECK_IN", "ATTENDANCE", "Employee checked in successfully", ActivityStatus.SUCCESS, clientInfo.getIpAddress(), clientInfo.getBrowser(), clientInfo.getOperatingSystem());
-        // =====================================================
-        // SYSTEM LOG
-        // =====================================================
-        auditLogsService.logInfo("ATTENDANCE", "AttendanceService", "Employee check-in completed successfully." + " Employee ID: " + employeeId);
+        // Late
+        attendance.setLate(late);
 
-        return "Check In Successful";
+        attendance.setEarlyLeaving(false);
+
+        attendance.setRemarks(late ? "Checked In - Late" : "Checked In On Time");
+
+
+        Attendance savedAttendance = attendanceRepository.save(attendance);
+
+
+        // =====================================================
+        // 8. CREATE GPS TRACKING
+        // =====================================================
+
+        GpsTracking gpsTracking = new GpsTracking();
+
+        gpsTracking.setEmployee(employee);
+
+        gpsTracking.setLatitude(request.getLatitude());
+
+        gpsTracking.setLongitude(request.getLongitude());
+
+        gpsTracking.setLoginLocation(request.getLatitude() + "," + request.getLongitude());
+
+        gpsTracking.setTrackingStatus("CHECKED_IN");
+
+        gpsTracking.setDeviceName(request.getDeviceName());
+
+
+        GpsTracking savedGps = gpsTrackingRepository.save(gpsTracking);
+
+
+        // =====================================================
+        // 9. RETURN COMPLETE JSON
+        // =====================================================
+
+        return CheckInResponse.builder()
+
+                .message(late ? "Check-in successful - Late" : "Check-in successful")
+
+                .employeeId(employee.getEmployeeId())
+
+                .employeeName(employee.getFirstName() + " " + employee.getLastName())
+
+                .attendanceId(savedAttendance.getId())
+
+                .attendanceStatus(savedAttendance.getAttendanceStatus().name())
+
+                .loginTime(savedAttendance.getLoginTime())
+
+                .late(savedAttendance.getLate())
+
+                .shiftName(shift.getShiftName())
+
+                .shiftCode(shift.getShiftCode())
+
+                .shiftStartTime(shift.getStartTime().toString())
+
+                .shiftEndTime(shift.getEndTime().toString())
+
+                .gpsTrackingId(savedGps.getId())
+
+                .latitude(savedGps.getLatitude())
+
+                .longitude(savedGps.getLongitude())
+
+                .trackingStatus(savedGps.getTrackingStatus())
+
+                .deviceName(savedGps.getDeviceName())
+
+                .build();
     }
 
 
@@ -2643,97 +2777,94 @@ public class AttendanceService {
     }
 
 
+    public byte[] exportAttendanceToExcel() {
 
+        List<Attendance> attendanceList = attendanceRepository.findAll();
 
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
-        public byte[] exportAttendanceToExcel() {
+            Sheet sheet = workbook.createSheet("Attendance Report");
 
-            List<Attendance> attendanceList = attendanceRepository.findAll();
+            // =====================================================
+            // HEADER
+            // =====================================================
 
-            try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            Row headerRow = sheet.createRow(0);
 
-                Sheet sheet = workbook.createSheet("Attendance Report");
+            String[] headers = {"Employee ID", "Employee Name", "Mobile Number", "Department ID", "Login Time", "Logout Time", "Total Hours", "Attendance Status", "Late", "Early Leaving", "Remarks", "Created At"};
 
-                // =====================================================
-                // HEADER
-                // =====================================================
+            for (int i = 0; i < headers.length; i++) {
 
-                Row headerRow = sheet.createRow(0);
+                Cell cell = headerRow.createCell(i);
 
-                String[] headers = {"Employee ID", "Employee Name", "Mobile Number", "Department ID", "Login Time", "Logout Time", "Total Hours", "Attendance Status", "Late", "Early Leaving", "Remarks", "Created At"};
-
-                for (int i = 0; i < headers.length; i++) {
-
-                    Cell cell = headerRow.createCell(i);
-
-                    cell.setCellValue(headers[i]);
-                }
-
-                // =====================================================
-                // DATA
-                // =====================================================
-
-                int rowNumber = 1;
-
-                for (Attendance attendance : attendanceList) {
-
-                    Row row = sheet.createRow(rowNumber++);
-
-                    Employee employee = attendance.getEmployee();
-
-                    row.createCell(0).setCellValue(employee != null ? employee.getEmployeeId() : "");
-
-                    String employeeName = "";
-
-                    if (employee != null) {
-
-                        employeeName = (employee.getFirstName() != null ? employee.getFirstName() : "") + " " + (employee.getLastName() != null ? employee.getLastName() : "");
-                    }
-
-                    row.createCell(1).setCellValue(employeeName.trim());
-
-                    row.createCell(2).setCellValue(employee != null ? employee.getMobileNumber() : "");
-
-                    row.createCell(3).setCellValue(String.valueOf(( (employee != null && employee.getDepartment().getId() != null ? employee.getDepartment().getId() : 0))));
-
-                    row.createCell(4).setCellValue(attendance.getLoginTime() != null ? attendance.getLoginTime().toString() : "");
-
-                    row.createCell(5).setCellValue(attendance.getLogoutTime() != null ? attendance.getLogoutTime().toString() : "");
-
-                    row.createCell(6).setCellValue(attendance.getTotalHours() != null ? attendance.getTotalHours().doubleValue() : 0);
-
-                    row.createCell(7).setCellValue(attendance.getAttendanceStatus() != null ? attendance.getAttendanceStatus().toString() : "");
-
-                    row.createCell(8).setCellValue(attendance.getLate() != null ? attendance.getLate() : false);
-
-                    row.createCell(9).setCellValue(attendance.getEarlyLeaving() != null ? attendance.getEarlyLeaving() : false);
-
-                    row.createCell(10).setCellValue(attendance.getRemarks() != null ? attendance.getRemarks() : "");
-
-                    row.createCell(11).setCellValue(attendance.getCreatedAt() != null ? attendance.getCreatedAt().toString() : "");
-                }
-
-                // =====================================================
-                // AUTO SIZE
-                // =====================================================
-
-                for (int i = 0; i < headers.length; i++) {
-
-                    sheet.autoSizeColumn(i);
-                }
-
-                workbook.write(outputStream);
-
-                return outputStream.toByteArray();
-
-            } catch (IOException e) {
-
-                throw new RuntimeException("Failed to generate attendance Excel", e);
+                cell.setCellValue(headers[i]);
             }
+
+            // =====================================================
+            // DATA
+            // =====================================================
+
+            int rowNumber = 1;
+
+            for (Attendance attendance : attendanceList) {
+
+                Row row = sheet.createRow(rowNumber++);
+
+                Employee employee = attendance.getEmployee();
+
+                row.createCell(0).setCellValue(employee != null ? employee.getEmployeeId() : "");
+
+                String employeeName = "";
+
+                if (employee != null) {
+
+                    employeeName = (employee.getFirstName() != null ? employee.getFirstName() : "") + " " + (employee.getLastName() != null ? employee.getLastName() : "");
+                }
+
+                row.createCell(1).setCellValue(employeeName.trim());
+
+                row.createCell(2).setCellValue(employee != null ? employee.getMobileNumber() : "");
+
+                row.createCell(3).setCellValue(String.valueOf(((employee != null && employee.getDepartment().getId() != null ? employee.getDepartment().getId() : 0))));
+
+                row.createCell(4).setCellValue(attendance.getLoginTime() != null ? attendance.getLoginTime().toString() : "");
+
+                row.createCell(5).setCellValue(attendance.getLogoutTime() != null ? attendance.getLogoutTime().toString() : "");
+
+                row.createCell(6).setCellValue(attendance.getTotalHours() != null ? attendance.getTotalHours().doubleValue() : 0);
+
+                row.createCell(7).setCellValue(attendance.getAttendanceStatus() != null ? attendance.getAttendanceStatus().toString() : "");
+
+                row.createCell(8).setCellValue(attendance.getLate() != null ? attendance.getLate() : false);
+
+                row.createCell(9).setCellValue(attendance.getEarlyLeaving() != null ? attendance.getEarlyLeaving() : false);
+
+                row.createCell(10).setCellValue(attendance.getRemarks() != null ? attendance.getRemarks() : "");
+
+                row.createCell(11).setCellValue(attendance.getCreatedAt() != null ? attendance.getCreatedAt().toString() : "");
+            }
+
+            // =====================================================
+            // AUTO SIZE
+            // =====================================================
+
+            for (int i = 0; i < headers.length; i++) {
+
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(outputStream);
+
+            return outputStream.toByteArray();
+
+        } catch (IOException e) {
+
+            throw new RuntimeException("Failed to generate attendance Excel", e);
         }
-
-
     }
+
+
+}
 
 
 

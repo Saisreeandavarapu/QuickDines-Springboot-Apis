@@ -1,6 +1,7 @@
 package com.HRMS.QuickDines.Attendance.Controller;
 
 import com.HRMS.QuickDines.Attendance.DTO.AttendanceDashboardDTO;
+import com.HRMS.QuickDines.Attendance.DTO.CheckInRequest;
 import com.HRMS.QuickDines.Attendance.Entity.AttendanceStatus;
 import com.HRMS.QuickDines.Attendance.Entity.OvertimeStatus;
 import com.HRMS.QuickDines.Attendance.Service.AttendanceSchedulerService;
@@ -30,9 +31,13 @@ public class AttendanceController {
 
     @PostMapping("/check-in/{employeeId}")
     @PreAuthorize("hasAuthority('ATTENDANCE_CHECK_IN')")
-    public ResponseEntity<?> checkIn(@PathVariable String employeeId) {
+    public ResponseEntity<?> checkIn(
+            @PathVariable String employeeId,
+            @RequestBody CheckInRequest request) {
 
-        return ResponseEntity.ok(service.checkIn(employeeId));
+        return ResponseEntity.ok(
+                service.checkIn(employeeId, request)
+        );
     }
 
 

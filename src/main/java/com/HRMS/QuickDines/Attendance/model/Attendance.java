@@ -33,6 +33,10 @@ public class Attendance {
     @JoinColumn(name = "department_id")
     private Department department;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shift_id")
+    private Shift shift;
+
     private LocalDateTime loginTime;
 
     private LocalDateTime logoutTime;
