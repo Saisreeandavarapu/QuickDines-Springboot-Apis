@@ -194,10 +194,6 @@ public class AuthenticationService {
         }
 
 
-        // =====================================================
-        // 5. CHECK PASSWORD
-        // =====================================================
-
         if (employee.getPassword() == null ||
                 employee.getPassword().isBlank()) {
 
