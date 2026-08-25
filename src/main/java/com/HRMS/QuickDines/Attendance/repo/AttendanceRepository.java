@@ -47,4 +47,6 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
             @Param("end") LocalDateTime end);
     List<Attendance> findByAttendanceStatus(
             AttendanceStatus attendanceStatus);
+
+    Optional<Attendance> findByEmployee_EmployeeIdAndCreatedAtBetween(String employeeId, LocalDateTime start, LocalDateTime end);
 }

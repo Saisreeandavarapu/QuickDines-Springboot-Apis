@@ -96,7 +96,13 @@ public class AttendanceService {
         // 3. CHECK TODAY'S ATTENDANCE
         // =====================================================
 
-        Optional<Attendance> attendanceExists = attendanceRepository.findByEmployeeIdAndCreatedAtBetween(employeeId, start, end);
+        Optional<Attendance> attendanceExists =
+                attendanceRepository
+                        .findByEmployee_EmployeeIdAndCreatedAtBetween(
+                                employeeId,
+                                start,
+                                end
+                        );
 
         if (attendanceExists.isPresent()) {
 
@@ -123,7 +129,13 @@ public class AttendanceService {
         // 5. FIND CURRENT SHIFT
         // =====================================================
 
-        EmployeeShift employeeShift = employeeShiftRepository.findByEmployee_EmployeeIdAndIsCurrentTrue(employeeId);
+        EmployeeShift employeeShift =
+                employeeShiftRepository
+                        .findByEmployee_EmployeeIdAndIsCurrentTrue(employeeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "No current shift assigned to employee"
+                                ));
 
 
         Shift shift = employeeShift.getShift();
