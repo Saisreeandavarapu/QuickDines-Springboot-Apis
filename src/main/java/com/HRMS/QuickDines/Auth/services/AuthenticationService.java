@@ -142,7 +142,155 @@ public class AuthenticationService {
 
     private final EmailService emailService;
 
+    @Transactional
+    public LoginResponse login(
+            LoginRequest request,
+            HttpServletRequest httpRequest) {
 
+        // =====================================================
+        // 1. FIND EMPLOYEE
+        // =====================================================
+
+        Employee employee = employeeRepository
+                .findByEmail(request.getEmail());
+
+        if (employee == null) {
+            throw new RuntimeException(
+                    "Invalid email or password");
+        }
+
+
+        // =====================================================
+        // 2. CHECK EMPLOYEE STATUS
+        // =====================================================
+
+        if (employee.getStatus() == null ||
+                !"ACTIVE".equalsIgnoreCase(employee.getStatus())) {
+
+            throw new RuntimeException(
+                    "Employee account is not active");
+        }
+
+
+        // =====================================================
+        // 3. FIND EMPLOYEE APPROVAL
+        // =====================================================
+
+        EmployeeApproval approval =
+                employeeApprovalRepository
+                        .findByEmployee_EmployeeId(
+                                employee.getEmployeeId());
+
+
+        // =====================================================
+        // 4. CHECK APPROVAL
+        // =====================================================
+
+        if (approval == null ||
+                approval.getFinalStatus() != ApprovalStatus.APPROVED) {
+
+            throw new RuntimeException(
+                    "Your employee profile is not approved yet");
+        }
+
+
+        if (employee.getPassword() == null ||
+                employee.getPassword().isBlank()) {
+
+            throw new RuntimeException(
+                    "Employee password is not configured");
+        }
+
+        boolean passwordValid =
+                passwordEncoder.matches(
+                        request.getPassword(),
+                        employee.getPassword());
+
+        if (!passwordValid) {
+
+            throw new RuntimeException(
+                    "Invalid email or password");
+        }
+
+
+        // =====================================================
+        // 6. LOGIN HISTORY
+        // =====================================================
+
+        LoginHistory history = new LoginHistory();
+
+        history.setEmployee(employee);
+        history.setLoginDate(LocalDate.now());
+        history.setLoginTime(LocalTime.now());
+        history.setIpAddress(getIpAddress());
+        history.setBrowserName(getBrowser());
+        history.setOperatingSystem(getOperatingSystem());
+        history.setLoginStatus(LoginStatus.SUCCESS);
+        history.setRemarks("Login successful");
+
+        historyRepository.save(history);
+
+
+        // =====================================================
+        // 7. DEVICE
+        // =====================================================
+
+        String deviceId =
+                httpRequest.getHeader("X-Device-Id");
+
+        if (deviceId == null || deviceId.isBlank()) {
+            deviceId = "UNKNOWN";
+        }
+
+        UserDevice device =
+                deviceRepository
+                        .findByEmployeeAndDeviceId(
+                                employee,
+                                deviceId)
+                        .orElseGet(UserDevice::new);
+
+        device.setEmployee(employee);
+        device.setDeviceId(deviceId);
+        device.setDeviceName(
+                httpRequest.getHeader("X-Device-Name"));
+        device.setBrowserName(getBrowser());
+        device.setOperatingSystem(getOperatingSystem());
+        device.setIpAddress(getIpAddress());
+        device.setLastLogin(LocalDateTime.now());
+        device.setDeviceStatus("ACTIVE");
+
+        deviceRepository.save(device);
+
+
+        // =====================================================
+        // 8. GENERATE JWT
+        // =====================================================
+
+        String token =
+                jwtService.generateToken(
+                        employee.getEmployeeId());
+
+        String refreshToken =
+                jwtService.generateRefreshToken(
+                        employee.getEmployeeId());
+
+
+        // =====================================================
+        // 9. RESPONSE
+        // =====================================================
+
+        return LoginResponse.builder()
+                .token(token)
+                .refreshToken(refreshToken)
+                .employeeId(employee.getEmployeeId())
+                .email(employee.getEmail())
+                .role(
+                        employee.getRole() != null
+                                ? employee.getRole().getRoleName()
+                                : null
+                )
+                .build();
+    }
 
     @Transactional
     public String logout(HttpServletRequest httpRequest) {
