@@ -96,13 +96,7 @@ public class AttendanceService {
         // 3. CHECK TODAY'S ATTENDANCE
         // =====================================================
 
-        Optional<Attendance> attendanceExists =
-                attendanceRepository
-                        .findByEmployee_EmployeeIdAndCreatedAtBetween(
-                                employeeId,
-                                start,
-                                end
-                        );
+        Optional<Attendance> attendanceExists = attendanceRepository.findByEmployee_EmployeeIdAndCreatedAtBetween(employeeId, start, end);
 
         if (attendanceExists.isPresent()) {
 
@@ -129,13 +123,7 @@ public class AttendanceService {
         // 5. FIND CURRENT SHIFT
         // =====================================================
 
-        EmployeeShift employeeShift =
-                employeeShiftRepository
-                        .findByEmployee_EmployeeIdAndIsCurrentTrue(employeeId)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "No current shift assigned to employee"
-                                ));
+        EmployeeShift employeeShift = employeeShiftRepository.findByEmployee_EmployeeIdAndIsCurrentTrue(employeeId).orElseThrow(() -> new RuntimeException("No current shift assigned to employee"));
 
 
         Shift shift = employeeShift.getShift();
@@ -261,7 +249,7 @@ public class AttendanceService {
 
 
     public String checkOut(String employeeId) {
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
         Attendance attendance = attendanceRepository.findTopByEmployeeIdOrderByIdDesc(employeeId).orElseThrow(() -> new RuntimeException("Attendance Record Not Found"));
         com.HRMS.QuickDines.AuditLogs.model.ClientInfoDTO clientInfo = clientInfoService.getClientInfo();
         if (attendance.getLogoutTime() != null) {
@@ -1062,30 +1050,30 @@ public class AttendanceService {
             // AUDIT LOG
             //=========================================
 
-            auditLogsService.logCreate("SHIFT", String.valueOf(shift.getId()), performedBy, null, "Shift created successfully");
+         //   auditLogsService.logCreate("SHIFT", String.valueOf(shift.getId()), performedBy, null, "Shift created successfully");
 
 
             //=========================================
             // ACTIVITY LOG
             //=========================================
 
-            auditLogsService.logActivity(performedBy, "CREATE_SHIFT", "SHIFT", "Shift created successfully. Shift ID: " + shift.getId(), ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
+          //  auditLogsService.logActivity(performedBy, "CREATE_SHIFT", "SHIFT", "Shift created successfully. Shift ID: " + shift.getId(), ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             //=========================================
             // SYSTEM LOG
             //=========================================
 
-            auditLogsService.logInfo("SHIFT", "ShiftService", "Shift created successfully. Shift ID: " + shift.getId());
+          //  auditLogsService.logInfo("SHIFT", "ShiftService", "Shift created successfully. Shift ID: " + shift.getId());
 
 
             return "Shift Created Successfully";
 
         } catch (Exception e) {
 
-            auditLogsService.logActivity(performedBy, "CREATE_SHIFT", "SHIFT", "Failed to create shift. Error: " + e.getMessage(), ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
+           // auditLogsService.logActivity(performedBy, "CREATE_SHIFT", "SHIFT", "Failed to create shift. Error: " + e.getMessage(), ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-            auditLogsService.logError("SHIFT", "ShiftService", "Failed to create shift", e.toString());
+          //  auditLogsService.logError("SHIFT", "ShiftService", "Failed to create shift", e.toString());
 
             throw e;
         }
