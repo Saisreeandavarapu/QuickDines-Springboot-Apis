@@ -19,10 +19,6 @@ public class EmployeeApproval {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // =====================================================
-    // EMPLOYEE
-    // =====================================================
-
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "employee_id",
@@ -30,9 +26,10 @@ public class EmployeeApproval {
             unique = true
     )
     private Employee employee;
-    @Enumerated(EnumType.STRING)
-    private ApprovalType approvalType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_type", nullable = false)
+    private ApprovalType approvalType;
 
 
     // =====================================================
@@ -42,6 +39,44 @@ public class EmployeeApproval {
     @Enumerated(EnumType.STRING)
     @Column(name = "hr_status", nullable = false)
     private ApprovalStatus hrStatus = ApprovalStatus.NOT_REQUIRED;
+
+
+    // =====================================================
+    // SALES MANAGER APPROVAL
+    // =====================================================
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sales_manager_status", nullable = false)
+    private ApprovalStatus salesManagerStatus =
+            ApprovalStatus.NOT_REQUIRED;
+
+
+    // =====================================================
+    // SUPER ADMIN APPROVAL
+    // =====================================================
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "super_admin_status", nullable = false)
+    private ApprovalStatus superAdminStatus =
+            ApprovalStatus.NOT_REQUIRED;
+
+
+    // =====================================================
+    // FINAL STATUS
+    // =====================================================
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "final_status", nullable = false)
+    private ApprovalStatus finalStatus =
+            ApprovalStatus.PENDING;
+
+
+
+    // =====================================================
+    // HR APPROVAL
+    // =====================================================
+
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hr_approved_by")
@@ -61,10 +96,6 @@ public class EmployeeApproval {
     @JoinColumn(name = "sales_manager_id")
     private Employee salesManager;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "sales_manager_status", nullable = false)
-    private ApprovalStatus salesManagerStatus =
-            ApprovalStatus.NOT_REQUIRED;
 
     private LocalDateTime salesManagerApprovedAt;
 
@@ -76,10 +107,7 @@ public class EmployeeApproval {
     // SUPER ADMIN APPROVAL
     // =====================================================
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "super_admin_status", nullable = false)
-    private ApprovalStatus superAdminStatus =
-            ApprovalStatus.NOT_REQUIRED;
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "super_admin_approved_by")
@@ -95,10 +123,7 @@ public class EmployeeApproval {
     // FINAL STATUS
     // =====================================================
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "final_status", nullable = false)
-    private ApprovalStatus finalStatus =
-            ApprovalStatus.PENDING;
+
 
     private LocalDateTime finalApprovedAt;
 

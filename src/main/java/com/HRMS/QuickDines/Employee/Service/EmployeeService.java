@@ -149,29 +149,18 @@ public class EmployeeService {
         // 1. FETCH MASTER DATA
         // =====================================================
 
-        Company company = companyRepository
-                .findById(request.getCompanyId())
-                .orElseThrow(() ->
-                        new RuntimeException("Company not found"));
+        Company company = companyRepository.findById(request.getCompanyId()).orElseThrow(() -> new RuntimeException("Company not found"));
 
-        Branch branch = branchRepository
-                .findById(request.getBranchId())
-                .orElseThrow(() ->
-                        new RuntimeException("Branch not found"));
+        Branch branch = branchRepository.findById(request.getBranchId()).orElseThrow(() -> new RuntimeException("Branch not found"));
 
-        Department department = departmentRepository
-                .findByDepartmentName(request.getDepartmentName())
-                .orElseThrow(() ->
-                        new RuntimeException("Department not found"));
+        Department department = departmentRepository.findByDepartmentName(request.getDepartmentName()).orElseThrow(() -> new RuntimeException("Department not found"));
 
 
         // =====================================================
         // 2. NORMALIZE ROLE NAME
         // =====================================================
 
-        String roleName = request.getRoleName() != null
-                ? request.getRoleName().trim().toUpperCase()
-                : "";
+        String roleName = request.getRoleName() != null ? request.getRoleName().trim().toUpperCase() : "";
 
 
         if (roleName.isBlank()) {
@@ -183,20 +172,14 @@ public class EmployeeService {
         // 3. FETCH ROLE
         // =====================================================
 
-        Role role = roleRepository
-                .findByRoleNameIgnoreCase(roleName)
-                .orElseThrow(() ->
-                        new RuntimeException("Role not found: " + roleName));
+        Role role = roleRepository.findByRoleNameIgnoreCase(roleName).orElseThrow(() -> new RuntimeException("Role not found: " + roleName));
 
 
         // =====================================================
         // 4. DEPARTMENT CODE
         // =====================================================
 
-        String departmentCode =
-                department.getDepartmentCode() != null
-                        ? department.getDepartmentCode().trim().toUpperCase()
-                        : "";
+        String departmentCode = department.getDepartmentCode() != null ? department.getDepartmentCode().trim().toUpperCase() : "";
 
 
         // =====================================================
@@ -221,9 +204,7 @@ public class EmployeeService {
         employee.setDateOfBirth(request.getDateOfBirth());
         employee.setJoiningDate(request.getJoiningDate());
 
-        employee.setPassword(
-                passwordEncoder.encode(request.getPassword())
-        );
+        employee.setPassword(passwordEncoder.encode(request.getPassword()));
 
 
         // =====================================================
@@ -232,12 +213,7 @@ public class EmployeeService {
 
         if (request.getReportingManagerId() != null) {
 
-            Employee manager = employeeRepository
-                    .findById(request.getReportingManagerId())
-                    .orElseThrow(() ->
-                            new RuntimeException(
-                                    "Reporting manager not found"
-                            ));
+            Employee manager = employeeRepository.findById(request.getReportingManagerId()).orElseThrow(() -> new RuntimeException("Reporting manager not found"));
 
             employee.setEmployee(manager);
 
@@ -260,18 +236,9 @@ public class EmployeeService {
 
         Long count = employeeRepository.count() + 1;
 
-        String departmentCodeForEmployee =
-                department.getDepartmentCode() != null
-                        ? department.getDepartmentCode().trim().toUpperCase()
-                        : "EMP";
+        String departmentCodeForEmployee = department.getDepartmentCode() != null ? department.getDepartmentCode().trim().toUpperCase() : "EMP";
 
-        String employeeCode =
-                "QD-"
-                        + departmentCodeForEmployee
-                        + "-"
-                        + LocalDate.now().getYear()
-                        + "-"
-                        + String.format("%03d", count);
+        String employeeCode = "QD-" + departmentCodeForEmployee + "-" + LocalDate.now().getYear() + "-" + String.format("%03d", count);
 
         employee.setEmployeeId(employeeCode);
 
@@ -280,8 +247,7 @@ public class EmployeeService {
         // 9. SAVE EMPLOYEE
         // =====================================================
 
-        Employee savedEmployee =
-                employeeRepository.save(employee);
+        Employee savedEmployee = employeeRepository.save(employee);
 
 
         // =====================================================
@@ -290,11 +256,9 @@ public class EmployeeService {
 
         if (request.getProfile() != null) {
 
-            EmployeeProfileRequest data =
-                    request.getProfile();
+            EmployeeProfileRequest data = request.getProfile();
 
-            EmployeeProfile profile =
-                    new EmployeeProfile();
+            EmployeeProfile profile = new EmployeeProfile();
 
             profile.setEmployee(savedEmployee);
 
@@ -325,11 +289,9 @@ public class EmployeeService {
 
         if (request.getAddresses() != null) {
 
-            for (EmployeeAddressRequest data :
-                    request.getAddresses()) {
+            for (EmployeeAddressRequest data : request.getAddresses()) {
 
-                EmployeeAddress address =
-                        new EmployeeAddress();
+                EmployeeAddress address = new EmployeeAddress();
 
                 address.setEmployee(savedEmployee);
 
@@ -353,29 +315,19 @@ public class EmployeeService {
 
         if (request.getContacts() != null) {
 
-            for (EmployeeContactRequest data :
-                    request.getContacts()) {
+            for (EmployeeContactRequest data : request.getContacts()) {
 
-                EmployeeContacts contact =
-                        new EmployeeContacts();
+                EmployeeContacts contact = new EmployeeContacts();
 
                 contact.setEmployee(savedEmployee);
 
-                contact.setEmergencyContactName(
-                        data.getEmergencyContactName()
-                );
+                contact.setEmergencyContactName(data.getEmergencyContactName());
 
-                contact.setRelation(
-                        data.getRelation()
-                );
+                contact.setRelation(data.getRelation());
 
-                contact.setMobileNumber(
-                        data.getMobileNumber()
-                );
+                contact.setMobileNumber(data.getMobileNumber());
 
-                contact.setAlternateNumber(
-                        data.getAlternateNumber()
-                );
+                contact.setAlternateNumber(data.getAlternateNumber());
 
                 employeeContactRepository.save(contact);
             }
@@ -388,41 +340,25 @@ public class EmployeeService {
 
         if (request.getBankDetails() != null) {
 
-            EmployeeBankDetailsRequest data =
-                    request.getBankDetails();
+            EmployeeBankDetailsRequest data = request.getBankDetails();
 
-            EmployeeBankDetails bank =
-                    new EmployeeBankDetails();
+            EmployeeBankDetails bank = new EmployeeBankDetails();
 
             bank.setEmployee(savedEmployee);
 
-            bank.setAccountHolderName(
-                    data.getAccountHolderName()
-            );
+            bank.setAccountHolderName(data.getAccountHolderName());
 
-            bank.setBankName(
-                    data.getBankName()
-            );
+            bank.setBankName(data.getBankName());
 
-            bank.setAccountNumber(
-                    data.getAccountNumber()
-            );
+            bank.setAccountNumber(data.getAccountNumber());
 
-            bank.setIfscCode(
-                    data.getIfscCode()
-            );
+            bank.setIfscCode(data.getIfscCode());
 
-            bank.setBranchName(
-                    data.getBranchName()
-            );
+            bank.setBranchName(data.getBranchName());
 
-            bank.setUpiId(
-                    data.getUpiId()
-            );
+            bank.setUpiId(data.getUpiId());
 
-            bank.setAccountStatus(
-                    data.getAccountStatus()
-            );
+            bank.setAccountStatus(data.getAccountStatus());
 
             employeeBankRepository.save(bank);
         }
@@ -434,65 +370,37 @@ public class EmployeeService {
 
         if (request.getDocuments() != null) {
 
-            EmployeeDocumentsRequest data =
-                    request.getDocuments();
+            EmployeeDocumentsRequest data = request.getDocuments();
 
-            EmployeeDocuments documents =
-                    new EmployeeDocuments();
+            EmployeeDocuments documents = new EmployeeDocuments();
 
             documents.setEmployee(savedEmployee);
 
-            documents.setAadhaarNumber(
-                    data.getAadhaarNumber()
-            );
+            documents.setAadhaarNumber(data.getAadhaarNumber());
 
-            documents.setPanNumber(
-                    data.getPanNumber()
-            );
+            documents.setPanNumber(data.getPanNumber());
 
-            documents.setPassportNumber(
-                    data.getPassportNumber()
-            );
+            documents.setPassportNumber(data.getPassportNumber());
 
-            documents.setResumeUrl(
-                    data.getResumeUrl()
-            );
+            documents.setResumeUrl(data.getResumeUrl());
 
-            documents.setAadhaarDocument(
-                    data.getAadhaarDocument()
-            );
+            documents.setAadhaarDocument(data.getAadhaarDocument());
 
-            documents.setPanDocument(
-                    data.getPanDocument()
-            );
+            documents.setPanDocument(data.getPanDocument());
 
-            documents.setDegreeCertificate(
-                    data.getDegreeCertificate()
-            );
+            documents.setDegreeCertificate(data.getDegreeCertificate());
 
-            documents.setPgCertificate(
-                    data.getPgCertificate()
-            );
+            documents.setPgCertificate(data.getPgCertificate());
 
-            documents.setOfferLetter(
-                    data.getOfferLetter()
-            );
+            documents.setOfferLetter(data.getOfferLetter());
 
-            documents.setJoiningLetter(
-                    data.getJoiningLetter()
-            );
+            documents.setJoiningLetter(data.getJoiningLetter());
 
-            documents.setSalarySlips(
-                    data.getSalarySlips()
-            );
+            documents.setSalarySlips(data.getSalarySlips());
 
-            documents.setExperienceLetter(
-                    data.getExperienceLetter()
-            );
+            documents.setExperienceLetter(data.getExperienceLetter());
 
-            documents.setStatus(
-                    data.getStatus()
-            );
+            documents.setStatus(data.getStatus());
 
             employeeDocumentRepository.save(documents);
         }
@@ -504,49 +412,29 @@ public class EmployeeService {
 
         if (request.getCertifications() != null) {
 
-            for (EmployeeCertificationRequest data :
-                    request.getCertifications()) {
+            for (EmployeeCertificationRequest data : request.getCertifications()) {
 
-                EmployeeCertification certification =
-                        new EmployeeCertification();
+                EmployeeCertification certification = new EmployeeCertification();
 
                 certification.setEmployee(savedEmployee);
 
-                certification.setCertificationName(
-                        data.getCertificationName()
-                );
+                certification.setCertificationName(data.getCertificationName());
 
-                certification.setIssuingOrganization(
-                        data.getIssuingOrganization()
-                );
+                certification.setIssuingOrganization(data.getIssuingOrganization());
 
-                certification.setCertificateNumber(
-                        data.getCertificateNumber()
-                );
+                certification.setCertificateNumber(data.getCertificateNumber());
 
-                certification.setIssueDate(
-                        data.getIssueDate()
-                );
+                certification.setIssueDate(data.getIssueDate());
 
-                certification.setExpiryDate(
-                        data.getExpiryDate()
-                );
+                certification.setExpiryDate(data.getExpiryDate());
 
-                certification.setCredentialUrl(
-                        data.getCredentialUrl()
-                );
+                certification.setCredentialUrl(data.getCredentialUrl());
 
-                certification.setAttachmentUrl(
-                        data.getAttachmentUrl()
-                );
+                certification.setAttachmentUrl(data.getAttachmentUrl());
 
-                certification.setStatus(
-                        data.getStatus()
-                );
+                certification.setStatus(data.getStatus());
 
-                employeeCertificationRepository.save(
-                        certification
-                );
+                employeeCertificationRepository.save(certification);
             }
         }
 
@@ -557,53 +445,31 @@ public class EmployeeService {
 
         if (request.getExperiences() != null) {
 
-            for (EmployeeExperienceRequest data :
-                    request.getExperiences()) {
+            for (EmployeeExperienceRequest data : request.getExperiences()) {
 
-                EmployeeExperience experience =
-                        new EmployeeExperience();
+                EmployeeExperience experience = new EmployeeExperience();
 
                 experience.setEmployee(savedEmployee);
 
-                experience.setCompanyName(
-                        data.getCompanyName()
-                );
+                experience.setCompanyName(data.getCompanyName());
 
-                experience.setDesignation(
-                        data.getDesignation()
-                );
+                experience.setDesignation(data.getDesignation());
 
-                experience.setEmploymentType(
-                        data.getEmploymentType()
-                );
+                experience.setEmploymentType(data.getEmploymentType());
 
-                experience.setStartDate(
-                        data.getStartDate()
-                );
+                experience.setStartDate(data.getStartDate());
 
-                experience.setEndDate(
-                        data.getEndDate()
-                );
+                experience.setEndDate(data.getEndDate());
 
-                experience.setTotalExperience(
-                        data.getTotalExperience()
-                );
+                experience.setTotalExperience(data.getTotalExperience());
 
-                experience.setCurrentCompany(
-                        data.getCurrentCompany()
-                );
+                experience.setCurrentCompany(data.getCurrentCompany());
 
-                experience.setSalary(
-                        data.getSalary()
-                );
+                experience.setSalary(data.getSalary());
 
-                experience.setReasonForLeaving(
-                        data.getReasonForLeaving()
-                );
+                experience.setReasonForLeaving(data.getReasonForLeaving());
 
-                employeeExperienceRepository.save(
-                        experience
-                );
+                employeeExperienceRepository.save(experience);
             }
         }
 
@@ -614,41 +480,25 @@ public class EmployeeService {
 
         if (request.getFamilyMembers() != null) {
 
-            for (EmployeeFamilyMemberRequest data :
-                    request.getFamilyMembers()) {
+            for (EmployeeFamilyMemberRequest data : request.getFamilyMembers()) {
 
-                EmployeeFamilyMember family =
-                        new EmployeeFamilyMember();
+                EmployeeFamilyMember family = new EmployeeFamilyMember();
 
                 family.setEmployee(savedEmployee);
 
-                family.setMemberName(
-                        data.getMemberName()
-                );
+                family.setMemberName(data.getMemberName());
 
-                family.setRelationship(
-                        data.getRelationship()
-                );
+                family.setRelationship(data.getRelationship());
 
-                family.setDateOfBirth(
-                        data.getDateOfBirth()
-                );
+                family.setDateOfBirth(data.getDateOfBirth());
 
-                family.setOccupation(
-                        data.getOccupation()
-                );
+                family.setOccupation(data.getOccupation());
 
-                family.setMobileNumber(
-                        data.getMobileNumber()
-                );
+                family.setMobileNumber(data.getMobileNumber());
 
-                family.setDependent(
-                        data.getDependent()
-                );
+                family.setDependent(data.getDependent());
 
-                family.setNominee(
-                        data.getNominee()
-                );
+                family.setNominee(data.getNominee());
 
                 employeeFamilyMemberRepository.save(family);
             }
@@ -661,33 +511,21 @@ public class EmployeeService {
 
         if (request.getLanguages() != null) {
 
-            for (EmployeeLanguageRequest data :
-                    request.getLanguages()) {
+            for (EmployeeLanguageRequest data : request.getLanguages()) {
 
-                EmployeeLanguage language =
-                        new EmployeeLanguage();
+                EmployeeLanguage language = new EmployeeLanguage();
 
                 language.setEmployee(savedEmployee);
 
-                language.setLanguageName(
-                        data.getLanguageName()
-                );
+                language.setLanguageName(data.getLanguageName());
 
-                language.setReadLevel(
-                        data.getReadLevel()
-                );
+                language.setReadLevel(data.getReadLevel());
 
-                language.setWriteLevel(
-                        data.getWriteLevel()
-                );
+                language.setWriteLevel(data.getWriteLevel());
 
-                language.setSpeakLevel(
-                        data.getSpeakLevel()
-                );
+                language.setSpeakLevel(data.getSpeakLevel());
 
-                language.setNativeLanguage(
-                        data.getNativeLanguage()
-                );
+                language.setNativeLanguage(data.getNativeLanguage());
 
                 employeeLanguageRepository.save(language);
             }
@@ -700,41 +538,25 @@ public class EmployeeService {
 
         if (request.getSkills() != null) {
 
-            for (EmployeeSkillRequest data :
-                    request.getSkills()) {
+            for (EmployeeSkillRequest data : request.getSkills()) {
 
-                EmployeeSkill skill =
-                        new EmployeeSkill();
+                EmployeeSkill skill = new EmployeeSkill();
 
                 skill.setEmployee(savedEmployee);
 
-                skill.setSkillName(
-                        data.getSkillName()
-                );
+                skill.setSkillName(data.getSkillName());
 
-                skill.setSkillCategory(
-                        data.getSkillCategory()
-                );
+                skill.setSkillCategory(data.getSkillCategory());
 
-                skill.setProficiencyLevel(
-                        data.getProficiencyLevel()
-                );
+                skill.setProficiencyLevel(data.getProficiencyLevel());
 
-                skill.setExperienceYears(
-                        data.getExperienceYears()
-                );
+                skill.setExperienceYears(data.getExperienceYears());
 
-                skill.setLastUsed(
-                        data.getLastUsed()
-                );
+                skill.setLastUsed(data.getLastUsed());
 
-                skill.setCertificationAvailable(
-                        data.getCertificationAvailable()
-                );
+                skill.setCertificationAvailable(data.getCertificationAvailable());
 
-                skill.setRemarks(
-                        data.getRemarks()
-                );
+                skill.setRemarks(data.getRemarks());
 
                 employeeSkillRepository.save(skill);
             }
@@ -745,8 +567,7 @@ public class EmployeeService {
         // 20. CREATE EMPLOYEE APPROVAL
         // =====================================================
 
-        EmployeeApproval approval =
-                new EmployeeApproval();
+        EmployeeApproval approval = new EmployeeApproval();
 
         approval.setEmployee(savedEmployee);
 
@@ -755,21 +576,13 @@ public class EmployeeService {
         // 21. DEFAULT APPROVAL STATUS
         // =====================================================
 
-        approval.setHrStatus(
-                ApprovalStatus.NOT_REQUIRED
-        );
+        approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
 
-        approval.setSalesManagerStatus(
-                ApprovalStatus.NOT_REQUIRED
-        );
+        approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
 
-        approval.setSuperAdminStatus(
-                ApprovalStatus.NOT_REQUIRED
-        );
+        approval.setSuperAdminStatus(ApprovalStatus.NOT_REQUIRED);
 
-        approval.setFinalStatus(
-                ApprovalStatus.PENDING
-        );
+        approval.setFinalStatus(ApprovalStatus.PENDING);
 
         approval.setAccountCreated(false);
         approval.setWelcomeMailSent(false);
@@ -779,43 +592,26 @@ public class EmployeeService {
         // 22. CHECK EXISTING SUPER ADMIN
         // =====================================================
 
-        boolean superAdminExists =
-                employeeRepository
-                        .existsByRole_RoleNameIgnoreCase(
-                                "SUPER_ADMIN"
-                        );
+        boolean superAdminExists = employeeRepository.existsByRole_RoleNameIgnoreCase("SUPER_ADMIN");
 
 
         // =====================================================
         // 23. FIRST SUPER ADMIN
         // =====================================================
 
-        if ("SUPER_ADMIN".equals(roleName)
-                && !superAdminExists) {
+        if ("SUPER_ADMIN".equals(roleName) && !superAdminExists) {
 
-            approval.setApprovalType(
-                    ApprovalType.SUPER_ADMIN
-            );
+            approval.setApprovalType(ApprovalType.SUPER_ADMIN);
 
-            approval.setSuperAdminStatus(
-                    ApprovalStatus.NOT_REQUIRED
-            );
+            approval.setSuperAdminStatus(ApprovalStatus.NOT_REQUIRED);
 
-            approval.setHrStatus(
-                    ApprovalStatus.NOT_REQUIRED
-            );
+            approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
 
-            approval.setSalesManagerStatus(
-                    ApprovalStatus.NOT_REQUIRED
-            );
+            approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
 
-            approval.setFinalStatus(
-                    ApprovalStatus.APPROVED
-            );
+            approval.setFinalStatus(ApprovalStatus.APPROVED);
 
-            approval.setFinalApprovedAt(
-                    LocalDateTime.now()
-            );
+            approval.setFinalApprovedAt(LocalDateTime.now());
 
             employee.setStatus("ACTIVE");
         }
@@ -827,29 +623,17 @@ public class EmployeeService {
 
         else if ("SUPER_ADMIN".equals(roleName)) {
 
-            approval.setApprovalType(
-                    ApprovalType.SUPER_ADMIN
-            );
+            approval.setApprovalType(ApprovalType.SUPER_ADMIN);
 
-            approval.setSuperAdminStatus(
-                    ApprovalStatus.PENDING
-            );
+            approval.setSuperAdminStatus(ApprovalStatus.PENDING);
 
-            approval.setHrStatus(
-                    ApprovalStatus.NOT_REQUIRED
-            );
+            approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
 
-            approval.setSalesManagerStatus(
-                    ApprovalStatus.NOT_REQUIRED
-            );
+            approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
 
-            approval.setFinalStatus(
-                    ApprovalStatus.PENDING
-            );
+            approval.setFinalStatus(ApprovalStatus.PENDING);
 
-            employee.setStatus(
-                    "PENDING_APPROVAL"
-            );
+            employee.setStatus("PENDING_APPROVAL");
         }
 
 
@@ -857,37 +641,19 @@ public class EmployeeService {
         // 25. HR / HR MANAGER / DEPARTMENT HEAD / ADMIN / MANAGER
         // =====================================================
 
-        else if (
-                "HR".equals(departmentCode)
-                        || "HR_MANAGER".equals(roleName)
-                        || "DEPARTMENT_HEAD".equals(roleName)
-                        || "ADMIN".equals(roleName)
-                        || "MANAGER".equals(roleName)
-        ) {
+        else if ("HR".equals(departmentCode) || "HR_MANAGER".equals(roleName) || "DEPARTMENT_HEAD".equals(roleName) || "ADMIN".equals(roleName) || "MANAGER".equals(roleName)) {
 
-            approval.setApprovalType(
-                    ApprovalType.SUPER_ADMIN
-            );
+            approval.setApprovalType(ApprovalType.SUPER_ADMIN);
 
-            approval.setSuperAdminStatus(
-                    ApprovalStatus.PENDING
-            );
+            approval.setSuperAdminStatus(ApprovalStatus.PENDING);
 
-            approval.setHrStatus(
-                    ApprovalStatus.NOT_REQUIRED
-            );
+            approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
 
-            approval.setSalesManagerStatus(
-                    ApprovalStatus.NOT_REQUIRED
-            );
+            approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
 
-            approval.setFinalStatus(
-                    ApprovalStatus.PENDING
-            );
+            approval.setFinalStatus(ApprovalStatus.PENDING);
 
-            employee.setStatus(
-                    "PENDING_APPROVAL"
-            );
+            employee.setStatus("PENDING_APPROVAL");
         }
 
 
@@ -897,29 +663,17 @@ public class EmployeeService {
 
         else if ("SALES".equals(departmentCode)) {
 
-            approval.setApprovalType(
-                    ApprovalType.SALES_MANAGER
-            );
+            approval.setApprovalType(ApprovalType.SALES_MANAGER);
 
-            approval.setSalesManagerStatus(
-                    ApprovalStatus.PENDING
-            );
+            approval.setSalesManagerStatus(ApprovalStatus.PENDING);
 
-            approval.setHrStatus(
-                    ApprovalStatus.NOT_REQUIRED
-            );
+            approval.setHrStatus(ApprovalStatus.NOT_REQUIRED);
 
-            approval.setSuperAdminStatus(
-                    ApprovalStatus.NOT_REQUIRED
-            );
+            approval.setSuperAdminStatus(ApprovalStatus.NOT_REQUIRED);
 
-            approval.setFinalStatus(
-                    ApprovalStatus.PENDING
-            );
+            approval.setFinalStatus(ApprovalStatus.PENDING);
 
-            employee.setStatus(
-                    "PENDING_APPROVAL"
-            );
+            employee.setStatus("PENDING_APPROVAL");
         }
 
 
@@ -929,29 +683,17 @@ public class EmployeeService {
 
         else {
 
-            approval.setApprovalType(
-                    ApprovalType.HR
-            );
+            approval.setApprovalType(ApprovalType.HR);
 
-            approval.setHrStatus(
-                    ApprovalStatus.PENDING
-            );
+            approval.setHrStatus(ApprovalStatus.PENDING);
 
-            approval.setSalesManagerStatus(
-                    ApprovalStatus.NOT_REQUIRED
-            );
+            approval.setSalesManagerStatus(ApprovalStatus.NOT_REQUIRED);
 
-            approval.setSuperAdminStatus(
-                    ApprovalStatus.NOT_REQUIRED
-            );
+            approval.setSuperAdminStatus(ApprovalStatus.NOT_REQUIRED);
 
-            approval.setFinalStatus(
-                    ApprovalStatus.PENDING
-            );
+            approval.setFinalStatus(ApprovalStatus.PENDING);
 
-            employee.setStatus(
-                    "PENDING_APPROVAL"
-            );
+            employee.setStatus("PENDING_APPROVAL");
         }
 
 
@@ -967,11 +709,6 @@ public class EmployeeService {
         // =====================================================
 
         employeeApprovalRepository.save(approval);
-
-
-
-
-
 
 
         // =====================================================
@@ -3939,58 +3676,41 @@ public class EmployeeService {
     @Transactional
     public List<PendingApprovalResponse> getPendingHrApprovals() {
 
-        List<EmployeeApproval> approvals =
-                employeeApprovalRepository
-                        .findByApprovalTypeAndHrStatusOrderByCreatedAtAsc(
-                                ApprovalType.HR,
-                                ApprovalStatus.PENDING
-                        );
+        List<EmployeeApproval> approvals = employeeApprovalRepository.findByApprovalTypeAndHrStatusOrderByCreatedAtAsc(ApprovalType.HR, ApprovalStatus.PENDING);
 
-        return approvals.stream()
-                .map(approval -> {
+        return approvals.stream().map(approval -> {
 
-                    Employee employee = approval.getEmployee();
+            Employee employee = approval.getEmployee();
 
-                    PendingApprovalResponse response =
-                            new PendingApprovalResponse();
+            PendingApprovalResponse response = new PendingApprovalResponse();
 
-                    response.setApprovalId(approval.getId());
-                    response.setEmployeeId(employee.getId());
-                    response.setEmployeeCode(employee.getEmployeeId());
-                    response.setFirstName(employee.getFirstName());
-                    response.setLastName(employee.getLastName());
-                    response.setEmail(employee.getEmail());
+            response.setApprovalId(approval.getId());
+            response.setEmployeeId(employee.getId());
+            response.setEmployeeCode(employee.getEmployeeId());
+            response.setFirstName(employee.getFirstName());
+            response.setLastName(employee.getLastName());
+            response.setEmail(employee.getEmail());
 
-                    response.setHrStatus(approval.getHrStatus().name());
-                    response.setFinalStatus(approval.getFinalStatus().name());
+            response.setHrStatus(approval.getHrStatus().name());
+            response.setFinalStatus(approval.getFinalStatus().name());
 
-                    return response;
-                })
-                .toList();
+            return response;
+        }).toList();
     }
 
     @Transactional
     public List<PendingApprovalResponse> getPendingSalesManagerApprovals() {
 
-        List<EmployeeApproval> approvals =
-                employeeApprovalRepository
-                        .findByApprovalTypeAndSalesManagerStatusOrderByCreatedAtAsc(
-                                ApprovalType.SALES_MANAGER,
-                                ApprovalStatus.PENDING
-                        );
+        List<EmployeeApproval> approvals = employeeApprovalRepository.findByApprovalTypeAndSalesManagerStatusOrderByCreatedAtAsc(ApprovalType.SALES_MANAGER, ApprovalStatus.PENDING);
 
-        return approvals.stream()
-                .map(this::mapToPendingApprovalResponse)
-                .toList();
+        return approvals.stream().map(this::mapToPendingApprovalResponse).toList();
     }
 
-    private PendingApprovalResponse mapToPendingApprovalResponse(
-            EmployeeApproval approval) {
+    private PendingApprovalResponse mapToPendingApprovalResponse(EmployeeApproval approval) {
 
         Employee employee = approval.getEmployee();
 
-        PendingApprovalResponse response =
-                new PendingApprovalResponse();
+        PendingApprovalResponse response = new PendingApprovalResponse();
 
         // =========================
         // APPROVAL
@@ -3998,11 +3718,7 @@ public class EmployeeService {
 
         response.setApprovalId(approval.getId());
 
-        response.setApprovalType(
-                approval.getApprovalType() != null
-                        ? approval.getApprovalType().name()
-                        : null
-        );
+        response.setApprovalType(approval.getApprovalType() != null ? approval.getApprovalType().name() : null);
 
 
         // =========================
@@ -4026,9 +3742,7 @@ public class EmployeeService {
 
         if (employee.getDepartment() != null) {
 
-            response.setDepartment(
-                    employee.getDepartment().getDepartmentName()
-            );
+            response.setDepartment(employee.getDepartment().getDepartmentName());
         }
 
 
@@ -4038,9 +3752,7 @@ public class EmployeeService {
 
         if (employee.getRole() != null) {
 
-            response.setRole(
-                    employee.getRole().getRoleName()
-            );
+            response.setRole(employee.getRole().getRoleName());
         }
 
 
@@ -4048,29 +3760,13 @@ public class EmployeeService {
         // STATUS
         // =========================
 
-        response.setHrStatus(
-                approval.getHrStatus() != null
-                        ? approval.getHrStatus().name()
-                        : null
-        );
+        response.setHrStatus(approval.getHrStatus() != null ? approval.getHrStatus().name() : null);
 
-        response.setSalesManagerStatus(
-                approval.getSalesManagerStatus() != null
-                        ? approval.getSalesManagerStatus().name()
-                        : null
-        );
+        response.setSalesManagerStatus(approval.getSalesManagerStatus() != null ? approval.getSalesManagerStatus().name() : null);
 
-        response.setSuperAdminStatus(
-                approval.getSuperAdminStatus() != null
-                        ? approval.getSuperAdminStatus().name()
-                        : null
-        );
+        response.setSuperAdminStatus(approval.getSuperAdminStatus() != null ? approval.getSuperAdminStatus().name() : null);
 
-        response.setFinalStatus(
-                approval.getFinalStatus() != null
-                        ? approval.getFinalStatus().name()
-                        : null
-        );
+        response.setFinalStatus(approval.getFinalStatus() != null ? approval.getFinalStatus().name() : null);
 
 
         // =========================
@@ -4079,9 +3775,7 @@ public class EmployeeService {
 
         if (approval.getHrApprovedBy() != null) {
 
-            response.setHrApprovedBy(
-                    approval.getHrApprovedBy().getEmployeeId()
-            );
+            response.setHrApprovedBy(approval.getHrApprovedBy().getEmployeeId());
         }
 
 
@@ -4091,27 +3785,19 @@ public class EmployeeService {
 
         if (approval.getSuperAdminApprovedBy() != null) {
 
-            response.setSuperAdminApprovedBy(
-                    approval.getSuperAdminApprovedBy().getEmployeeId()
-            );
+            response.setSuperAdminApprovedBy(approval.getSuperAdminApprovedBy().getEmployeeId());
         }
 
 
         return response;
     }
+
     @Transactional
     public List<PendingApprovalResponse> getPendingSuperAdminApprovals() {
 
-        List<EmployeeApproval> approvals =
-                employeeApprovalRepository
-                        .findByApprovalTypeAndSuperAdminStatusOrderByCreatedAtAsc(
-                                ApprovalType.SUPER_ADMIN,
-                                ApprovalStatus.PENDING
-                        );
+        List<EmployeeApproval> approvals = employeeApprovalRepository.findByApprovalTypeAndSuperAdminStatusOrderByCreatedAtAsc(ApprovalType.SUPER_ADMIN, ApprovalStatus.PENDING);
 
-        return approvals.stream()
-                .map(this::mapToPendingApprovalResponse)
-                .toList();
+        return approvals.stream().map(this::mapToPendingApprovalResponse).toList();
     }
 
     @Transactional
