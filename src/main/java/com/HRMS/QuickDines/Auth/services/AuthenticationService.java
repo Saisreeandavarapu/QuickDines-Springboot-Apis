@@ -154,13 +154,18 @@ public class AuthenticationService {
         Employee employee = employeeRepository
                 .findByEmail(request.getEmailId());
 
+        if (employee == null) {
+            throw new RuntimeException(
+                    "Invalid email or password");
+        }
+
 
         // =====================================================
         // 2. CHECK EMPLOYEE STATUS
         // =====================================================
 
         if (employee.getStatus() == null ||
-                !employee.getStatus().equalsIgnoreCase("ACTIVE")) {
+                !"ACTIVE".equalsIgnoreCase(employee.getStatus())) {
 
             throw new RuntimeException(
                     "Employee account is not active");
@@ -193,6 +198,13 @@ public class AuthenticationService {
         // 5. CHECK PASSWORD
         // =====================================================
 
+        if (employee.getPassword() == null ||
+                employee.getPassword().isBlank()) {
+
+            throw new RuntimeException(
+                    "Employee password is not configured");
+        }
+
         boolean passwordValid =
                 passwordEncoder.matches(
                         request.getPassword(),
@@ -201,7 +213,7 @@ public class AuthenticationService {
         if (!passwordValid) {
 
             throw new RuntimeException(
-                    "Invalid employee ID or password");
+                    "Invalid email or password");
         }
 
 
