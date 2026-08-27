@@ -304,6 +304,17 @@ public class LeaveService {
             throw new RuntimeException("To date cannot be before From date");
         }
 
+        if (leaveRequest.getLeaveType() == null || leaveRequest.getLeaveType().getId() == null) {
+
+            throw new RuntimeException("Leave type is required");
+        }
+
+        Long leaveTypeId = leaveRequest.getLeaveType().getId();
+
+        LeaveType leaveType = leaveTypeRepository.findById(leaveTypeId).orElseThrow(() -> new RuntimeException("Leave type not found with ID: " + leaveTypeId));
+
+        leaveRequest.setLeaveType(leaveType);
+
         // =====================================================
         // 3. CALCULATE NUMBER OF DAYS
         // =====================================================

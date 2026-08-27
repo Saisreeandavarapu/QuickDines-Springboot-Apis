@@ -1,4 +1,5 @@
 package com.HRMS.QuickDines.Leave.model;
+
 import com.HRMS.QuickDines.Employee.model.Employee;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -64,7 +65,7 @@ public class LeaveRequest {
     @JoinColumn(name = "employee_id")
     private Employee employee;
 
-    @ManyToOne
-    @JoinColumn(name = "leave_type_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "leave_type_id", nullable = false)
     private LeaveType leaveType;
 }
