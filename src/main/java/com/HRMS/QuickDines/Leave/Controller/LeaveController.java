@@ -24,7 +24,7 @@ public class LeaveController {
     //=========================================================
 
     @PostMapping("/type")
-    //@PreAuthorize("hasAuthority('LEAVE_TYPE_CREATE')")
+    @PreAuthorize("hasAuthority('LEAVE_TYPE_CREATE')")
     public ResponseEntity<?> createLeaveType(
             @RequestBody LeaveTypeRequest leaveType) {
 
@@ -476,5 +476,77 @@ public class LeaveController {
         return ResponseEntity.ok(
                 service.getEmployeesByLeaveType(
                         leaveTypeId));
+    }
+    @GetMapping("/approvals/hr")
+    @PreAuthorize("hasAuthority('LEAVE_APPROVAL_HR')")
+    public ResponseEntity<?> getHrPendingLeaves() {
+
+        return ResponseEntity.ok(
+                service.getPendingLeavesForRole("HR")
+        );
+    }
+    @GetMapping("/approvals/sales-manager")
+    @PreAuthorize("hasAuthority('LEAVE_APPROVAL_SALES_MANAGER')")
+    public ResponseEntity<?> getSalesManagerPendingLeaves() {
+
+        return ResponseEntity.ok(
+                service.getPendingLeavesForRole("SALES_MANAGER")
+        );
+    }
+    @GetMapping("/approvals/super-admin")
+    @PreAuthorize("hasAuthority('LEAVE_APPROVAL_SUPER_ADMIN')")
+    public ResponseEntity<?> getSuperAdminPendingLeaves() {
+
+        return ResponseEntity.ok(
+                service.getPendingLeavesForRole("SUPER_ADMIN")
+        );
+    }
+    @PutMapping("/approvals/hr/{approvalId}")
+    @PreAuthorize("hasAuthority('LEAVE_APPROVAL_HR')")
+    public ResponseEntity<?> hrApproval(
+            @PathVariable Long approvalId,
+            @RequestParam String action,
+            @RequestParam(required = false) String reason) {
+
+        return ResponseEntity.ok(
+                service.processApproval(
+                        approvalId,
+                        "HR",
+                        action,
+                        reason
+                )
+        );
+    }
+    @PutMapping("/approvals/sales-manager/{approvalId}")
+    @PreAuthorize("hasAuthority('LEAVE_APPROVAL_SALES_MANAGER')")
+    public ResponseEntity<?> salesManagerApproval(
+            @PathVariable Long approvalId,
+            @RequestParam String action,
+            @RequestParam(required = false) String reason) {
+
+        return ResponseEntity.ok(
+                service.processApproval(
+                        approvalId,
+                        "SALES_MANAGER",
+                        action,
+                        reason
+                )
+        );
+    }
+    @PutMapping("/approvals/super-admin/{approvalId}")
+    @PreAuthorize("hasAuthority('LEAVE_APPROVAL_SUPER_ADMIN')")
+    public ResponseEntity<?> superAdminApproval(
+            @PathVariable Long approvalId,
+            @RequestParam String action,
+            @RequestParam(required = false) String reason) {
+
+        return ResponseEntity.ok(
+                service.processApproval(
+                        approvalId,
+                        "SUPER_ADMIN",
+                        action,
+                        reason
+                )
+        );
     }
 }

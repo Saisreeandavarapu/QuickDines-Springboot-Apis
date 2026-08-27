@@ -25,21 +25,46 @@ public class LeaveRequest {
 
     private String status;
 
+    private String approvalLevel;
+
+    private String currentApprover;
+
+    private String salesManagerStatus;
+
+    private String hrStatus;
+
+    private String superAdminStatus;
+
     private String approvedBy;
+
+    private String salesManagerApprovedBy;
+
+    private String hrApprovedBy;
+
+    private String superAdminApprovedBy;
+
+    private LocalDateTime salesManagerApprovedAt;
+
+    private LocalDateTime hrApprovedAt;
+
+    private LocalDateTime superAdminApprovedAt;
 
     private String remarks;
 
+    private String salesManagerRemarks;
+
+    private String hrRemarks;
+
+    private String superAdminRemarks;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
-
 
     @ManyToOne
     @JoinColumn(name = "employee_id")
     private Employee employee;
 
-
     @ManyToOne
     @JoinColumn(name = "leave_type_id")
     private LeaveType leaveType;
-
 }

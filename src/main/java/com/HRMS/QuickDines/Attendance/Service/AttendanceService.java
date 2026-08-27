@@ -1050,30 +1050,30 @@ public class AttendanceService {
             // AUDIT LOG
             //=========================================
 
-         //   auditLogsService.logCreate("SHIFT", String.valueOf(shift.getId()), performedBy, null, "Shift created successfully");
+           auditLogsService.logCreate("SHIFT", String.valueOf(shift.getId()), performedBy, null, "Shift created successfully");
 
 
             //=========================================
             // ACTIVITY LOG
             //=========================================
 
-          //  auditLogsService.logActivity(performedBy, "CREATE_SHIFT", "SHIFT", "Shift created successfully. Shift ID: " + shift.getId(), ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
+            auditLogsService.logActivity(performedBy, "CREATE_SHIFT", "SHIFT", "Shift created successfully. Shift ID: " + shift.getId(), ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
             //=========================================
             // SYSTEM LOG
             //=========================================
 
-          //  auditLogsService.logInfo("SHIFT", "ShiftService", "Shift created successfully. Shift ID: " + shift.getId());
+            auditLogsService.logInfo("SHIFT", "ShiftService", "Shift created successfully. Shift ID: " + shift.getId());
 
 
             return "Shift Created Successfully";
 
         } catch (Exception e) {
 
-           // auditLogsService.logActivity(performedBy, "CREATE_SHIFT", "SHIFT", "Failed to create shift. Error: " + e.getMessage(), ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
+            auditLogsService.logActivity(performedBy, "CREATE_SHIFT", "SHIFT", "Failed to create shift. Error: " + e.getMessage(), ActivityStatus.FAILED, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
-          //  auditLogsService.logError("SHIFT", "ShiftService", "Failed to create shift", e.toString());
+            auditLogsService.logError("SHIFT", "ShiftService", "Failed to create shift", e.toString());
 
             throw e;
         }
