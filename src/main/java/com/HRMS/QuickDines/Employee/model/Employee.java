@@ -51,9 +51,9 @@ public class Employee {
 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reporting_manager_id")
+    @JoinColumn(name = "reporting_manager_id", nullable = true)
     @JsonIgnore
-    private Employee reportingManager;
+    private Employee employee;
 
 
     private String status;
