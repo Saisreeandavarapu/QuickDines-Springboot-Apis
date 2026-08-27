@@ -1,6 +1,10 @@
 package com.HRMS.QuickDines.Leave.DTO;
 
+import lombok.Builder;
 import lombok.Data;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 public class LeaveTypeRequest {
@@ -12,4 +16,6 @@ public class LeaveTypeRequest {
 
     private Long companyId;
     private Long branchId;
+
+
 }

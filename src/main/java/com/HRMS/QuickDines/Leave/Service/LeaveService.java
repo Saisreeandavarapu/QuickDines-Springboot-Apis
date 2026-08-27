@@ -13,6 +13,7 @@ import com.HRMS.QuickDines.Company.repo.CompanyRepository;
 import com.HRMS.QuickDines.Employee.Service.EmployeeService;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
+import com.HRMS.QuickDines.Leave.DTO.LeaveRequestResponse;
 import com.HRMS.QuickDines.Leave.DTO.LeaveTypeRequest;
 import com.HRMS.QuickDines.Leave.model.*;
 import com.HRMS.QuickDines.Leave.repo.*;
@@ -519,7 +520,89 @@ public class LeaveService {
 
         leaveRequestRepository.save(leaveRequest);
 
-        return savedRequest;
+        return LeaveRequestResponse.builder()
+                .id(savedRequest.getId())
+
+                .employeeId(employee.getEmployeeId())
+
+                .employeeName(
+                        employee.getFirstName() + " " +
+                                employee.getLastName()
+                )
+
+                .fromDate(savedRequest.getFromDate())
+                .toDate(savedRequest.getToDate())
+                .numberOfDays(savedRequest.getNumberOfDays())
+
+                .reason(savedRequest.getReason())
+                .status(savedRequest.getStatus())
+
+                .approvalLevel(savedRequest.getApprovalLevel())
+                .currentApprover(savedRequest.getCurrentApprover())
+
+                .salesManagerStatus(
+                        savedRequest.getSalesManagerStatus()
+                )
+
+                .hrStatus(
+                        savedRequest.getHrStatus()
+                )
+
+                .superAdminStatus(
+                        savedRequest.getSuperAdminStatus()
+                )
+
+                .approvedBy(savedRequest.getApprovedBy())
+
+                .salesManagerApprovedBy(
+                        savedRequest.getSalesManagerApprovedBy()
+                )
+
+                .hrApprovedBy(
+                        savedRequest.getHrApprovedBy()
+                )
+
+                .superAdminApprovedBy(
+                        savedRequest.getSuperAdminApprovedBy()
+                )
+
+                .salesManagerApprovedAt(
+                        savedRequest.getSalesManagerApprovedAt()
+                )
+
+                .hrApprovedAt(
+                        savedRequest.getHrApprovedAt()
+                )
+
+                .superAdminApprovedAt(
+                        savedRequest.getSuperAdminApprovedAt()
+                )
+
+                .remarks(savedRequest.getRemarks())
+
+                .salesManagerRemarks(
+                        savedRequest.getSalesManagerRemarks()
+                )
+
+                .hrRemarks(
+                        savedRequest.getHrRemarks()
+                )
+
+                .superAdminRemarks(
+                        savedRequest.getSuperAdminRemarks()
+                )
+
+                .leaveTypeId(
+                        savedRequest.getLeaveType().getId()
+                )
+
+                .leaveTypeName(
+                        savedRequest.getLeaveType().getLeaveName()
+                )
+
+                .createdAt(savedRequest.getCreatedAt())
+
+                .build();;
     }
 
 
