@@ -2,15 +2,12 @@ package com.HRMS.QuickDines.Leave.Service;
 
 import com.HRMS.QuickDines.AdvanceServices.EmailService;
 import com.HRMS.QuickDines.AuditLogs.Entity.ActivityStatus;
-import com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType;
 import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
 import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
-import com.HRMS.QuickDines.CRM.repo.CustomerRepository;
 import com.HRMS.QuickDines.Company.model.Branch;
 import com.HRMS.QuickDines.Company.model.Company;
 import com.HRMS.QuickDines.Company.repo.BranchRepository;
 import com.HRMS.QuickDines.Company.repo.CompanyRepository;
-import com.HRMS.QuickDines.Employee.Service.EmployeeService;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
 import com.HRMS.QuickDines.Leave.DTO.LeaveRequestResponse;
@@ -283,7 +280,7 @@ public class LeaveService {
 
 
     @Transactional
-    public LeaveRequest applyLeave(String employeeId, LeaveRequest leaveRequest) {
+    public Object applyLeave(String employeeId, LeaveRequest leaveRequest) {
 
         // =====================================================
         // 1. FIND EMPLOYEE
@@ -602,7 +599,7 @@ public class LeaveService {
 
                 .createdAt(savedRequest.getCreatedAt())
 
-                .build();;
+                .build();
     }
 
 
