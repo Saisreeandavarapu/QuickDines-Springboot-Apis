@@ -51,10 +51,9 @@ public class Employee {
 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reporting_manager_id", nullable = true)
+    @JoinColumn(name = "reporting_manager_id")
     @JsonIgnore
-    private Employee employee;
-
+    private Employee reportingManager;
 
 
     private String status;
@@ -80,20 +79,19 @@ public class Employee {
     @OneToOne(mappedBy = "employee", cascade = CascadeType.ALL)
     private EmployeeExitManagement exitManagement;
 
-    @OneToOne(mappedBy = "employee",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true)
+    @OneToOne(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
     private EmployeeApproval approval;
 
-    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
+    @JsonIgnore
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<EmployeeContacts> contacts;
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
     private List<EmployeeDesignation> designations;
 
-    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
+    @JsonIgnore
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<EmployeeAddress> addresses;
-
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
     private List<EmployeeCertification> certifications;
 
@@ -114,7 +112,6 @@ public class Employee {
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
     private List<EmployeeTransfer> transfers;
-
 
 
 }

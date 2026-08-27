@@ -1,6 +1,7 @@
 package com.HRMS.QuickDines.Leave.model;
 
 import com.HRMS.QuickDines.Employee.model.Employee;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -61,8 +62,9 @@ public class LeaveRequest {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id")
+    @JsonIgnore
     private Employee employee;
 
     @ManyToOne(fetch = FetchType.LAZY)
