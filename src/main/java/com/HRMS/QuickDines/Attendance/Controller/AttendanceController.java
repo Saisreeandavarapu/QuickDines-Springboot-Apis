@@ -1,5 +1,6 @@
 package com.HRMS.QuickDines.Attendance.Controller;
 
+import com.HRMS.QuickDines.Attendance.DTO.AttendanceApprovalRequest;
 import com.HRMS.QuickDines.Attendance.DTO.AttendanceDashboardDTO;
 import com.HRMS.QuickDines.Attendance.DTO.CheckInRequest;
 import com.HRMS.QuickDines.Attendance.Entity.AttendanceStatus;
@@ -14,6 +15,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/attendance")
@@ -31,13 +34,9 @@ public class AttendanceController {
 
     @PostMapping("/check-in/{employeeId}")
     @PreAuthorize("hasAuthority('ATTENDANCE_CHECK_IN')")
-    public ResponseEntity<?> checkIn(
-            @PathVariable String employeeId,
-            @RequestBody CheckInRequest request) {
+    public ResponseEntity<?> checkIn(@PathVariable String employeeId, @RequestBody CheckInRequest request) {
 
-        return ResponseEntity.ok(
-                service.checkIn(employeeId, request)
-        );
+        return ResponseEntity.ok(service.checkIn(employeeId, request));
     }
 
 
@@ -626,5 +625,13 @@ public class AttendanceController {
         byte[] excelFile = service.exportAttendanceToExcel();
 
         return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=attendance-report.xlsx").contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")).body(excelFile);
+    }
+
+    @PutMapping("/attendance-approvals/{approvalId}")
+    public ResponseEntity<?> processApproval(@PathVariable Long approvalId, @RequestBody AttendanceApprovalRequest request) {
+
+        String result = service.processAttendanceApproval(approvalId, request.getAction(), request.getReason());
+
+        return ResponseEntity.ok(Map.of("message", result));
     }
 }

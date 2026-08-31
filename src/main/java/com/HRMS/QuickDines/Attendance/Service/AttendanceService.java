@@ -3,6 +3,7 @@ package com.HRMS.QuickDines.Attendance.Service;
 import com.HRMS.QuickDines.Attendance.DTO.AttendanceDashboardDTO;
 import com.HRMS.QuickDines.Attendance.DTO.CheckInRequest;
 import com.HRMS.QuickDines.Attendance.DTO.CheckInResponse;
+import com.HRMS.QuickDines.Attendance.Entity.ApprovalStatus;
 import com.HRMS.QuickDines.Attendance.Entity.AttendanceStatus;
 import com.HRMS.QuickDines.Attendance.Entity.OvertimeStatus;
 import com.HRMS.QuickDines.Attendance.model.*;
@@ -12,6 +13,7 @@ import com.HRMS.QuickDines.AuditLogs.Entity.AuditActionType;
 import com.HRMS.QuickDines.AuditLogs.Service.AuditLogsService;
 import com.HRMS.QuickDines.AuditLogs.Service.ClientInfoService;
 import com.HRMS.QuickDines.Employee.model.Employee;
+import com.HRMS.QuickDines.Employee.repo.EmployeeApprovalRepository;
 import com.HRMS.QuickDines.Employee.repo.EmployeeRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,6 +56,7 @@ public class AttendanceService {
     private final AuditLogsService auditLogsService;
     private final ClientInfoService clientInfoService;
     private final ObjectMapper objectMapper;
+    private final AttendanceApprovalRepository attendanceApprovalRepository;
 
     private String getLoggedInEmployeeId() {
 
@@ -82,23 +85,23 @@ public class AttendanceService {
 
 
         // =====================================================
-        // 2. CURRENT DATE/TIME
+        // 2. CURRENT DATE / TIME
         // =====================================================
 
         LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
 
-        LocalDateTime start = today.atStartOfDay();
-        LocalDateTime end = today.atTime(23, 59, 59);
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay = today.atTime(23, 59, 59);
 
 
         // =====================================================
-        // 3. CHECK TODAY'S ATTENDANCE
+        // 3. CHECK WHETHER ATTENDANCE ALREADY EXISTS TODAY
         // =====================================================
 
-        Optional<Attendance> attendanceExists = attendanceRepository.findByEmployee_EmployeeIdAndCreatedAtBetween(employeeId, start, end);
+        Optional<Attendance> existingAttendance = attendanceRepository.findByEmployee_EmployeeIdAndCreatedAtBetween(employeeId, startOfDay, endOfDay);
 
-        if (attendanceExists.isPresent()) {
+        if (existingAttendance.isPresent()) {
 
             throw new RuntimeException("Attendance Already Marked Today");
         }
@@ -120,7 +123,7 @@ public class AttendanceService {
 
 
         // =====================================================
-        // 5. FIND CURRENT SHIFT
+        // 5. FIND CURRENT EMPLOYEE SHIFT
         // =====================================================
 
         EmployeeShift employeeShift = employeeShiftRepository.findByEmployee_EmployeeIdAndIsCurrentTrue(employeeId).orElseThrow(() -> new RuntimeException("No current shift assigned to employee"));
@@ -130,50 +133,53 @@ public class AttendanceService {
 
         if (shift == null) {
 
-            throw new RuntimeException("Shift is not assigned");
+            throw new RuntimeException("Shift is not assigned to employee");
         }
 
 
         // =====================================================
-        // 6. CALCULATE LATE STATUS
+        // 6. CALCULATE SHIFT START TIME
         // =====================================================
 
         LocalDateTime shiftStart = today.atTime(shift.getStartTime());
 
+
+        // =====================================================
+        // 7. CALCULATE GRACE PERIOD
+        // =====================================================
+
         int graceMinutes = shift.getGraceTime() != null ? shift.getGraceTime() : 0;
 
-        LocalDateTime allowedTime = shiftStart.plusMinutes(graceMinutes);
-
-        boolean late = now.isAfter(allowedTime);
+        LocalDateTime allowedCheckInTime = shiftStart.plusMinutes(graceMinutes);
 
 
         // =====================================================
-        // 7. CREATE ATTENDANCE
+        // 8. CHECK LATE STATUS
+        // =====================================================
+
+        boolean late = now.isAfter(allowedCheckInTime);
+
+
+        // =====================================================
+        // 9. CREATE ATTENDANCE
         // =====================================================
 
         Attendance attendance = new Attendance();
 
         attendance.setEmployee(employee);
 
-        // Company
         attendance.setCompany(employee.getCompany());
 
-        // Branch
         attendance.setBranch(employee.getBranch());
 
-        // Department
         attendance.setDepartment(employee.getDepartment());
 
-        // Shift
         attendance.setShift(shift);
 
-        // Login
         attendance.setLoginTime(now);
 
-        // Status
         attendance.setAttendanceStatus(AttendanceStatus.PRESENT);
 
-        // Late
         attendance.setLate(late);
 
         attendance.setEarlyLeaving(false);
@@ -185,7 +191,7 @@ public class AttendanceService {
 
 
         // =====================================================
-        // 8. CREATE GPS TRACKING
+        // 10. CREATE GPS TRACKING
         // =====================================================
 
         GpsTracking gpsTracking = new GpsTracking();
@@ -207,12 +213,58 @@ public class AttendanceService {
 
 
         // =====================================================
-        // 9. RETURN COMPLETE JSON
+        // 11. MANAGER APPROVAL FOR LATE CHECK-IN
         // =====================================================
 
-        return CheckInResponse.builder()
+        AttendanceApproval savedApproval = null;
 
-                .message(late ? "Check-in successful - Late" : "Check-in successful")
+        if (late) {
+
+            // -------------------------------------------------
+            // GET REPORTING MANAGER
+            // -------------------------------------------------
+
+            Employee manager = employee.getEmployee();
+
+
+            // -------------------------------------------------
+            // CHECK REPORTING MANAGER
+            // -------------------------------------------------
+
+            if (manager == null) {
+
+                throw new RuntimeException("Reporting manager is not assigned to employee");
+            }
+
+
+            // -------------------------------------------------
+            // CREATE APPROVAL
+            // -------------------------------------------------
+
+            AttendanceApproval approval = new AttendanceApproval();
+
+            approval.setAttendance(savedAttendance);
+
+            approval.setEmployee(employee);
+
+            approval.setManager(manager);
+
+            approval.setApprovalStatus(ApprovalStatus.PENDING);
+
+            approval.setApprovalReason("Late check-in approval required");
+
+
+            savedApproval = attendanceApprovalRepository.save(approval);
+        }
+
+
+        // =====================================================
+        // 12. BUILD RESPONSE
+        // =====================================================
+
+        CheckInResponse.CheckInResponseBuilder response = CheckInResponse.builder()
+
+                .message(late ? "Check-in successful - Manager approval required" : "Check-in successful")
 
                 .employeeId(employee.getEmployeeId())
 
@@ -242,9 +294,44 @@ public class AttendanceService {
 
                 .trackingStatus(savedGps.getTrackingStatus())
 
-                .deviceName(savedGps.getDeviceName())
+                .deviceName(savedGps.getDeviceName());
 
-                .build();
+
+        // =====================================================
+        // 13. ADD APPROVAL INFORMATION
+        // =====================================================
+
+        if (savedApproval != null) {
+
+            response.approvalRequired(true);
+
+            response.approvalId(savedApproval.getId());
+
+            response.approvalStatus(savedApproval.getApprovalStatus().name());
+
+            response.managerId(savedApproval.getManager().getEmployeeId());
+
+            response.managerName(savedApproval.getManager().getFirstName() + " " + savedApproval.getManager().getLastName());
+
+        } else {
+
+            response.approvalRequired(false);
+
+            response.approvalId(null);
+
+            response.approvalStatus(null);
+
+            response.managerId(null);
+
+            response.managerName(null);
+        }
+
+
+        // =====================================================
+        // 14. RETURN RESPONSE
+        // =====================================================
+
+        return response.build();
     }
 
 
@@ -1050,7 +1137,7 @@ public class AttendanceService {
             // AUDIT LOG
             //=========================================
 
-           auditLogsService.logCreate("SHIFT", String.valueOf(shift.getId()), performedBy, null, "Shift created successfully");
+            auditLogsService.logCreate("SHIFT", String.valueOf(shift.getId()), performedBy, null, "Shift created successfully");
 
 
             //=========================================
@@ -2863,7 +2950,113 @@ public class AttendanceService {
         }
     }
 
+    @Transactional
+    public String processAttendanceApproval(Long approvalId, String action, String reason) {
 
+        // =====================================================
+        // 1. FIND APPROVAL
+        // =====================================================
+
+        AttendanceApproval approval = attendanceApprovalRepository.findById(approvalId).orElseThrow(() -> new RuntimeException("Attendance approval not found"));
+
+
+        // =====================================================
+        // 2. CHECK CURRENT USER
+        // =====================================================
+
+        String loggedInEmployeeId = getLoggedInEmployeeId();
+
+        Employee manager = employeeRepository.findByEmployeeId(loggedInEmployeeId).orElseThrow(() -> new RuntimeException("Manager not found"));
+
+
+        // =====================================================
+        // 3. CHECK WHETHER LOGGED-IN USER IS THE ASSIGNED MANAGER
+        // =====================================================
+
+        if (approval.getManager() == null || !approval.getManager().getEmployeeId().equalsIgnoreCase(manager.getEmployeeId())) {
+
+            throw new RuntimeException("You are not authorized to approve this attendance");
+        }
+
+
+        // =====================================================
+        // 4. CHECK APPROVAL STATUS
+        // =====================================================
+
+        if (approval.getApprovalStatus() != ApprovalStatus.PENDING) {
+
+            throw new RuntimeException("Attendance approval already processed");
+        }
+
+
+        // =====================================================
+        // 5. APPROVE
+        // =====================================================
+
+        if ("APPROVE".equalsIgnoreCase(action)) {
+
+            approval.setApprovalStatus(ApprovalStatus.APPROVED);
+
+            approval.setApprovalReason(reason);
+
+            approval.setApprovedAt(LocalDateTime.now());
+
+            attendanceApprovalRepository.save(approval);
+
+
+            Attendance attendance = approval.getAttendance();
+
+            attendance.setRemarks("Late check-in approved by manager");
+
+            attendanceRepository.save(attendance);
+
+
+            return "Late check-in approved successfully";
+        }
+
+
+        // =====================================================
+        // 6. REJECT
+        // =====================================================
+
+        if ("REJECT".equalsIgnoreCase(action)) {
+
+            // -------------------------------------------------
+            // REJECTION REASON IS REQUIRED
+            // -------------------------------------------------
+
+            if (reason == null || reason.isBlank()) {
+
+                throw new RuntimeException("Rejection reason is required");
+            }
+
+
+            approval.setApprovalStatus(ApprovalStatus.REJECTED);
+
+            approval.setApprovalReason(reason);
+
+            approval.setApprovedAt(LocalDateTime.now());
+
+            attendanceApprovalRepository.save(approval);
+
+
+            Attendance attendance = approval.getAttendance();
+
+            attendance.setRemarks("Late check-in rejected by manager: " + reason);
+
+            attendanceRepository.save(attendance);
+
+
+            return "Late check-in rejected successfully";
+        }
+
+
+        // =====================================================
+        // 7. INVALID ACTION
+        // =====================================================
+
+        throw new RuntimeException("Invalid action. Use APPROVE or REJECT");
+    }
 }
 
 
