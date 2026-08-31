@@ -12,10 +12,13 @@ import com.HRMS.QuickDines.Company.repo.CompanyRepository;
 import com.HRMS.QuickDines.Employee.DTO.*;
 import com.HRMS.QuickDines.Employee.Entity.ApprovalStatus;
 import com.HRMS.QuickDines.Employee.Entity.ApprovalType;
+import com.HRMS.QuickDines.Employee.Entity.EmployeePromotionStatus;
+import com.HRMS.QuickDines.Employee.Entity.EmployeeTransferStatus;
 import com.HRMS.QuickDines.Employee.model.*;
 import com.HRMS.QuickDines.Employee.repo.*;
 import com.HRMS.QuickDines.Organization.model.Department;
 import com.HRMS.QuickDines.Organization.model.Designation;
+import com.HRMS.QuickDines.Organization.model.Team;
 import com.HRMS.QuickDines.Organization.repo.DepartmentRepository;
 import com.HRMS.QuickDines.Organization.repo.DesignationRepository;
 import com.HRMS.QuickDines.Organization.repo.TeamRepository;
@@ -1920,22 +1923,48 @@ public class EmployeeService {
 // EMPLOYEE PROMOTIONS
 //=================================
 
-    public String createPromotion(String employeeId, EmployeePromotion employeePromotion) {
+    @Transactional
+    public String requestPromotion(EmployeePromotionRequest request) {
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Employee employee = getLoggedInEmployee();
 
-        employeePromotion.setEmployee(employee);
+        if (request.getNewDesignationId() == null) {
+            throw new RuntimeException("New designation is required");
+        }
 
-        employeePromotionRepository.save(employeePromotion);
+        if (request.getPromotionDate() == null) {
+            throw new RuntimeException("Promotion date is required");
+        }
+
+        EmployeeDesignation newDesignation = employeeDesignationRepository.findById(request.getNewDesignationId()).orElseThrow(() -> new RuntimeException("New Designation Not Found"));
+
+        EmployeePromotion promotion = new EmployeePromotion();
+
+        promotion.setEmployee(employee);
+
+        promotion.setPreviousDesignation(request.getPreviousDesignationId() != null ? employeeDesignationRepository.findById(request.getPreviousDesignationId()).orElseThrow(() -> new RuntimeException("Previous Designation Not Found")) : null);
+
+        promotion.setNewDesignation(newDesignation);
+
+        promotion.setPreviousSalary(request.getPreviousSalary());
+        promotion.setNewSalary(request.getNewSalary());
+        promotion.setPromotionDate(request.getPromotionDate());
+        promotion.setReason(request.getReason());
+
+        // Find employee's manager
+        Employee manager = findManagerForEmployee(employee);
+
+        promotion.setManager(manager);
+
+        promotion.setStatus(EmployeePromotionStatus.PENDING_MANAGER);
+
+        employeePromotionRepository.save(promotion);
+
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate("EMPLOYEE_PROMOTION", employeeId, performedBy, employeeId, "Employee promotion created");
+        auditLogsService.logCreate("EMPLOYEE_PROMOTION", String.valueOf(promotion.getId()), performedBy, employee.getEmployeeId(), "Promotion request submitted to manager");
 
-        auditLogsService.logActivity(employeeId, "CREATE_PROMOTION", "EMPLOYEE_PROMOTION", "Employee promotion created", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
-
-        auditLogsService.logInfo("EMPLOYEE_PROMOTION", "EmployeeService", "Promotion created for " + employeeId);
-
-        return "Employee Promotion Created Successfully";
+        return "Promotion Request Submitted Successfully";
     }
 
     public List<EmployeePromotion> getPromotions() {
@@ -1995,26 +2024,301 @@ public class EmployeeService {
 
         return "Employee Promotion Deleted Successfully";
     }
+
+    public List<EmployeePromotion> getManagerPendingPromotions() {
+
+        Employee manager = getLoggedInEmployee();
+
+        return employeePromotionRepository.findByManagerEmployeeIdAndStatus(manager.getEmployeeId(), EmployeePromotionStatus.PENDING_MANAGER);
+    }
+
+    @Transactional
+    public String managerRecommendPromotion(Long id, PromotionActionRequest request) {
+
+        Employee manager = getLoggedInEmployee();
+
+        EmployeePromotion promotion = employeePromotionRepository.findById(id).orElseThrow(() -> new RuntimeException("Promotion Request Not Found"));
+
+        if (!promotion.getManager().getEmployeeId().equals(manager.getEmployeeId())) {
+
+            throw new RuntimeException("You are not the assigned manager for this promotion");
+        }
+
+        if (promotion.getStatus() != EmployeePromotionStatus.PENDING_MANAGER) {
+
+            throw new RuntimeException("Promotion is not pending manager recommendation");
+        }
+
+        promotion.setManagerActionAt(LocalDateTime.now());
+
+        promotion.setManagerRemarks(request.getRemarks());
+
+        promotion.setStatus(EmployeePromotionStatus.PENDING_HR);
+
+        // Find HR
+        Employee hr = findHRForEmployee(promotion.getEmployee());
+
+        promotion.setHr(hr);
+
+        employeePromotionRepository.save(promotion);
+
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logActivity(performedBy, "MANAGER_RECOMMEND_PROMOTION", "EMPLOYEE_PROMOTION", "Manager recommended promotion", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+
+        return "Promotion Recommended Successfully";
+    }
+
+    @Transactional
+    public String managerRejectPromotion(Long id, PromotionActionRequest request) {
+
+        Employee manager = getLoggedInEmployee();
+
+        EmployeePromotion promotion = employeePromotionRepository.findById(id).orElseThrow(() -> new RuntimeException("Promotion Request Not Found"));
+
+        if (!promotion.getManager().getEmployeeId().equals(manager.getEmployeeId())) {
+
+            throw new RuntimeException("You are not the assigned manager");
+        }
+
+        if (promotion.getStatus() != EmployeePromotionStatus.PENDING_MANAGER) {
+
+            throw new RuntimeException("Promotion is not pending manager review");
+        }
+
+        promotion.setManagerActionAt(LocalDateTime.now());
+
+        promotion.setManagerRemarks(request.getRemarks());
+
+        promotion.setStatus(EmployeePromotionStatus.MANAGER_REJECTED);
+
+        employeePromotionRepository.save(promotion);
+
+        return "Promotion Rejected By Manager";
+    }
+
+    public List<EmployeePromotion> getHRPendingPromotions() {
+
+        Employee hr = getLoggedInEmployee();
+
+        return employeePromotionRepository.findByHrEmployeeIdAndStatus(hr.getEmployeeId(), EmployeePromotionStatus.PENDING_HR);
+    }
+
+    @Transactional
+    public String hrProcessPromotion(Long id, PromotionActionRequest request) {
+
+        Employee hr = getLoggedInEmployee();
+
+        EmployeePromotion promotion = employeePromotionRepository.findById(id).orElseThrow(() -> new RuntimeException("Promotion Request Not Found"));
+
+        if (!promotion.getHr().getEmployeeId().equals(hr.getEmployeeId())) {
+
+            throw new RuntimeException("You are not the assigned HR");
+        }
+
+        if (promotion.getStatus() != EmployeePromotionStatus.PENDING_HR) {
+
+            throw new RuntimeException("Promotion is not pending HR processing");
+        }
+
+        promotion.setHrActionAt(LocalDateTime.now());
+
+        promotion.setHrRemarks(request.getRemarks());
+
+        promotion.setStatus(EmployeePromotionStatus.PENDING_ADMIN);
+
+        Employee admin = findSuperAdminForEmployee(promotion.getEmployee());
+
+        promotion.setAdmin(admin);
+
+        employeePromotionRepository.save(promotion);
+
+        return "Promotion Processed By HR Successfully";
+    }
+
+    @Transactional
+    public String hrRejectPromotion(Long id, PromotionActionRequest request) {
+
+        Employee hr = getLoggedInEmployee();
+
+        EmployeePromotion promotion = employeePromotionRepository.findById(id).orElseThrow(() -> new RuntimeException("Promotion Request Not Found"));
+
+        if (!promotion.getHr().getEmployeeId().equals(hr.getEmployeeId())) {
+
+            throw new RuntimeException("You are not the assigned HR");
+        }
+
+        if (promotion.getStatus() != EmployeePromotionStatus.PENDING_HR) {
+
+            throw new RuntimeException("Promotion is not pending HR processing");
+        }
+
+        promotion.setHrActionAt(LocalDateTime.now());
+
+        promotion.setHrRemarks(request.getRemarks());
+
+        promotion.setStatus(EmployeePromotionStatus.HR_REJECTED);
+
+        employeePromotionRepository.save(promotion);
+
+        return "Promotion Rejected By HR";
+    }
+
+    public List<EmployeePromotion> getAdminPendingPromotions() {
+
+        Employee admin = getLoggedInEmployee();
+
+        return employeePromotionRepository.findByAdminEmployeeIdAndStatus(admin.getEmployeeId(), EmployeePromotionStatus.PENDING_ADMIN);
+    }
+
+    @Transactional
+    public String adminApprovePromotion(Long id, PromotionActionRequest request) {
+
+        Employee admin = getLoggedInEmployee();
+
+        EmployeePromotion promotion = employeePromotionRepository.findById(id).orElseThrow(() -> new RuntimeException("Promotion Request Not Found"));
+
+        if (!promotion.getAdmin().getEmployeeId().equals(admin.getEmployeeId())) {
+
+            throw new RuntimeException("You are not the assigned administrator");
+        }
+
+        if (promotion.getStatus() != EmployeePromotionStatus.PENDING_ADMIN) {
+
+            throw new RuntimeException("Promotion is not pending admin approval");
+        }
+
+        promotion.setAdminActionAt(LocalDateTime.now());
+
+        promotion.setAdminRemarks(request.getRemarks());
+
+        promotion.setApprovedBy(admin);
+
+        promotion.setStatus(EmployeePromotionStatus.APPROVED);
+
+        employeePromotionRepository.save(promotion);
+
+        // =====================================================
+        // APPLY PROMOTION TO EMPLOYEE
+        // =====================================================
+
+        Employee employee = promotion.getEmployee();
+
+        employee.setDesignations(Collections.singletonList(promotion.getNewDesignation()));
+
+        // If Employee has salary field:
+        // employee.setSalary(promotion.getNewSalary());
+
+        employeeRepository.save(employee);
+
+        String performedBy = getLoggedInEmployeeId();
+
+        auditLogsService.logActivity(performedBy, "APPROVE_PROMOTION", "EMPLOYEE_PROMOTION", "Employee promotion finally approved", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+
+        return "Employee Promotion Approved Successfully";
+    }
+
+    @Transactional
+    public String adminRejectPromotion(Long id, PromotionActionRequest request) {
+
+        Employee admin = getLoggedInEmployee();
+
+        EmployeePromotion promotion = employeePromotionRepository.findById(id).orElseThrow(() -> new RuntimeException("Promotion Request Not Found"));
+
+        if (!promotion.getAdmin().getEmployeeId().equals(admin.getEmployeeId())) {
+
+            throw new RuntimeException("You are not the assigned administrator");
+        }
+
+        if (promotion.getStatus() != EmployeePromotionStatus.PENDING_ADMIN) {
+
+            throw new RuntimeException("Promotion is not pending admin approval");
+        }
+
+        promotion.setAdminActionAt(LocalDateTime.now());
+
+        promotion.setAdminRemarks(request.getRemarks());
+
+        promotion.setStatus(EmployeePromotionStatus.ADMIN_REJECTED);
+
+        employeePromotionRepository.save(promotion);
+
+        return "Promotion Rejected By Admin";
+    }
     //=================================
 // EMPLOYEE TRANSFERS
 //=================================
 
-    public String createTransfer(String employeeId, EmployeeTransfer employeeTransfer) {
+    public String createTransfer(String employeeId, EmployeeTransferRequest request) {
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
-        employeeTransfer.setEmployee(employee);
+        if (request.getToDepartmentId() == null && request.getToBranchId() == null && request.getToTeamId() == null) {
 
-        employeeTransferRepository.save(employeeTransfer);
+            throw new RuntimeException("At least one transfer destination is required");
+        }
+
+        if (request.getTransferDate() == null) {
+
+            throw new RuntimeException("Transfer date is required");
+        }
+
+        Employee manager = findManagerForEmployee(employee);
+
+        if (manager == null) {
+
+            throw new RuntimeException("Manager not found for employee");
+        }
+
+        EmployeeTransfer transfer = new EmployeeTransfer();
+
+        transfer.setEmployee(employee);
+
+        // Current employee assignment
+        transfer.setFromDepartment(employee.getDepartment());
+        transfer.setFromBranch(employee.getBranch());
+        transfer.setFromTeam(employee.getTeam());
+
+        // New assignment
+        if (request.getToDepartmentId() != null) {
+
+            Department department = departmentRepository.findById(request.getToDepartmentId()).orElseThrow(() -> new RuntimeException("Department Not Found"));
+
+            transfer.setToDepartment(department);
+        }
+
+        if (request.getToBranchId() != null) {
+
+            Branch branch = branchRepository.findById(request.getToBranchId()).orElseThrow(() -> new RuntimeException("Branch Not Found"));
+
+            transfer.setToBranch(branch);
+        }
+
+        if (request.getToTeamId() != null) {
+
+            Team team = teamRepository.findById(request.getToTeamId()).orElseThrow(() -> new RuntimeException("Team Not Found"));
+
+            transfer.setToTeam(team);
+        }
+
+        transfer.setTransferDate(request.getTransferDate());
+        transfer.setReason(request.getReason());
+
+        transfer.setManager(manager);
+
+        transfer.setStatus(EmployeeTransferStatus.PENDING_MANAGER);
+
+        employeeTransferRepository.save(transfer);
+
         String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate("EMPLOYEE_TRANSFER", employeeId, performedBy, employeeId, "Employee transfer created");
+        auditLogsService.logCreate("EMPLOYEE_TRANSFER", String.valueOf(transfer.getId()), performedBy, employee.getEmployeeId(), "Employee transfer request submitted");
 
-        auditLogsService.logActivity(employeeId, "CREATE_TRANSFER", "EMPLOYEE_TRANSFER", "Employee transfer created", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+        auditLogsService.logActivity(performedBy, "REQUEST_EMPLOYEE_TRANSFER", "EMPLOYEE_TRANSFER", "Employee transfer request submitted", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo("EMPLOYEE_TRANSFER", "EmployeeService", "Transfer created for " + employeeId);
+        auditLogsService.logInfo("EMPLOYEE_TRANSFER", "EmployeeService", "Transfer request submitted");
 
-        return "Employee Transfer Created Successfully";
+        return "Employee Transfer Request Submitted Successfully";
     }
 
     public List<EmployeeTransfer> getTransfers() {
@@ -2078,6 +2382,298 @@ public class EmployeeService {
         auditLogsService.logInfo("EMPLOYEE_TRANSFER", "EmployeeService", "Transfer deleted: " + id);
 
         return "Employee Transfer Deleted Successfully";
+    }
+
+    public List<EmployeeTransfer> getManagerPendingTransfers() {
+
+        Employee manager = getLoggedInEmployee();
+
+        return employeeTransferRepository.findByManagerEmployeeIdAndStatus(manager.getEmployeeId(), EmployeeTransferStatus.PENDING_MANAGER);
+    }
+
+    public String managerRecommendTransfer(Long id, EmployeeTransferActionRequest request) {
+
+        EmployeeTransfer transfer = employeeTransferRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Transfer Not Found"));
+
+        Employee manager = getLoggedInEmployee();
+
+        if (transfer.getManager() == null || !transfer.getManager().getEmployeeId().equals(manager.getEmployeeId())) {
+
+            throw new RuntimeException("You are not the assigned manager for this transfer");
+        }
+
+        if (transfer.getStatus() != EmployeeTransferStatus.PENDING_MANAGER) {
+
+            throw new RuntimeException("Transfer is not pending manager recommendation");
+        }
+
+        transfer.setManagerActionAt(LocalDateTime.now());
+
+        transfer.setManagerRemarks(request.getRemarks());
+
+        transfer.setStatus(EmployeeTransferStatus.PENDING_HR);
+
+        Employee hr = findHRForEmployee(transfer.getEmployee());
+
+        if (hr == null) {
+
+            throw new RuntimeException("HR not found");
+        }
+
+        transfer.setHr(hr);
+
+        employeeTransferRepository.save(transfer);
+
+        String performedBy = manager.getEmployeeId();
+
+        auditLogsService.logActivity(performedBy, "RECOMMEND_EMPLOYEE_TRANSFER", "EMPLOYEE_TRANSFER", "Manager recommended employee transfer", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+
+        return "Employee Transfer Recommended Successfully";
+    }
+
+    private Employee findHRForEmployee(Employee employee) {
+
+        if (employee.getCompany() == null) {
+            throw new RuntimeException("Employee company is not assigned");
+        }
+
+        return employeeRepository.findHRByCompanyId(employee.getCompany().getId()).orElseThrow(() -> new RuntimeException("HR not found for company: " + employee.getCompany().getId()));
+    }
+
+    public String managerRejectTransfer(Long id, EmployeeTransferActionRequest request) {
+
+        EmployeeTransfer transfer = employeeTransferRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Transfer Not Found"));
+
+        Employee manager = getLoggedInEmployee();
+
+        if (transfer.getManager() == null || !transfer.getManager().getEmployeeId().equals(manager.getEmployeeId())) {
+
+            throw new RuntimeException("You are not the assigned manager");
+        }
+
+        if (transfer.getStatus() != EmployeeTransferStatus.PENDING_MANAGER) {
+
+            throw new RuntimeException("Transfer is not pending manager action");
+        }
+
+        if (request.getRemarks() == null || request.getRemarks().isBlank()) {
+
+            throw new RuntimeException("Rejection remarks are required");
+        }
+
+        transfer.setManagerActionAt(LocalDateTime.now());
+
+        transfer.setManagerRemarks(request.getRemarks());
+
+        transfer.setStatus(EmployeeTransferStatus.REJECTED);
+
+        employeeTransferRepository.save(transfer);
+
+        return "Employee Transfer Rejected By Manager";
+    }
+
+    public List<EmployeeTransfer> getHRPendingTransfers() {
+
+        Employee hr = getLoggedInEmployee();
+
+        return employeeTransferRepository.findByHrEmployeeIdAndStatus(hr.getEmployeeId(), EmployeeTransferStatus.PENDING_HR);
+    }
+
+    public String hrProcessTransfer(Long id, EmployeeTransferActionRequest request) {
+
+        EmployeeTransfer transfer = employeeTransferRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Transfer Not Found"));
+
+        Employee hr = getLoggedInEmployee();
+
+        if (transfer.getHr() == null || !transfer.getHr().getEmployeeId().equals(hr.getEmployeeId())) {
+
+            throw new RuntimeException("You are not the assigned HR");
+        }
+
+        if (transfer.getStatus() != EmployeeTransferStatus.PENDING_HR) {
+
+            throw new RuntimeException("Transfer is not pending HR processing");
+        }
+
+        Employee superAdmin = findSuperAdminForEmployee(transfer.getEmployee());
+
+        if (superAdmin == null) {
+
+            throw new RuntimeException("Super Admin not found");
+        }
+
+        transfer.setHrActionAt(LocalDateTime.now());
+
+        transfer.setHrRemarks(request.getRemarks());
+
+        transfer.setStatus(EmployeeTransferStatus.PENDING_SUPER_ADMIN);
+
+        employeeTransferRepository.save(transfer);
+
+        return "Employee Transfer Processed By HR Successfully";
+    }
+
+    private Employee findSuperAdminForEmployee(Employee employee) {
+
+        if (employee.getCompany() == null) {
+            throw new RuntimeException("Employee company is not assigned");
+        }
+
+        return employeeRepository.findSuperAdminByCompanyId(employee.getCompany().getId()).orElseThrow(() -> new RuntimeException("Super Admin not found for company: " + employee.getCompany().getId()));
+    }
+
+    public String hrRejectTransfer(Long id, EmployeeTransferActionRequest request) {
+
+        EmployeeTransfer transfer = employeeTransferRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Transfer Not Found"));
+
+        Employee hr = getLoggedInEmployee();
+
+        if (transfer.getHr() == null || !transfer.getHr().getEmployeeId().equals(hr.getEmployeeId())) {
+
+            throw new RuntimeException("You are not the assigned HR");
+        }
+
+        if (transfer.getStatus() != EmployeeTransferStatus.PENDING_HR) {
+
+            throw new RuntimeException("Transfer is not pending HR processing");
+        }
+
+        if (request.getRemarks() == null || request.getRemarks().isBlank()) {
+
+            throw new RuntimeException("Rejection remarks are required");
+        }
+
+        transfer.setHrActionAt(LocalDateTime.now());
+
+        transfer.setHrRemarks(request.getRemarks());
+
+        transfer.setStatus(EmployeeTransferStatus.REJECTED);
+
+        employeeTransferRepository.save(transfer);
+
+        return "Employee Transfer Rejected By HR";
+    }
+
+    public List<EmployeeTransfer> getManagementPendingTransfers() {
+
+        return employeeTransferRepository.findByStatus(EmployeeTransferStatus.PENDING_SUPER_ADMIN);
+    }
+
+    @Transactional
+    public String managementApproveTransfer(Long id, EmployeeTransferActionRequest request) {
+
+        EmployeeTransfer transfer = employeeTransferRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Transfer Not Found"));
+
+        Employee superAdmin = getLoggedInEmployee();
+
+        if (transfer.getStatus() != EmployeeTransferStatus.PENDING_SUPER_ADMIN) {
+
+            throw new RuntimeException("Transfer is not pending management approval");
+        }
+
+        transfer.setManagementApprovedBy(superAdmin);
+
+        transfer.setManagementApprovalAt(LocalDateTime.now());
+
+        transfer.setManagementRemarks(request.getRemarks());
+
+        transfer.setApprovedBy(superAdmin);
+
+        transfer.setStatus(EmployeeTransferStatus.APPROVED);
+
+        employeeTransferRepository.save(transfer);
+
+        // ============================================
+        // APPLY ACTUAL EMPLOYEE TRANSFER
+        // ============================================
+
+        Employee employee = transfer.getEmployee();
+
+        if (transfer.getToDepartment() != null) {
+            employee.setDepartment(transfer.getToDepartment());
+        }
+
+        if (transfer.getToBranch() != null) {
+            employee.setBranch(transfer.getToBranch());
+        }
+
+        if (transfer.getToTeam() != null) {
+            employee.setTeam(transfer.getToTeam());
+        }
+
+        employeeRepository.save(employee);
+
+        // ============================================
+        // MARK COMPLETED
+        // ============================================
+
+        transfer.setStatus(EmployeeTransferStatus.COMPLETED);
+
+        employeeTransferRepository.save(transfer);
+
+        String performedBy = superAdmin.getEmployeeId();
+
+        auditLogsService.logActivity(performedBy, "APPROVE_EMPLOYEE_TRANSFER", "EMPLOYEE_TRANSFER", "Employee transfer approved by management", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+
+        auditLogsService.logInfo("EMPLOYEE_TRANSFER", "EmployeeService", "Employee transfer approved and completed");
+
+        return "Employee Transfer Approved And Completed Successfully";
+    }
+
+    public String managementRejectTransfer(Long id, EmployeeTransferActionRequest request) {
+
+        EmployeeTransfer transfer = employeeTransferRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Transfer Not Found"));
+
+        Employee superAdmin = getLoggedInEmployee();
+
+        if (transfer.getStatus() != EmployeeTransferStatus.PENDING_SUPER_ADMIN) {
+
+            throw new RuntimeException("Transfer is not pending management approval");
+        }
+
+        if (request.getRemarks() == null || request.getRemarks().isBlank()) {
+
+            throw new RuntimeException("Rejection remarks are required");
+        }
+
+        transfer.setManagementApprovedBy(superAdmin);
+
+        transfer.setManagementApprovalAt(LocalDateTime.now());
+
+        transfer.setManagementRemarks(request.getRemarks());
+
+        transfer.setStatus(EmployeeTransferStatus.REJECTED);
+
+        employeeTransferRepository.save(transfer);
+
+        return "Employee Transfer Rejected By Management";
+    }
+
+    private Employee getLoggedInEmployee() {
+
+        String employeeId = getLoggedInEmployeeId();
+
+        return employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Logged In Employee Not Found"));
+    }
+
+    private Employee findManagerForEmployee(Employee employee) {
+
+        /*
+         * Use the actual manager/reporting-manager relationship
+         * from your Employee entity.
+         *
+         * Example if Employee has:
+         *
+         * @ManyToOne
+         * private Employee manager;
+         */
+
+        if (employee.getEmployee() == null) {
+
+            throw new RuntimeException("Manager not assigned to employee");
+        }
+
+        return employee.getEmployee();
     }
 
     //=================================

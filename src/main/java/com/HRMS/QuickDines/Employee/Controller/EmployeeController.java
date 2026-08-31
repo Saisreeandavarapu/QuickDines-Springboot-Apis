@@ -1,9 +1,6 @@
 package com.HRMS.QuickDines.Employee.Controller;
 
-import com.HRMS.QuickDines.Employee.DTO.ApprovalRequestdto;
-import com.HRMS.QuickDines.Employee.DTO.EmployeeApprovalRequest;
-import com.HRMS.QuickDines.Employee.DTO.EmployeeCreateRequest;
-import com.HRMS.QuickDines.Employee.DTO.EmployeeUpdateRequest;
+import com.HRMS.QuickDines.Employee.DTO.*;
 import com.HRMS.QuickDines.Employee.Service.EmployeeService;
 import com.HRMS.QuickDines.Employee.model.*;
 import com.HRMS.QuickDines.Workflow.model.ApprovalRequest;
@@ -28,59 +25,43 @@ public class EmployeeController {
     //-------------------------
 
     @PostMapping("/create")
-   // @PreAuthorize("hasAuthority('EMPLOYEE_CREATE')")
-    public ResponseEntity<?> createEmployee(
-            @RequestBody EmployeeCreateRequest request) {
+    // @PreAuthorize("hasAuthority('EMPLOYEE_CREATE')")
+    public ResponseEntity<?> createEmployee(@RequestBody EmployeeCreateRequest request) {
 
-        return ResponseEntity.ok(
-                service.createEmployee(request)
-        );
+        return ResponseEntity.ok(service.createEmployee(request));
     }
-
 
 
     @GetMapping
     @PreAuthorize("hasAuthority(EMPLOYEE_READ)")
-    public ResponseEntity<?> getAllEmployees(){
+    public ResponseEntity<?> getAllEmployees() {
 
-        return ResponseEntity.ok(
-                service.getAllEmployees());
+        return ResponseEntity.ok(service.getAllEmployees());
     }
-
 
 
     @GetMapping("/{id}")
-   @PreAuthorize("hasAuthority(EMPLOYEE_READ)")
-    public ResponseEntity<?> getEmployee(
-            @PathVariable Long id){
+    @PreAuthorize("hasAuthority(EMPLOYEE_READ)")
+    public ResponseEntity<?> getEmployee(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.getEmployee(id));
+        return ResponseEntity.ok(service.getEmployee(id));
     }
-
 
 
     @PutMapping("/update/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_UPDATE)")
-    public ResponseEntity<?> updateEmployee(
-            @PathVariable Long id,
-            @RequestBody Employee employee){
+    public ResponseEntity<?> updateEmployee(@PathVariable Long id, @RequestBody Employee employee) {
 
-        return ResponseEntity.ok(
-                service.updateEmployee(id,employee));
+        return ResponseEntity.ok(service.updateEmployee(id, employee));
     }
-
 
 
     @DeleteMapping("/delete/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_DELETE)")
-    public ResponseEntity<?> deleteEmployee(
-            @PathVariable Long id){
+    public ResponseEntity<?> deleteEmployee(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.deleteEmployee(id));
+        return ResponseEntity.ok(service.deleteEmployee(id));
     }
-
 
 
     //-------------------------
@@ -89,13 +70,10 @@ public class EmployeeController {
 
     @GetMapping("/details/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_READ)")
-    public ResponseEntity<?> getEmployeeDetails(
-            @PathVariable Long id){
+    public ResponseEntity<?> getEmployeeDetails(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.getEmployeeDetails(id));
+        return ResponseEntity.ok(service.getEmployeeDetails(id));
     }
-
 
 
     // ----------------------------------
@@ -104,31 +82,25 @@ public class EmployeeController {
 
     @PostMapping("/upload-document/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_DOCUMENT_CREATE)")
-    public ResponseEntity<?> uploadDocument(@PathVariable String employeeId, @RequestParam("file") MultipartFile file,
-            @RequestParam("documentType") String documentType) {
+    public ResponseEntity<?> uploadDocument(@PathVariable String employeeId, @RequestParam("file") MultipartFile file, @RequestParam("documentType") String documentType) {
 
-        return ResponseEntity.ok(
-                service.uploadDocument(employeeId, file, documentType));
+        return ResponseEntity.ok(service.uploadDocument(employeeId, file, documentType));
     }
 
 
     @GetMapping("/documents/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_DOCUMENT_READ)")
-    public ResponseEntity<?> getDocuments(
-            @PathVariable String employeeId) {
+    public ResponseEntity<?> getDocuments(@PathVariable String employeeId) {
 
-        return ResponseEntity.ok(
-                service.getDocuments(employeeId));
+        return ResponseEntity.ok(service.getDocuments(employeeId));
     }
 
 
     @DeleteMapping("/document/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_DOCUMENT_DELETE)")
-    public ResponseEntity<?> deleteDocument(
-            @PathVariable Long id) {
+    public ResponseEntity<?> deleteDocument(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.deleteDocument(id));
+        return ResponseEntity.ok(service.deleteDocument(id));
     }
     //=========================================
 // EMPLOYEE PROFILE
@@ -136,13 +108,11 @@ public class EmployeeController {
 
     @PostMapping("/profile/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_PROFILE_CREATE)")
-    public ResponseEntity<?> createProfile(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeProfile profile) {
+    public ResponseEntity<?> createProfile(@PathVariable String employeeId, @RequestBody EmployeeProfile profile) {
 
-        return ResponseEntity.ok(
-                service.createProfile(employeeId, profile));
+        return ResponseEntity.ok(service.createProfile(employeeId, profile));
     }
+
     @GetMapping("/profiles")
     @PreAuthorize("hasAuthority(EMPLOYEE_PROFILE_READ)")
     public List<EmployeeProfile> getAllProfiles() {
@@ -152,32 +122,25 @@ public class EmployeeController {
 
     @GetMapping("/profile/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_PROFILE_READ)")
-    public ResponseEntity<?> getProfile(
-            @PathVariable String employeeId) {
+    public ResponseEntity<?> getProfile(@PathVariable String employeeId) {
 
-        return ResponseEntity.ok(
-                service.getProfile(employeeId));
+        return ResponseEntity.ok(service.getProfile(employeeId));
     }
 
 
     @PutMapping("/profile/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_PROFILE_UPDATE)")
-    public ResponseEntity<?> updateProfile(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeProfile profile) {
+    public ResponseEntity<?> updateProfile(@PathVariable String employeeId, @RequestBody EmployeeProfile profile) {
 
-        return ResponseEntity.ok(
-                service.updateProfile(employeeId, profile));
+        return ResponseEntity.ok(service.updateProfile(employeeId, profile));
     }
 
 
     @DeleteMapping("/profile/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_PROFILE_DELETE)")
-    public ResponseEntity<?> deleteProfile(
-            @PathVariable String employeeId) {
+    public ResponseEntity<?> deleteProfile(@PathVariable String employeeId) {
 
-        return ResponseEntity.ok(
-                service.deleteProfile(employeeId));
+        return ResponseEntity.ok(service.deleteProfile(employeeId));
     }
 
 
@@ -187,43 +150,33 @@ public class EmployeeController {
 
     @PostMapping("/bank-details/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_BANK_CREATE)")
-    public ResponseEntity<?> createBankDetails(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeBankDetails bankDetails) {
+    public ResponseEntity<?> createBankDetails(@PathVariable String employeeId, @RequestBody EmployeeBankDetails bankDetails) {
 
-        return ResponseEntity.ok(
-                service.createBankDetails(employeeId, bankDetails));
+        return ResponseEntity.ok(service.createBankDetails(employeeId, bankDetails));
     }
 
 
     @GetMapping("/bank-details/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_BANK_READ)")
-    public ResponseEntity<?> getBankDetails(
-            @PathVariable String employeeId) {
+    public ResponseEntity<?> getBankDetails(@PathVariable String employeeId) {
 
-        return ResponseEntity.ok(
-                service.getBankDetails(employeeId));
+        return ResponseEntity.ok(service.getBankDetails(employeeId));
     }
 
 
     @PutMapping("/bank-details/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_BANK_UPDATE)")
-    public ResponseEntity<?> updateBankDetails(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeBankDetails bankDetails) {
+    public ResponseEntity<?> updateBankDetails(@PathVariable String employeeId, @RequestBody EmployeeBankDetails bankDetails) {
 
-        return ResponseEntity.ok(
-                service.updateBankDetails(employeeId, bankDetails));
+        return ResponseEntity.ok(service.updateBankDetails(employeeId, bankDetails));
     }
 
 
     @DeleteMapping("/bank-details/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_BANK_DELETE)")
-    public ResponseEntity<?> deleteBankDetails(
-            @PathVariable String employeeId) {
+    public ResponseEntity<?> deleteBankDetails(@PathVariable String employeeId) {
 
-        return ResponseEntity.ok(
-                service.deleteBankDetails(employeeId));
+        return ResponseEntity.ok(service.deleteBankDetails(employeeId));
     }
 
 
@@ -233,43 +186,33 @@ public class EmployeeController {
 
     @PostMapping("/contacts/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_CONTACT_CREATE)")
-    public ResponseEntity<?> createContacts(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeContacts contacts) {
+    public ResponseEntity<?> createContacts(@PathVariable String employeeId, @RequestBody EmployeeContacts contacts) {
 
-        return ResponseEntity.ok(
-                service.createContacts(employeeId, contacts));
+        return ResponseEntity.ok(service.createContacts(employeeId, contacts));
     }
 
 
     @GetMapping("/contacts/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_CONTACT_READ)")
-    public ResponseEntity<?> getContacts(
-            @PathVariable String employeeId) {
+    public ResponseEntity<?> getContacts(@PathVariable String employeeId) {
 
-        return ResponseEntity.ok(
-                service.getContacts(employeeId));
+        return ResponseEntity.ok(service.getContacts(employeeId));
     }
 
 
     @PutMapping("/contacts/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_CONTACT_UPDATE)")
-    public ResponseEntity<?> updateContacts(
-            @PathVariable String id,
-            @RequestBody EmployeeContacts contacts) {
+    public ResponseEntity<?> updateContacts(@PathVariable String id, @RequestBody EmployeeContacts contacts) {
 
-        return ResponseEntity.ok(
-                service.updateContacts(id, contacts));
+        return ResponseEntity.ok(service.updateContacts(id, contacts));
     }
 
 
     @DeleteMapping("/contacts/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_CONTACT_DELETE)")
-    public ResponseEntity<?> deleteContacts(
-            @PathVariable String id) {
+    public ResponseEntity<?> deleteContacts(@PathVariable String id) {
 
-        return ResponseEntity.ok(
-                service.deleteContacts(id));
+        return ResponseEntity.ok(service.deleteContacts(id));
     }
 
 
@@ -279,43 +222,33 @@ public class EmployeeController {
 
     @PostMapping("/designation/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_DESIGNATION_CREATE)")
-    public ResponseEntity<?> createDesignation(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeDesignation designation) {
+    public ResponseEntity<?> createDesignation(@PathVariable String employeeId, @RequestBody EmployeeDesignation designation) {
 
-        return ResponseEntity.ok(
-                service.createDesignation(employeeId, designation));
+        return ResponseEntity.ok(service.createDesignation(employeeId, designation));
     }
 
 
     @GetMapping("/designation/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_DESIGNATION_READ)")
-    public ResponseEntity<?> getDesignation(
-            @PathVariable String employeeId) {
+    public ResponseEntity<?> getDesignation(@PathVariable String employeeId) {
 
-        return ResponseEntity.ok(
-                service.getDesignation(employeeId));
+        return ResponseEntity.ok(service.getDesignation(employeeId));
     }
 
 
     @PutMapping("/designation/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_DESIGNATION_UPDATE)")
-    public ResponseEntity<?> updateDesignation(
-            @PathVariable String id,
-            @RequestBody EmployeeDesignation designation) {
+    public ResponseEntity<?> updateDesignation(@PathVariable String id, @RequestBody EmployeeDesignation designation) {
 
-        return ResponseEntity.ok(
-                service.updateDesignation(id, designation));
+        return ResponseEntity.ok(service.updateDesignation(id, designation));
     }
 
 
     @DeleteMapping("/designation/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_DESIGNATION_DELETE)")
-    public ResponseEntity<?> deleteDesignation(
-            @PathVariable String id) {
+    public ResponseEntity<?> deleteDesignation(@PathVariable String id) {
 
-        return ResponseEntity.ok(
-                service.deleteDesignation(id));
+        return ResponseEntity.ok(service.deleteDesignation(id));
     }
 
 
@@ -325,43 +258,33 @@ public class EmployeeController {
 
     @PostMapping("/exit-management/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_EXIT_CREATE)")
-    public ResponseEntity<?> createExitManagement(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeExitManagement exitManagement) {
+    public ResponseEntity<?> createExitManagement(@PathVariable String employeeId, @RequestBody EmployeeExitManagement exitManagement) {
 
-        return ResponseEntity.ok(
-                service.createExitManagement(employeeId, exitManagement));
+        return ResponseEntity.ok(service.createExitManagement(employeeId, exitManagement));
     }
 
 
     @GetMapping("/exit-management/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_EXIT_READ)")
-    public ResponseEntity<?> getExitManagement(
-            @PathVariable String employeeId) {
+    public ResponseEntity<?> getExitManagement(@PathVariable String employeeId) {
 
-        return ResponseEntity.ok(
-                service.getExitManagement(employeeId));
+        return ResponseEntity.ok(service.getExitManagement(employeeId));
     }
 
 
     @PutMapping("/exit-management/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_EXIT_UPDATE)")
-    public ResponseEntity<?> updateExitManagement(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeExitManagement exitManagement) {
+    public ResponseEntity<?> updateExitManagement(@PathVariable String employeeId, @RequestBody EmployeeExitManagement exitManagement) {
 
-        return ResponseEntity.ok(
-                service.updateExitManagement(employeeId, exitManagement));
+        return ResponseEntity.ok(service.updateExitManagement(employeeId, exitManagement));
     }
 
 
     @DeleteMapping("/exit-management/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_EXIT_DELETE)")
-    public ResponseEntity<?> deleteExitManagement(
-            @PathVariable String employeeId) {
+    public ResponseEntity<?> deleteExitManagement(@PathVariable String employeeId) {
 
-        return ResponseEntity.ok(
-                service.deleteExitManagement(employeeId));
+        return ResponseEntity.ok(service.deleteExitManagement(employeeId));
     }
 
 //=================================
@@ -370,12 +293,9 @@ public class EmployeeController {
 
     @PostMapping("/skill/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_SKILL_CREATE)")
-    public ResponseEntity<?> createSkill(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeSkill employeeSkill) {
+    public ResponseEntity<?> createSkill(@PathVariable String employeeId, @RequestBody EmployeeSkill employeeSkill) {
 
-        return ResponseEntity.ok(
-                service.createSkill(employeeId, employeeSkill));
+        return ResponseEntity.ok(service.createSkill(employeeId, employeeSkill));
     }
 
     @GetMapping("/skills")
@@ -394,9 +314,7 @@ public class EmployeeController {
 
     @PutMapping("/skill/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_SKILL_UPDATE)")
-    public ResponseEntity<?> updateSkill(
-            @PathVariable Long id,
-            @RequestBody EmployeeSkill employeeSkill) {
+    public ResponseEntity<?> updateSkill(@PathVariable Long id, @RequestBody EmployeeSkill employeeSkill) {
 
         return ResponseEntity.ok(service.updateSkill(id, employeeSkill));
     }
@@ -414,9 +332,7 @@ public class EmployeeController {
 
     @PostMapping("/certification/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_CERTIFICATION_CREATE)")
-    public ResponseEntity<?> createCertification(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeCertification employeeCertification) {
+    public ResponseEntity<?> createCertification(@PathVariable String employeeId, @RequestBody EmployeeCertification employeeCertification) {
 
         return ResponseEntity.ok(service.createCertification(employeeId, employeeCertification));
     }
@@ -437,9 +353,7 @@ public class EmployeeController {
 
     @PutMapping("/certification/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_CERTIFICATION_UPDATE)")
-    public ResponseEntity<?> updateCertification(
-            @PathVariable Long id,
-            @RequestBody EmployeeCertification employeeCertification) {
+    public ResponseEntity<?> updateCertification(@PathVariable Long id, @RequestBody EmployeeCertification employeeCertification) {
 
         return ResponseEntity.ok(service.updateCertification(id, employeeCertification));
     }
@@ -457,46 +371,37 @@ public class EmployeeController {
 
     @PostMapping("/experience/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_EXPERIENCE_CREATE)")
-    public ResponseEntity<?> createExperience(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeExperience employeeExperience) {
+    public ResponseEntity<?> createExperience(@PathVariable String employeeId, @RequestBody EmployeeExperience employeeExperience) {
 
-        return ResponseEntity.ok(
-                service.createExperience(employeeId, employeeExperience));
+        return ResponseEntity.ok(service.createExperience(employeeId, employeeExperience));
     }
 
     @GetMapping("/experiences")
     @PreAuthorize("hasAuthority(EMPLOYEE_EXPERIENCE_READ)")
     public ResponseEntity<?> getExperiences() {
 
-        return ResponseEntity.ok(
-                service.getExperiences());
+        return ResponseEntity.ok(service.getExperiences());
     }
 
     @GetMapping("/experience/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_EXPERIENCE_READ)")
     public ResponseEntity<?> getExperience(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.getExperience(id));
+        return ResponseEntity.ok(service.getExperience(id));
     }
 
     @PutMapping("/experience/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_EXPERIENCE_UPDATE)")
-    public ResponseEntity<?> updateExperience(
-            @PathVariable Long id,
-            @RequestBody EmployeeExperience employeeExperience) {
+    public ResponseEntity<?> updateExperience(@PathVariable Long id, @RequestBody EmployeeExperience employeeExperience) {
 
-        return ResponseEntity.ok(
-                service.updateExperience(id, employeeExperience));
+        return ResponseEntity.ok(service.updateExperience(id, employeeExperience));
     }
 
     @DeleteMapping("/experience/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_EXPERIENCE_DELETE)")
     public ResponseEntity<?> deleteExperience(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.deleteExperience(id));
+        return ResponseEntity.ok(service.deleteExperience(id));
     }
 
     //=================================
@@ -505,46 +410,37 @@ public class EmployeeController {
 
     @PostMapping("/language/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_LANGUAGE_CREATE)")
-    public ResponseEntity<?> createLanguage(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeLanguage employeeLanguage) {
+    public ResponseEntity<?> createLanguage(@PathVariable String employeeId, @RequestBody EmployeeLanguage employeeLanguage) {
 
-        return ResponseEntity.ok(
-                service.createLanguage(employeeId, employeeLanguage));
+        return ResponseEntity.ok(service.createLanguage(employeeId, employeeLanguage));
     }
 
     @GetMapping("/languages")
     @PreAuthorize("hasAuthority(EMPLOYEE_LANGUAGE_READ)")
     public ResponseEntity<?> getLanguages() {
 
-        return ResponseEntity.ok(
-                service.getLanguages());
+        return ResponseEntity.ok(service.getLanguages());
     }
 
     @GetMapping("/language/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_LANGUAGE_READ)")
     public ResponseEntity<?> getLanguage(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.getLanguage(id));
+        return ResponseEntity.ok(service.getLanguage(id));
     }
 
     @PutMapping("/language/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_LANGUAGE_UPDATE)")
-    public ResponseEntity<?> updateLanguage(
-            @PathVariable Long id,
-            @RequestBody EmployeeLanguage employeeLanguage) {
+    public ResponseEntity<?> updateLanguage(@PathVariable Long id, @RequestBody EmployeeLanguage employeeLanguage) {
 
-        return ResponseEntity.ok(
-                service.updateLanguage(id, employeeLanguage));
+        return ResponseEntity.ok(service.updateLanguage(id, employeeLanguage));
     }
 
     @DeleteMapping("/language/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_LANGUAGE_DELETE)")
     public ResponseEntity<?> deleteLanguage(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.deleteLanguage(id));
+        return ResponseEntity.ok(service.deleteLanguage(id));
     }
 
     //=================================
@@ -553,46 +449,37 @@ public class EmployeeController {
 
     @PostMapping("/family/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_FAMILY_CREATE)")
-    public ResponseEntity<?> createFamilyMember(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeFamilyMember employeeFamilyMember) {
+    public ResponseEntity<?> createFamilyMember(@PathVariable String employeeId, @RequestBody EmployeeFamilyMember employeeFamilyMember) {
 
-        return ResponseEntity.ok(
-                service.createFamilyMember(employeeId, employeeFamilyMember));
+        return ResponseEntity.ok(service.createFamilyMember(employeeId, employeeFamilyMember));
     }
 
     @GetMapping("/families")
     @PreAuthorize("hasAuthority(EMPLOYEE_FAMILY_READ)")
     public ResponseEntity<?> getFamilyMembers() {
 
-        return ResponseEntity.ok(
-                service.getFamilyMembers());
+        return ResponseEntity.ok(service.getFamilyMembers());
     }
 
     @GetMapping("/family/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_FAMILY_READ)")
     public ResponseEntity<?> getFamilyMember(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.getFamilyMember(id));
+        return ResponseEntity.ok(service.getFamilyMember(id));
     }
 
     @PutMapping("/family/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_FAMILY_UPDATE)")
-    public ResponseEntity<?> updateFamilyMember(
-            @PathVariable Long id,
-            @RequestBody EmployeeFamilyMember employeeFamilyMember) {
+    public ResponseEntity<?> updateFamilyMember(@PathVariable Long id, @RequestBody EmployeeFamilyMember employeeFamilyMember) {
 
-        return ResponseEntity.ok(
-                service.updateFamilyMember(id, employeeFamilyMember));
+        return ResponseEntity.ok(service.updateFamilyMember(id, employeeFamilyMember));
     }
 
     @DeleteMapping("/family/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_FAMILY_DELETE)")
     public ResponseEntity<?> deleteFamilyMember(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.deleteFamilyMember(id));
+        return ResponseEntity.ok(service.deleteFamilyMember(id));
     }
 
     //=================================
@@ -601,142 +488,240 @@ public class EmployeeController {
 
     @PostMapping("/address/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_ADDRESS_CREATE)")
-    public ResponseEntity<?> createAddress(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeAddress employeeAddress) {
+    public ResponseEntity<?> createAddress(@PathVariable String employeeId, @RequestBody EmployeeAddress employeeAddress) {
 
-        return ResponseEntity.ok(
-                service.createAddress(employeeId, employeeAddress));
+        return ResponseEntity.ok(service.createAddress(employeeId, employeeAddress));
     }
 
     @GetMapping("/addresses")
     @PreAuthorize("hasAuthority(EMPLOYEE_ADDRESS_READ)")
     public ResponseEntity<?> getAddresses() {
 
-        return ResponseEntity.ok(
-                service.getAddresses());
+        return ResponseEntity.ok(service.getAddresses());
     }
 
     @GetMapping("/address/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_ADDRESS_READ)")
     public ResponseEntity<?> getAddress(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.getAddress(id));
+        return ResponseEntity.ok(service.getAddress(id));
     }
 
     @PutMapping("/address/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_ADDRESS_UPDATE)")
-    public ResponseEntity<?> updateAddress(
-            @PathVariable Long id,
-            @RequestBody EmployeeAddress employeeAddress) {
+    public ResponseEntity<?> updateAddress(@PathVariable Long id, @RequestBody EmployeeAddress employeeAddress) {
 
-        return ResponseEntity.ok(
-                service.updateAddress(id, employeeAddress));
+        return ResponseEntity.ok(service.updateAddress(id, employeeAddress));
     }
 
     @DeleteMapping("/address/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_ADDRESS_DELETE)")
     public ResponseEntity<?> deleteAddress(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.deleteAddress(id));
+        return ResponseEntity.ok(service.deleteAddress(id));
     }
 
     //=================================
 // EMPLOYEE PROMOTIONS
 //=================================
 
-    @PostMapping("/promotion/{employeeId}")
-    @PreAuthorize("hasAuthority(EMPLOYEE_PROMOTION_CREATE)")
-    public ResponseEntity<?> createPromotion(
-            @PathVariable String employeeId,
-            @RequestBody EmployeePromotion employeePromotion) {
+    @PostMapping("/promotion/request")
+    @PreAuthorize("hasAuthority('EMPLOYEE_PROMOTION_REQUEST')")
+    public ResponseEntity<?> requestPromotion(@RequestBody EmployeePromotionRequest request) {
 
-        return ResponseEntity.ok(
-                service.createPromotion(employeeId, employeePromotion));
+        return ResponseEntity.ok(service.requestPromotion(request));
     }
 
     @GetMapping("/promotions")
     @PreAuthorize("hasAuthority(EMPLOYEE_PROMOTION_READ)")
     public ResponseEntity<?> getPromotions() {
 
-        return ResponseEntity.ok(
-                service.getPromotions());
+        return ResponseEntity.ok(service.getPromotions());
     }
 
     @GetMapping("/promotion/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_READ)")
     public ResponseEntity<?> getPromotion(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.getPromotion(id));
+        return ResponseEntity.ok(service.getPromotion(id));
     }
 
     @PutMapping("/promotion/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_PROMOTION_UPDATE)")
-    public ResponseEntity<?> updatePromotion(
-            @PathVariable Long id,
-            @RequestBody EmployeePromotion employeePromotion) {
+    public ResponseEntity<?> updatePromotion(@PathVariable Long id, @RequestBody EmployeePromotion employeePromotion) {
 
-        return ResponseEntity.ok(
-                service.updatePromotion(id, employeePromotion));
+        return ResponseEntity.ok(service.updatePromotion(id, employeePromotion));
     }
 
     @DeleteMapping("/promotion/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_PROMOTION_DELETE)")
     public ResponseEntity<?> deletePromotion(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.deletePromotion(id));
+        return ResponseEntity.ok(service.deletePromotion(id));
     }
 
+    @GetMapping("/promotion/manager/pending")
+    @PreAuthorize("hasAuthority('EMPLOYEE_PROMOTION_MANAGER_REVIEW')")
+    public ResponseEntity<?> getManagerPendingPromotions() {
+
+        return ResponseEntity.ok(service.getManagerPendingPromotions());
+    }
+
+    @PutMapping("/promotion/{id}/manager/recommend")
+    @PreAuthorize("hasAuthority('EMPLOYEE_PROMOTION_MANAGER_RECOMMEND')")
+    public ResponseEntity<?> managerRecommendPromotion(@PathVariable Long id, @RequestBody PromotionActionRequest request) {
+
+        return ResponseEntity.ok(service.managerRecommendPromotion(id, request));
+    }
+
+    @PutMapping("/promotion/{id}/manager/reject")
+    @PreAuthorize("hasAuthority('EMPLOYEE_PROMOTION_MANAGER_REJECT')")
+    public ResponseEntity<?> managerRejectPromotion(@PathVariable Long id, @RequestBody PromotionActionRequest request) {
+
+        return ResponseEntity.ok(service.managerRejectPromotion(id, request));
+    }
+
+    @GetMapping("/promotion/hr/pending")
+    @PreAuthorize("hasAuthority('EMPLOYEE_PROMOTION_HR_REVIEW')")
+    public ResponseEntity<?> getHRPendingPromotions() {
+
+        return ResponseEntity.ok(service.getHRPendingPromotions());
+    }
+
+    @PutMapping("/promotion/{id}/hr/process")
+    @PreAuthorize("hasAuthority('EMPLOYEE_PROMOTION_HR_PROCESS')")
+    public ResponseEntity<?> hrProcessPromotion(@PathVariable Long id, @RequestBody PromotionActionRequest request) {
+
+        return ResponseEntity.ok(service.hrProcessPromotion(id, request));
+    }
+
+    @PutMapping("/promotion/{id}/hr/reject")
+    @PreAuthorize("hasAuthority('EMPLOYEE_PROMOTION_HR_REJECT')")
+    public ResponseEntity<?> hrRejectPromotion(@PathVariable Long id, @RequestBody PromotionActionRequest request) {
+
+        return ResponseEntity.ok(service.hrRejectPromotion(id, request));
+    }
+
+    @GetMapping("/promotion/admin/pending")
+    @PreAuthorize("hasAuthority('EMPLOYEE_PROMOTION_ADMIN_REVIEW')")
+    public ResponseEntity<?> getAdminPendingPromotions() {
+
+        return ResponseEntity.ok(service.getAdminPendingPromotions());
+    }
+
+    @PutMapping("/promotion/{id}/admin/approve")
+    @PreAuthorize("hasAuthority('EMPLOYEE_PROMOTION_ADMIN_APPROVE')")
+    public ResponseEntity<?> adminApprovePromotion(@PathVariable Long id, @RequestBody PromotionActionRequest request) {
+
+        return ResponseEntity.ok(service.adminApprovePromotion(id, request));
+    }
+
+    @PutMapping("/promotion/{id}/admin/reject")
+    @PreAuthorize("hasAuthority('EMPLOYEE_PROMOTION_ADMIN_REJECT')")
+    public ResponseEntity<?> adminRejectPromotion(@PathVariable Long id, @RequestBody PromotionActionRequest request) {
+
+        return ResponseEntity.ok(service.adminRejectPromotion(id, request));
+    }
     //=================================
 // EMPLOYEE TRANSFERS
 //=================================
 
     @PostMapping("/transfer/{employeeId}")
     @PreAuthorize("hasAuthority(EMPLOYEE_TRANSFER_CREATE)")
-    public ResponseEntity<?> createTransfer(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeTransfer employeeTransfer) {
+    public ResponseEntity<?> createTransfer(@PathVariable String employeeId, @RequestBody EmployeeTransferRequest employeeTransfer) {
 
-        return ResponseEntity.ok(
-                service.createTransfer(employeeId, employeeTransfer));
+        return ResponseEntity.ok(service.createTransfer(employeeId, employeeTransfer));
     }
 
     @GetMapping("/transfers")
     @PreAuthorize("hasAuthority(EMPLOYEE_TRANSFER_READ)")
     public ResponseEntity<?> getTransfers() {
 
-        return ResponseEntity.ok(
-                service.getTransfers());
+        return ResponseEntity.ok(service.getTransfers());
     }
 
     @GetMapping("/transfer/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_READ)")
     public ResponseEntity<?> getTransfer(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.getTransfer(id));
+        return ResponseEntity.ok(service.getTransfer(id));
     }
 
     @PutMapping("/transfer/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_TRANSFER_UPDATE)")
-    public ResponseEntity<?> updateTransfer(
-            @PathVariable Long id,
-            @RequestBody EmployeeTransfer employeeTransfer) {
+    public ResponseEntity<?> updateTransfer(@PathVariable Long id, @RequestBody EmployeeTransfer employeeTransfer) {
 
-        return ResponseEntity.ok(
-                service.updateTransfer(id, employeeTransfer));
+        return ResponseEntity.ok(service.updateTransfer(id, employeeTransfer));
     }
 
     @DeleteMapping("/transfer/{id}")
     @PreAuthorize("hasAuthority(EMPLOYEE_TRANSFER_DELETE)")
     public ResponseEntity<?> deleteTransfer(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.deleteTransfer(id));
+        return ResponseEntity.ok(service.deleteTransfer(id));
+    }
+
+    @GetMapping("/transfers/manager/pending")
+    @PreAuthorize("hasAuthority('EMPLOYEE_TRANSFER_RECOMMEND')")
+    public ResponseEntity<?> getManagerPendingTransfers() {
+
+        return ResponseEntity.ok(service.getManagerPendingTransfers());
+    }
+
+    @PutMapping("/transfer/{id}/manager/recommend")
+    @PreAuthorize("hasAuthority('EMPLOYEE_TRANSFER_RECOMMEND')")
+    public ResponseEntity<?> managerRecommendTransfer(@PathVariable Long id, @RequestBody EmployeeTransferActionRequest request) {
+
+        return ResponseEntity.ok(service.managerRecommendTransfer(id, request));
+    }
+
+    @PutMapping("/transfer/{id}/manager/reject")
+    @PreAuthorize("hasAuthority('EMPLOYEE_TRANSFER_RECOMMEND')")
+    public ResponseEntity<?> managerRejectTransfer(@PathVariable Long id, @RequestBody EmployeeTransferActionRequest request) {
+
+        return ResponseEntity.ok(service.managerRejectTransfer(id, request));
+    }
+
+    @GetMapping("/transfers/hr/pending")
+    @PreAuthorize("hasAuthority('EMPLOYEE_TRANSFER_PROCESS')")
+    public ResponseEntity<?> getHRPendingTransfers() {
+
+        return ResponseEntity.ok(service.getHRPendingTransfers());
+    }
+
+    @PutMapping("/transfer/{id}/hr/process")
+    @PreAuthorize("hasAuthority('EMPLOYEE_TRANSFER_PROCESS')")
+    public ResponseEntity<?> hrProcessTransfer(@PathVariable Long id, @RequestBody EmployeeTransferActionRequest request) {
+
+        return ResponseEntity.ok(service.hrProcessTransfer(id, request));
+    }
+
+    @PutMapping("/transfer/{id}/hr/reject")
+    @PreAuthorize("hasAuthority('EMPLOYEE_TRANSFER_PROCESS')")
+    public ResponseEntity<?> hrRejectTransfer(@PathVariable Long id, @RequestBody EmployeeTransferActionRequest request) {
+
+        return ResponseEntity.ok(service.hrRejectTransfer(id, request));
+    }
+
+    @GetMapping("/transfers/management/pending")
+    @PreAuthorize("hasAuthority('EMPLOYEE_TRANSFER_MANAGEMENT_APPROVE')")
+    public ResponseEntity<?> getManagementPendingTransfers() {
+
+        return ResponseEntity.ok(service.getManagementPendingTransfers());
+    }
+
+    @PutMapping("/transfer/{id}/management/approve")
+    @PreAuthorize("hasAuthority('EMPLOYEE_TRANSFER_MANAGEMENT_APPROVE')")
+    public ResponseEntity<?> managementApproveTransfer(@PathVariable Long id, @RequestBody EmployeeTransferActionRequest request) {
+
+        return ResponseEntity.ok(service.managementApproveTransfer(id, request));
+    }
+
+    @PutMapping("/transfer/{id}/management/reject")
+    @PreAuthorize("hasAuthority('EMPLOYEE_TRANSFER_MANAGEMENT_APPROVE')")
+    public ResponseEntity<?> managementRejectTransfer(@PathVariable Long id, @RequestBody EmployeeTransferActionRequest request) {
+
+        return ResponseEntity.ok(service.managementRejectTransfer(id, request));
     }
 
     //=================================
@@ -798,53 +783,38 @@ public class EmployeeController {
 
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('EMPLOYEE_READ')")
-    public ResponseEntity<?> searchEmployees(
-            @RequestParam String keyword) {
+    public ResponseEntity<?> searchEmployees(@RequestParam String keyword) {
 
-        return ResponseEntity.ok(
-                service.searchEmployees(keyword)
-        );
+        return ResponseEntity.ok(service.searchEmployees(keyword));
     }
+
     @GetMapping("/filter/department")
     @PreAuthorize("hasAuthority('EMPLOYEE_READ')")
-    public ResponseEntity<?> getEmployeesByDepartmentName(
-            @RequestParam String departmentName) {
+    public ResponseEntity<?> getEmployeesByDepartmentName(@RequestParam String departmentName) {
 
-        return ResponseEntity.ok(
-                service
-                        .getEmployeesByDepartmentName(
-                                departmentName)
-        );
+        return ResponseEntity.ok(service.getEmployeesByDepartmentName(departmentName));
     }
 
     @PreAuthorize("hasAuthority('EMPLOYEE_READ')")
     @GetMapping("/designation/{designationName}")
-    public ResponseEntity<List<Employee>> getEmployeesByDesignation(
-            @PathVariable String designationName) {
+    public ResponseEntity<List<Employee>> getEmployeesByDesignation(@PathVariable String designationName) {
 
-        return ResponseEntity.ok(
-                service.findEmployeesByDesignationName(designationName)
-        );
+        return ResponseEntity.ok(service.findEmployeesByDesignationName(designationName));
     }
-    @PostMapping("/excel-upload")
-    public ResponseEntity<?> uploadEmployees(
-            @RequestParam("file") MultipartFile file) {
 
-        return ResponseEntity.ok(
-                service.uploadEmployees(file)
-        );
+    @PostMapping("/excel-upload")
+    public ResponseEntity<?> uploadEmployees(@RequestParam("file") MultipartFile file) {
+
+        return ResponseEntity.ok(service.uploadEmployees(file));
     }
     // =====================================================
     // CREATE APPROVAL
     // =====================================================
 
     @PostMapping("/{employeeId}/approval")
-    public ResponseEntity<?> createApproval(
-            @PathVariable String employeeId) {
+    public ResponseEntity<?> createApproval(@PathVariable String employeeId) {
 
-        return ResponseEntity.ok(
-                service.createApproval(employeeId)
-        );
+        return ResponseEntity.ok(service.createApproval(employeeId));
     }
 
 
@@ -855,9 +825,7 @@ public class EmployeeController {
     @GetMapping("/approvals")
     public ResponseEntity<?> getAllApprovals() {
 
-        return ResponseEntity.ok(
-                service.getAllApprovals()
-        );
+        return ResponseEntity.ok(service.getAllApprovals());
     }
 
 
@@ -866,12 +834,9 @@ public class EmployeeController {
     // =====================================================
 
     @GetMapping("/{employeeId}/approval")
-    public ResponseEntity<?> getApproval(
-            @PathVariable String employeeId) {
+    public ResponseEntity<?> getApproval(@PathVariable String employeeId) {
 
-        return ResponseEntity.ok(
-                service.getApproval(employeeId)
-        );
+        return ResponseEntity.ok(service.getApproval(employeeId));
     }
 
 
@@ -880,18 +845,9 @@ public class EmployeeController {
     // =====================================================
 
     @PutMapping("/{employeeId}/approval/hr")
-    public ResponseEntity<?> hrApproval(
-            @PathVariable String employeeId,
-            @RequestBody ApprovalRequestdto request,
-            @RequestParam Long approverId) {
+    public ResponseEntity<?> hrApproval(@PathVariable String employeeId, @RequestBody ApprovalRequestdto request, @RequestParam Long approverId) {
 
-        return ResponseEntity.ok(
-                service.hrApproval(
-                        employeeId,
-                        request,
-                        approverId
-                )
-        );
+        return ResponseEntity.ok(service.hrApproval(employeeId, request, approverId));
     }
 
 
@@ -900,18 +856,9 @@ public class EmployeeController {
     // =====================================================
 
     @PutMapping("/{employeeId}/approval/admin")
-    public ResponseEntity<?> adminApproval(
-            @PathVariable String employeeId,
-            @RequestBody ApprovalRequestdto request,
-            @RequestParam Long approverId) {
+    public ResponseEntity<?> adminApproval(@PathVariable String employeeId, @RequestBody ApprovalRequestdto request, @RequestParam Long approverId) {
 
-        return ResponseEntity.ok(
-                service.adminApproval(
-                        employeeId,
-                        request,
-                        approverId
-                )
-        );
+        return ResponseEntity.ok(service.adminApproval(employeeId, request, approverId));
     }
 
 
@@ -942,9 +889,7 @@ public class EmployeeController {
     @GetMapping("/approvals/pending/hr")
     public ResponseEntity<?> getPendingHR() {
 
-        return ResponseEntity.ok(
-                service.getPendingHR()
-        );
+        return ResponseEntity.ok(service.getPendingHR());
     }
 
 
@@ -955,9 +900,7 @@ public class EmployeeController {
     @GetMapping("/approvals/pending/admin")
     public ResponseEntity<?> getPendingAdmin() {
 
-        return ResponseEntity.ok(
-                service.getPendingAdmin()
-        );
+        return ResponseEntity.ok(service.getPendingAdmin());
     }
 
 
@@ -981,10 +924,7 @@ public class EmployeeController {
     @GetMapping("/approvals/approved")
     public ResponseEntity<?> getFinalApprovedEmployees() {
 
-        return ResponseEntity.ok(
-                service
-                        .getFinalApprovedEmployees()
-        );
+        return ResponseEntity.ok(service.getFinalApprovedEmployees());
     }
 
 
@@ -995,10 +935,7 @@ public class EmployeeController {
     @GetMapping("/approvals/rejected")
     public ResponseEntity<?> getRejectedEmployees() {
 
-        return ResponseEntity.ok(
-                service
-                        .getRejectedEmployees()
-        );
+        return ResponseEntity.ok(service.getRejectedEmployees());
     }
 
 
@@ -1008,14 +945,9 @@ public class EmployeeController {
 
     @PutMapping("/hr/{employeeId}")
     @PreAuthorize("hasAuthority('EMPLOYEE_APPROVAL_HR')")
-    public ResponseEntity<?> hrApproval(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeApprovalRequest request) {
+    public ResponseEntity<?> hrApproval(@PathVariable String employeeId, @RequestBody EmployeeApprovalRequest request) {
 
-        return ResponseEntity.ok(
-                service.hrApproval(
-                        employeeId,
-                        request));
+        return ResponseEntity.ok(service.hrApproval(employeeId, request));
     }
 
 
@@ -1025,48 +957,37 @@ public class EmployeeController {
 
     @PutMapping("/admin/{employeeId}")
     @PreAuthorize("hasAuthority('EMPLOYEE_APPROVAL_ADMIN')")
-    public ResponseEntity<?> adminApproval(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeApprovalRequest request) {
+    public ResponseEntity<?> adminApproval(@PathVariable String employeeId, @RequestBody EmployeeApprovalRequest request) {
 
-        return ResponseEntity.ok(
-                service.adminApproval(
-                        employeeId,
-                        request));
+        return ResponseEntity.ok(service.adminApproval(employeeId, request));
     }
+
     @PostMapping("/sales-manager/{employeeId}")
     @PreAuthorize("hasAuthority('SALES_MANAGER_APPROVAL')")
-    public ResponseEntity<?> salesManagerApproval(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeApprovalRequest request) {
+    public ResponseEntity<?> salesManagerApproval(@PathVariable String employeeId, @RequestBody EmployeeApprovalRequest request) {
 
-        return ResponseEntity.ok(
-                service.salesManagerApproval(employeeId, request)
-        );
+        return ResponseEntity.ok(service.salesManagerApproval(employeeId, request));
     }
+
     @GetMapping("/hr/pending")
     @PreAuthorize("hasAuthority('EMPLOYEE_APPROVAL_HR')")
     public ResponseEntity<?> getPendingHrApprovals() {
 
-        return ResponseEntity.ok(
-                service.getPendingHrApprovals()
-        );
+        return ResponseEntity.ok(service.getPendingHrApprovals());
     }
+
     @GetMapping("/sales-manager/pending")
     @PreAuthorize("hasAuthority('SALES_MANAGER_APPROVAL')")
     public ResponseEntity<?> getPendingSalesManagerApprovals() {
 
-        return ResponseEntity.ok(
-                service.getPendingSalesManagerApprovals()
-        );
+        return ResponseEntity.ok(service.getPendingSalesManagerApprovals());
     }
+
     @GetMapping("/super-admin/pending")
     @PreAuthorize("hasAuthority('SUPER_ADMIN_APPROVAL')")
     public ResponseEntity<?> getPendingSuperAdminApprovals() {
 
-        return ResponseEntity.ok(
-                service.getPendingSuperAdminApprovals()
-        );
+        return ResponseEntity.ok(service.getPendingSuperAdminApprovals());
     }
 
     // =====================================================
@@ -1092,16 +1013,10 @@ public class EmployeeController {
 
     @PutMapping("/final/{employeeId}")
     @PreAuthorize("hasAuthority('EMPLOYEE_APPROVAL_FINAL')")
-    public ResponseEntity<?> finalApproval(
-            @PathVariable String employeeId) {
+    public ResponseEntity<?> finalApproval(@PathVariable String employeeId) {
 
-        return ResponseEntity.ok(
-                service.finalApproval(
-                        employeeId));
+        return ResponseEntity.ok(service.finalApproval(employeeId));
     }
-
-
-
 
 
     // =====================================================
@@ -1110,42 +1025,30 @@ public class EmployeeController {
 
     @PostMapping("/welcome-mail/{employeeId}")
     @PreAuthorize("hasAuthority('EMPLOYEE_WELCOME_MAIL')")
-    public ResponseEntity<?> sendWelcomeMail(
-            @PathVariable String employeeId) {
+    public ResponseEntity<?> sendWelcomeMail(@PathVariable String employeeId) {
 
-        return ResponseEntity.ok(
-                service.sendWelcomeMail(
-                        employeeId));
+        return ResponseEntity.ok(service.sendWelcomeMail(employeeId));
     }
 
     @GetMapping("/employees")
     @PreAuthorize("hasAuthority('EMPLOYEE_READ')")
     public ResponseEntity<List<Employee>> getAllEmployeeDetails() {
 
-        return ResponseEntity.ok(
-                service.getAllEmployeeDetails()
-        );
+        return ResponseEntity.ok(service.getAllEmployeeDetails());
     }
 
     @GetMapping("/employees/{employeeId}")
     @PreAuthorize("hasAuthority('EMPLOYEE_READ')")
-    public ResponseEntity<Employee> getEmployeeById(
-            @PathVariable String employeeId) {
+    public ResponseEntity<Employee> getEmployeeById(@PathVariable String employeeId) {
 
-        return ResponseEntity.ok(
-                service.getEmployeeByEmployeeIdDetails(employeeId)
-        );
+        return ResponseEntity.ok(service.getEmployeeByEmployeeIdDetails(employeeId));
     }
 
     @PutMapping("/employees/{employeeId}")
     @PreAuthorize("hasAuthority('EMPLOYEE_UPDATE')")
-    public ResponseEntity<Employee> updateEmployee(
-            @PathVariable String employeeId,
-            @RequestBody EmployeeUpdateRequest request) {
+    public ResponseEntity<Employee> updateEmployee(@PathVariable String employeeId, @RequestBody EmployeeUpdateRequest request) {
 
-        return ResponseEntity.ok(
-                service.updateEmployee(employeeId, request)
-        );
+        return ResponseEntity.ok(service.updateEmployee(employeeId, request));
     }
 
 //    //-------------------------

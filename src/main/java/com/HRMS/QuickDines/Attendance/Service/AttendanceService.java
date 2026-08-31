@@ -1,12 +1,10 @@
 package com.HRMS.QuickDines.Attendance.Service;
 
-import com.HRMS.QuickDines.Attendance.DTO.AttendanceDashboardDTO;
-import com.HRMS.QuickDines.Attendance.DTO.CheckInRequest;
-import com.HRMS.QuickDines.Attendance.DTO.CheckInResponse;
-import com.HRMS.QuickDines.Attendance.DTO.EmployeeShiftRequest;
+import com.HRMS.QuickDines.Attendance.DTO.*;
 import com.HRMS.QuickDines.Attendance.Entity.ApprovalStatus;
 import com.HRMS.QuickDines.Attendance.Entity.AttendanceStatus;
 import com.HRMS.QuickDines.Attendance.Entity.OvertimeStatus;
+import com.HRMS.QuickDines.Attendance.Entity.WorkFromHomeStatus;
 import com.HRMS.QuickDines.Attendance.model.*;
 import com.HRMS.QuickDines.Attendance.repo.*;
 import com.HRMS.QuickDines.AuditLogs.Entity.ActivityStatus;
@@ -58,6 +56,7 @@ public class AttendanceService {
     private final ClientInfoService clientInfoService;
     private final ObjectMapper objectMapper;
     private final AttendanceApprovalRepository attendanceApprovalRepository;
+    private final WorkFromHomeRepository workFromHomeRepository;
 
     private String getLoggedInEmployeeId() {
 
@@ -69,6 +68,20 @@ public class AttendanceService {
         }
 
         return authentication.getName();
+    }
+
+    private Employee getLoggedInEmployee() {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getName() == null) {
+
+            throw new RuntimeException("User is not authenticated");
+        }
+
+        String employeeId = authentication.getName();
+
+        return employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Logged-in employee not found"));
     }
 
 //---------------------------------
@@ -3330,6 +3343,137 @@ public class AttendanceService {
         // =====================================================
 
         throw new RuntimeException("Invalid action. Use APPROVE or REJECT");
+    }
+
+    public String applyWorkFromHome(WorkFromHomeRequestDTO request) {
+
+        Employee employee = getLoggedInEmployee();
+
+        if (request.getFromDate() == null || request.getToDate() == null) {
+
+            throw new RuntimeException("From date and To date are required");
+        }
+
+        if (request.getToDate().isBefore(request.getFromDate())) {
+
+            throw new RuntimeException("To date cannot be before From date");
+        }
+
+        WorkFromHomeRequest wfh = new WorkFromHomeRequest();
+
+        wfh.setEmployee(employee);
+
+        Employee manager = findManagerForEmployee(employee);
+
+        wfh.setManager(manager);
+
+        wfh.setFromDate(request.getFromDate());
+        wfh.setToDate(request.getToDate());
+        wfh.setReason(request.getReason());
+
+        wfh.setStatus(WorkFromHomeStatus.PENDING);
+
+        workFromHomeRepository.save(wfh);
+
+        return "Work From Home Request Submitted Successfully";
+    }
+    private Employee findManagerForEmployee(Employee employee) {
+
+        if (employee == null) {
+            throw new RuntimeException("Employee not found");
+        }
+
+        Employee manager = employee.getEmployee();
+
+        if (manager == null) {
+            throw new RuntimeException(
+                    "Manager is not assigned to this employee"
+            );
+        }
+
+        return manager;
+    }
+
+    public List<WorkFromHomeRequest> getManagerPendingRequests() {
+
+        Employee manager = getLoggedInEmployee();
+
+        return workFromHomeRepository.findByManager(manager).stream().filter(request -> request.getStatus() == WorkFromHomeStatus.PENDING).toList();
+    }
+
+    public String approveWorkFromHome(Long requestId, String remarks) {
+
+        WorkFromHomeRequest request = workFromHomeRepository.findById(requestId).orElseThrow(() -> new RuntimeException("Work From Home Request Not Found"));
+
+        Employee manager = getLoggedInEmployee();
+
+        if (request.getManager() == null || !request.getManager().getId().equals(manager.getId())) {
+
+            throw new RuntimeException("You are not authorized to approve this request");
+        }
+
+        if (request.getStatus() != WorkFromHomeStatus.PENDING) {
+
+            throw new RuntimeException("Only pending requests can be approved");
+        }
+
+        request.setStatus(WorkFromHomeStatus.APPROVED);
+
+        request.setManagerRemarks(remarks);
+
+        request.setProcessedBy(manager);
+
+        request.setProcessedAt(LocalDateTime.now());
+
+        workFromHomeRepository.save(request);
+
+        return "Work From Home Request Approved Successfully";
+    }
+
+    public String rejectWorkFromHome(Long requestId, String remarks) {
+
+        WorkFromHomeRequest request = workFromHomeRepository.findById(requestId).orElseThrow(() -> new RuntimeException("Work From Home Request Not Found"));
+
+        Employee manager = getLoggedInEmployee();
+
+        if (request.getManager() == null || !request.getManager().getId().equals(manager.getId())) {
+
+            throw new RuntimeException("You are not authorized to reject this request");
+        }
+
+        if (request.getStatus() != WorkFromHomeStatus.PENDING) {
+
+            throw new RuntimeException("Only pending requests can be rejected");
+        }
+
+        request.setStatus(WorkFromHomeStatus.REJECTED);
+
+        request.setManagerRemarks(remarks);
+
+        request.setProcessedBy(manager);
+
+        request.setProcessedAt(LocalDateTime.now());
+
+        workFromHomeRepository.save(request);
+
+        return "Work From Home Request Rejected Successfully";
+    }
+
+    public List<WorkFromHomeRequest> getMyWorkFromHomeRequests() {
+
+        Employee employee = getLoggedInEmployee();
+
+        return workFromHomeRepository.findByEmployee(employee);
+    }
+
+    public List<WorkFromHomeRequest> getApprovedWorkFromHomeRequests() {
+
+        return workFromHomeRepository.findByStatus(WorkFromHomeStatus.APPROVED);
+    }
+
+    public List<WorkFromHomeRequest> getAllWorkFromHomeRequests() {
+
+        return workFromHomeRepository.findAll();
     }
 }
 

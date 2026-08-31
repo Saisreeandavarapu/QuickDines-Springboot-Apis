@@ -55,4 +55,11 @@ public interface RecruitmentApprovalRepository
             ApprovalStatus status,
             Long applicationId
     );
+
+
+
+    Optional<RecruitmentApproval> findByOfferLetterIdAndApprovalLevel(
+            Long offerLetterId,
+            Integer approvalLevel
+    );
 }

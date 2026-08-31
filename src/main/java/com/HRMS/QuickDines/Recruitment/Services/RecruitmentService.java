@@ -49,6 +49,7 @@ public class RecruitmentService {
     private final RecruitmentApprovalRepository recruitmentApprovalRepository;
     private final CompanyRepository companyRepository;
     private final JobDescriptionRepository jobDescriptionRepository;
+    private final EmployeeOnboardingRepository employeeOnboardingRepository;
     @Autowired
     private Cloudinary cloudinary;
     private final AuditLogsService auditLogsService;
@@ -128,6 +129,20 @@ public class RecruitmentService {
         }
     }
 
+
+    private Employee getLoggedInEmployee() {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getName() == null) {
+
+            throw new RuntimeException("User is not authenticated");
+        }
+
+        String employeeId = authentication.getName();
+
+        return employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Logged-in employee not found"));
+    }
 //=================================
 // JOB OPENINGS
 //=================================
@@ -604,6 +619,180 @@ public class RecruitmentService {
         return "Offer Letter Deleted Successfully";
     }
 
+    public String recommendOfferLetter(Long offerLetterId) {
+
+        OfferLetter offerLetter = offerLetterRepository.findById(offerLetterId).orElseThrow(() -> new RuntimeException("Offer Letter Not Found"));
+
+        if (offerLetter.getOfferStatus() != OfferLetterStatus.PENDING_RECOMMENDATION && offerLetter.getOfferStatus() != OfferLetterStatus.DRAFT) {
+
+            throw new RuntimeException("Offer Letter is not available for recommendation");
+        }
+
+        String performedBy = getLoggedInEmployeeId();
+
+        Employee manager = getLoggedInEmployee();
+
+        RecruitmentApproval approval = new RecruitmentApproval();
+
+        approval.setModule(ApprovalModule.OFFER_LETTER);
+        approval.setOfferLetter(offerLetter);
+        approval.setApplication(offerLetter.getApplication());
+
+        approval.setRequestedBy(manager);
+        approval.setApprover(manager);
+
+        approval.setApprovalLevel(1);
+        approval.setAction(ApprovalAction.RECOMMEND);
+        approval.setStatus(ApprovalStatus.APPROVED);
+
+        approval.setProcessedBy(manager);
+        approval.setProcessedAt(LocalDateTime.now());
+
+        approval.setReason("Offer Letter recommended by Manager");
+
+        recruitmentApprovalRepository.save(approval);
+
+        offerLetter.setOfferStatus(OfferLetterStatus.RECOMMENDED);
+
+        offerLetterRepository.save(offerLetter);
+
+        auditLogsService.logActivity(performedBy, "RECOMMEND_OFFER_LETTER", "RECRUITMENT", "Offer Letter recommended by Manager", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+
+        return "Offer Letter Recommended Successfully";
+    }
+
+    public String prepareOfferLetter(Long applicationId, OfferLetter offerLetter) {
+
+        Application application = applicationRepository.findById(applicationId).orElseThrow(() -> new RuntimeException("Application Not Found"));
+
+        if (application.getApplicationStatus() == null || !application.getApplicationStatus().equals("SELECTED")) {
+
+            throw new RuntimeException("Offer Letter can be prepared only for selected candidate");
+        }
+
+        offerLetter.setApplication(application);
+
+        offerLetter.setOfferStatus(OfferLetterStatus.PREPARED);
+
+        offerLetterRepository.save(offerLetter);
+
+        String performedBy = getLoggedInEmployeeId();
+
+        Employee manager = getLoggedInEmployee();
+
+        RecruitmentApproval approval = new RecruitmentApproval();
+
+        approval.setModule(ApprovalModule.OFFER_LETTER);
+        approval.setOfferLetter(offerLetter);
+        approval.setApplication(application);
+
+        approval.setRequestedBy(manager);
+
+        // HR becomes next approver
+        Employee hr = findHRForCompany(getCompanyFromApplication(application));
+
+        approval.setApprover(hr);
+
+        approval.setApprovalLevel(3);
+        approval.setAction(ApprovalAction.APPROVE);
+        approval.setStatus(ApprovalStatus.PENDING);
+
+        approval.setReason("Offer Letter prepared and submitted to HR for approval");
+
+        recruitmentApprovalRepository.save(approval);
+
+        offerLetter.setOfferStatus(OfferLetterStatus.PENDING_APPROVAL);
+
+        offerLetterRepository.save(offerLetter);
+
+        auditLogsService.logActivity(performedBy, "PREPARE_OFFER_LETTER", "RECRUITMENT", "Offer Letter prepared and submitted to HR", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+
+        return "Offer Letter Prepared and Sent to HR for Approval";
+    }
+
+    private Company getCompanyFromApplication(Application application) {
+
+        if (application == null) {
+            throw new RuntimeException("Application is required");
+        }
+
+        if (application.getJobOpening() == null) {
+            throw new RuntimeException("Application is not linked to a Job Opening");
+        }
+
+        if (application.getJobOpening().getCompany() == null) {
+            throw new RuntimeException("Job Opening is not linked to a Company");
+        }
+
+        return application.getJobOpening().getCompany();
+    }
+
+    public String approveOfferLetter(Long offerLetterId, String reason) {
+
+        OfferLetter offerLetter = offerLetterRepository.findById(offerLetterId).orElseThrow(() -> new RuntimeException("Offer Letter Not Found"));
+
+        if (offerLetter.getOfferStatus() != OfferLetterStatus.PENDING_APPROVAL) {
+
+            throw new RuntimeException("Offer Letter is not pending HR approval");
+        }
+
+        String performedBy = getLoggedInEmployeeId();
+
+        Employee hr = getLoggedInEmployee();
+
+        RecruitmentApproval approval = recruitmentApprovalRepository.findByOfferLetterIdAndApprovalLevel(offerLetterId, 3).orElseThrow(() -> new RuntimeException("Offer Approval Request Not Found"));
+
+        if (approval.getStatus() != ApprovalStatus.PENDING) {
+
+            throw new RuntimeException("Offer Letter approval already processed");
+        }
+
+        approval.setStatus(ApprovalStatus.APPROVED);
+        approval.setProcessedBy(hr);
+        approval.setProcessedAt(LocalDateTime.now());
+        approval.setReason(reason);
+
+        recruitmentApprovalRepository.save(approval);
+
+        offerLetter.setOfferStatus(OfferLetterStatus.APPROVED);
+
+        offerLetterRepository.save(offerLetter);
+
+        auditLogsService.logActivity(performedBy, "APPROVE_OFFER_LETTER", "RECRUITMENT", "Offer Letter approved by HR", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+
+        return "Offer Letter Approved Successfully";
+    }
+
+    public String rejectOfferLetter(Long offerLetterId, String reason) {
+
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new RuntimeException("Rejection reason is required");
+        }
+
+        OfferLetter offerLetter = offerLetterRepository.findById(offerLetterId).orElseThrow(() -> new RuntimeException("Offer Letter Not Found"));
+
+        if (offerLetter.getOfferStatus() != OfferLetterStatus.PENDING_APPROVAL) {
+
+            throw new RuntimeException("Offer Letter is not pending HR approval");
+        }
+
+        Employee hr = getLoggedInEmployee();
+
+        RecruitmentApproval approval = recruitmentApprovalRepository.findByOfferLetterIdAndApprovalLevel(offerLetterId, 3).orElseThrow(() -> new RuntimeException("Approval Request Not Found"));
+
+        approval.setStatus(ApprovalStatus.REJECTED);
+        approval.setProcessedBy(hr);
+        approval.setProcessedAt(LocalDateTime.now());
+        approval.setReason(reason);
+
+        recruitmentApprovalRepository.save(approval);
+
+        offerLetter.setOfferStatus(OfferLetterStatus.REJECTED);
+
+        offerLetterRepository.save(offerLetter);
+
+        return "Offer Letter Rejected Successfully";
+    }
 //=================================
 // CANDIDATE DOCUMENTS
 //=================================
@@ -1352,5 +1541,121 @@ public class RecruitmentService {
         auditLogsService.logInfo("RECRUITMENT", "RecruitmentService", "Job Description updated successfully. ID: " + id);
 
         return "Job Description Updated Successfully";
+    }
+
+    public String createOnboarding(EmployeeOnboardingRequest request) {
+
+        Employee employee = employeeRepository.findById(request.getEmployeeId()).orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        Employee manager = findManagerForEmployee(employee);
+
+        EmployeeOnboarding onboarding = new EmployeeOnboarding();
+
+        onboarding.setEmployee(employee);
+
+        onboarding.setManager(manager);
+
+        onboarding.setJoiningDate(request.getJoiningDate());
+
+        onboarding.setStatus(OnboardingStatus.PENDING_MANAGER);
+
+        onboarding.setManagerParticipated(false);
+
+        employeeOnboardingRepository.save(onboarding);
+
+        return "Employee Onboarding Created Successfully";
+    }
+
+    private Employee findManagerForEmployee(Employee employee) {
+
+        if (employee == null) {
+            throw new RuntimeException("Employee not found");
+        }
+
+        if (employee.getEmployee() == null) {
+            throw new RuntimeException("Manager is not assigned to this employee");
+        }
+
+        return employee.getEmployee();
+    }
+
+    public List<EmployeeOnboarding> getManagerOnboardingRequests() {
+
+        Employee manager = getLoggedInEmployee();
+
+        return employeeOnboardingRepository.findByManagerAndStatus(manager, OnboardingStatus.PENDING_MANAGER);
+    }
+
+    public String managerCompleteOnboarding(Long onboardingId) {
+
+        Employee manager = getLoggedInEmployee();
+
+        EmployeeOnboarding onboarding = employeeOnboardingRepository.findById(onboardingId).orElseThrow(() -> new RuntimeException("Onboarding not found"));
+
+        // Verify manager
+        if (onboarding.getManager() == null || !onboarding.getManager().getId().equals(manager.getId())) {
+
+            throw new RuntimeException("You are not the assigned manager");
+        }
+
+        // Verify status
+        if (onboarding.getStatus() != OnboardingStatus.PENDING_MANAGER) {
+
+            throw new RuntimeException("Onboarding is not pending with manager");
+        }
+
+        onboarding.setManagerParticipated(true);
+
+        onboarding.setManagerCompletedAt(LocalDateTime.now());
+
+        onboarding.setStatus(OnboardingStatus.HR_PENDING);
+
+        employeeOnboardingRepository.save(onboarding);
+
+        return "Manager Participation Completed Successfully";
+    }
+
+    public List<EmployeeOnboarding> getHRPendingOnboarding() {
+
+        return employeeOnboardingRepository.findByStatus(OnboardingStatus.HR_PENDING);
+    }
+
+    public String completeOnboardingByHR(Long onboardingId, String remarks) {
+
+        Employee hr = getLoggedInEmployee();
+
+        EmployeeOnboarding onboarding = employeeOnboardingRepository.findById(onboardingId).orElseThrow(() -> new RuntimeException("Onboarding not found"));
+
+        if (onboarding.getStatus() != OnboardingStatus.HR_PENDING) {
+
+            throw new RuntimeException("Onboarding is not pending with HR");
+        }
+
+        if (!onboarding.isManagerParticipated()) {
+
+            throw new RuntimeException("Manager participation is not completed");
+        }
+
+        onboarding.setHrCompletedBy(hr);
+
+        onboarding.setHrCompletedAt(LocalDateTime.now());
+
+        onboarding.setHrRemarks(remarks);
+
+        onboarding.setStatus(OnboardingStatus.COMPLETED);
+
+        employeeOnboardingRepository.save(onboarding);
+
+        return "Employee Onboarding Completed Successfully";
+    }
+
+    public List<EmployeeOnboarding> getCompletedOnboarding() {
+
+        return employeeOnboardingRepository.findByStatus(OnboardingStatus.COMPLETED);
+    }
+
+    public EmployeeOnboarding getOnboarding(Long id) {
+
+        return employeeOnboardingRepository.findById(id).orElseThrow(() -> new RuntimeException("Onboarding not found"));
     }
 }

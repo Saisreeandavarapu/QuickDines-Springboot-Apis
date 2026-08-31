@@ -21,4 +21,5 @@ public class EmployeeTransferRequest {
     private Long approvedBy;
 
     private String reason;
+
 }

@@ -640,4 +640,87 @@ public class AttendanceController {
 
         return ResponseEntity.ok(Map.of("message", result));
     }
+
+    // =====================================================
+    // EMPLOYEE - APPLY
+    // =====================================================
+
+    @PreAuthorize("hasAuthority('WORK_FROM_HOME_CREATE')")
+    @PostMapping("/apply")
+    public ResponseEntity<?> applyWorkFromHome(@RequestBody WorkFromHomeRequestDTO request) {
+
+        return ResponseEntity.ok(service.applyWorkFromHome(request));
+    }
+
+
+    // =====================================================
+    // EMPLOYEE - MY REQUESTS
+    // =====================================================
+
+    @PreAuthorize("hasAuthority('WORK_FROM_HOME_READ')")
+    @GetMapping("/my-requests")
+    public ResponseEntity<?> getMyRequests() {
+
+        return ResponseEntity.ok(service.getMyWorkFromHomeRequests());
+    }
+
+
+    // =====================================================
+    // MANAGER - PENDING REQUESTS
+    // =====================================================
+
+    @PreAuthorize("hasAuthority('WORK_FROM_HOME_APPROVE')")
+    @GetMapping("/manager/pending")
+    public ResponseEntity<?> getManagerPendingRequests() {
+
+        return ResponseEntity.ok(service.getManagerPendingRequests());
+    }
+
+
+    // =====================================================
+    // MANAGER - APPROVE
+    // =====================================================
+
+    @PreAuthorize("hasAuthority('WORK_FROM_HOME_APPROVE')")
+    @PutMapping("/{id}/approve")
+    public ResponseEntity<?> approveWorkFromHome(@PathVariable Long id, @RequestParam(required = false) String remarks) {
+
+        return ResponseEntity.ok(service.approveWorkFromHome(id, remarks));
+    }
+
+
+    // =====================================================
+    // MANAGER - REJECT
+    // =====================================================
+
+    @PreAuthorize("hasAuthority('WORK_FROM_HOME_APPROVE')")
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<?> rejectWorkFromHome(@PathVariable Long id, @RequestParam(required = false) String remarks) {
+
+        return ResponseEntity.ok(service.rejectWorkFromHome(id, remarks));
+    }
+
+
+    // =====================================================
+    // HR - APPROVED REQUESTS
+    // =====================================================
+
+    @PreAuthorize("hasAuthority('WORK_FROM_HOME_READ')")
+    @GetMapping("/hr/approved")
+    public ResponseEntity<?> getApprovedRequests() {
+
+        return ResponseEntity.ok(service.getApprovedWorkFromHomeRequests());
+    }
+
+
+    // =====================================================
+    // HR - ALL REQUESTS
+    // =====================================================
+
+    @PreAuthorize("hasAuthority('WORK_FROM_HOME_READ')")
+    @GetMapping("/hr/all")
+    public ResponseEntity<?> getAllRequests() {
+
+        return ResponseEntity.ok(service.getAllWorkFromHomeRequests());
+    }
 }

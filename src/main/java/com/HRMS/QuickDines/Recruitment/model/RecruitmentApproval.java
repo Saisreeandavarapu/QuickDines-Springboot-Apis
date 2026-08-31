@@ -124,6 +124,13 @@ public class RecruitmentApproval {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "processed_by")
     private Employee processedBy;
+    // =====================================================
+// OFFER LETTER
+// =====================================================
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "offer_letter_id")
+    private OfferLetter offerLetter;
 
     // =====================================================
     // PROCESSED TIME

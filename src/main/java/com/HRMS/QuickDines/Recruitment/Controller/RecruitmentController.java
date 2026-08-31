@@ -145,30 +145,23 @@ public class RecruitmentController {
 
     @PreAuthorize("hasAuthority('INTERVIEW_SELECTION_RECOMMEND')")
     @PostMapping("/interview/{id}/recommend")
-    public ResponseEntity<?> recommendInterview(
-            @PathVariable Long id) {
+    public ResponseEntity<?> recommendInterview(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                service.recommendInterview(id)
-        );
+        return ResponseEntity.ok(service.recommendInterview(id));
     }
+
     @PreAuthorize("hasAuthority('INTERVIEW_SELECTION_COORDINATE')")
     @GetMapping("/interview-selection/pending")
     public ResponseEntity<?> getPendingInterviewSelections() {
 
-        return ResponseEntity.ok(
-                service.getPendingInterviewSelections()
-        );
+        return ResponseEntity.ok(service.getPendingInterviewSelections());
     }
+
     @PreAuthorize("hasAuthority('INTERVIEW_SELECTION_COORDINATE')")
     @PostMapping("/interview/{id}/coordinate")
-    public ResponseEntity<?> coordinateInterview(
-            @PathVariable Long id,
-            @RequestBody InterviewCoordinateRequest request) {
+    public ResponseEntity<?> coordinateInterview(@PathVariable Long id, @RequestBody InterviewCoordinateRequest request) {
 
-        return ResponseEntity.ok(
-                service.coordinateInterview(id, request)
-        );
+        return ResponseEntity.ok(service.coordinateInterview(id, request));
     }
 
 
@@ -209,6 +202,34 @@ public class RecruitmentController {
     public ResponseEntity<?> deleteOfferLetter(@PathVariable Long id) {
 
         return ResponseEntity.ok(service.deleteOfferLetter(id));
+    }
+
+    @PreAuthorize("hasAuthority('OFFER_LETTER_RECOMMEND')")
+    @PutMapping("/offer/{id}/recommend")
+    public ResponseEntity<?> recommendOfferLetter(@PathVariable Long id) {
+
+        return ResponseEntity.ok(service.recommendOfferLetter(id));
+    }
+
+    @PreAuthorize("hasAuthority('OFFER_LETTER_PREPARE')")
+    @PostMapping("/offer/{applicationId}/prepare")
+    public ResponseEntity<?> prepareOfferLetter(@PathVariable Long applicationId, @RequestBody OfferLetter offerLetter) {
+
+        return ResponseEntity.ok(service.prepareOfferLetter(applicationId, offerLetter));
+    }
+
+    @PreAuthorize("hasAuthority('OFFER_LETTER_APPROVE')")
+    @PutMapping("/offer/{id}/approve")
+    public ResponseEntity<?> approveOfferLetter(@PathVariable Long id, @RequestParam(required = false) String reason) {
+
+        return ResponseEntity.ok(service.approveOfferLetter(id, reason));
+    }
+
+    @PreAuthorize("hasAuthority('OFFER_LETTER_APPROVE')")
+    @PutMapping("/offer/{id}/reject")
+    public ResponseEntity<?> rejectOfferLetter(@PathVariable Long id, @RequestParam String reason) {
+
+        return ResponseEntity.ok(service.rejectOfferLetter(id, reason));
     }
 
 
@@ -564,5 +585,88 @@ public class RecruitmentController {
     public ResponseEntity<?> reviewJobDescription(@PathVariable Long id, @RequestBody JobDescriptionReviewRequest request) {
 
         return ResponseEntity.ok(service.reviewJobDescription(id, request));
+    }
+
+    // =====================================================
+    // CREATE ONBOARDING
+    // =====================================================
+
+    @PreAuthorize("hasAuthority('EMPLOYEE_ONBOARDING_CREATE')")
+    @PostMapping
+    public ResponseEntity<?> createOnboarding(@RequestBody EmployeeOnboardingRequest request) {
+
+        return ResponseEntity.ok(service.createOnboarding(request));
+    }
+
+
+    // =====================================================
+    // GET ONBOARDING
+    // =====================================================
+
+    @PreAuthorize("hasAuthority('EMPLOYEE_ONBOARDING_READ')")
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getOnboarding(@PathVariable Long id) {
+
+        return ResponseEntity.ok(service.getOnboarding(id));
+    }
+
+
+    // =====================================================
+    // MANAGER - PARTICIPATION
+    // =====================================================
+
+    @PreAuthorize("hasAuthority('EMPLOYEE_ONBOARDING_PARTICIPATE')")
+    @GetMapping("/manager/pending")
+    public ResponseEntity<?> getManagerOnboarding() {
+
+        return ResponseEntity.ok(service.getManagerOnboardingRequests());
+    }
+
+
+    // =====================================================
+    // MANAGER - COMPLETE PARTICIPATION
+    // =====================================================
+
+    @PreAuthorize("hasAuthority('EMPLOYEE_ONBOARDING_PARTICIPATE')")
+    @PutMapping("/{id}/manager-complete")
+    public ResponseEntity<?> managerComplete(@PathVariable Long id) {
+
+        return ResponseEntity.ok(service.managerCompleteOnboarding(id));
+    }
+
+
+    // =====================================================
+    // HR - PENDING
+    // =====================================================
+
+    @PreAuthorize("hasAuthority('EMPLOYEE_ONBOARDING_APPROVE')")
+    @GetMapping("/hr/pending")
+    public ResponseEntity<?> getHRPending() {
+
+        return ResponseEntity.ok(service.getHRPendingOnboarding());
+    }
+
+
+    // =====================================================
+    // HR - APPROVE / COMPLETE
+    // =====================================================
+
+    @PreAuthorize("hasAuthority('EMPLOYEE_ONBOARDING_APPROVE')")
+    @PutMapping("/{id}/hr-complete")
+    public ResponseEntity<?> hrComplete(@PathVariable Long id, @RequestBody OnboardingCompletionRequest request) {
+
+        return ResponseEntity.ok(service.completeOnboardingByHR(id, request.getRemarks()));
+    }
+
+
+    // =====================================================
+    // HR - COMPLETED
+    // =====================================================
+
+    @PreAuthorize("hasAuthority('EMPLOYEE_ONBOARDING_READ')")
+    @GetMapping("/hr/completed")
+    public ResponseEntity<?> getCompleted() {
+
+        return ResponseEntity.ok(service.getCompletedOnboarding());
     }
 }

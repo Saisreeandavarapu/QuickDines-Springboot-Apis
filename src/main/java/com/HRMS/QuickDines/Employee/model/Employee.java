@@ -4,6 +4,7 @@ import com.HRMS.QuickDines.Auth.model.Role;
 import com.HRMS.QuickDines.Company.model.Branch;
 import com.HRMS.QuickDines.Company.model.Company;
 import com.HRMS.QuickDines.Organization.model.Department;
+import com.HRMS.QuickDines.Organization.model.Team;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -39,7 +40,9 @@ public class Employee {
     @ManyToOne
     @JoinColumn(name = "role_name")
     private Role role;
-
+    @ManyToOne
+    @JoinColumn(name = "team_name")
+    private Team team;
     private String firstName;
     private String lastName;
     private String email;

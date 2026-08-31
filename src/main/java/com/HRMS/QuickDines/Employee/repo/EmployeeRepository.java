@@ -48,4 +48,19 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
             Company company,
             String role
     );
+    @Query("""
+    SELECT e
+    FROM Employee e
+    WHERE e.company.id = :companyId
+      AND e.role = 'HR'
+""")
+    Optional<Employee> findHRByCompanyId(@Param("companyId") Long companyId);
+
+    @Query("""
+    SELECT e
+    FROM Employee e
+    WHERE e.company.id = :companyId
+      AND e.role = 'SUPER_ADMIN'
+""")
+    Optional<Employee> findSuperAdminByCompanyId(@Param("companyId") Long companyId);
 }
