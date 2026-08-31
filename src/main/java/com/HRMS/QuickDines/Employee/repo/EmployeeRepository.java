@@ -52,7 +52,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     SELECT e
     FROM Employee e
     WHERE e.company.id = :companyId
-      AND e.role.name = :roleName
+      AND e.role.roleName = :roleName
 """)
     Optional<Employee> findByCompanyIdAndRoleName(
             @Param("companyId") Long companyId,
