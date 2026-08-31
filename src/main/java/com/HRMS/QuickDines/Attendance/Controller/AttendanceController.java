@@ -1,9 +1,6 @@
 package com.HRMS.QuickDines.Attendance.Controller;
 
-import com.HRMS.QuickDines.Attendance.DTO.AttendanceApprovalRequest;
-import com.HRMS.QuickDines.Attendance.DTO.AttendanceDashboardDTO;
-import com.HRMS.QuickDines.Attendance.DTO.CheckInRequest;
-import com.HRMS.QuickDines.Attendance.DTO.EmployeeShiftRequest;
+import com.HRMS.QuickDines.Attendance.DTO.*;
 import com.HRMS.QuickDines.Attendance.Entity.AttendanceStatus;
 import com.HRMS.QuickDines.Attendance.Entity.OvertimeStatus;
 import com.HRMS.QuickDines.Attendance.Service.AttendanceSchedulerService;
@@ -632,6 +629,14 @@ public class AttendanceController {
     public ResponseEntity<?> processApproval(@PathVariable Long approvalId, @RequestBody AttendanceApprovalRequest request) {
 
         String result = service.processAttendanceApproval(approvalId, request.getAction(), request.getReason());
+
+        return ResponseEntity.ok(Map.of("message", result));
+    }
+
+    @PutMapping("/overtime-requests/{overtimeId}/approval")
+    public ResponseEntity<?> processOvertimeApproval(@PathVariable Long overtimeId, @RequestBody OvertimeApprovalRequest request) {
+
+        String result = service.processOvertimeApproval(overtimeId, request.getAction(), request.getReason(), request.getApprovedHours());
 
         return ResponseEntity.ok(Map.of("message", result));
     }

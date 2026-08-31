@@ -406,15 +406,15 @@ public class AttendanceService {
         // =====================================================
         // AUDIT LOG
         // =====================================================
-        auditLogsService.logUpdate("ATTENDANCE", String.valueOf(attendance.getId()), employee.getEmployeeId(), employee.getEmployeeId(), "Employee checked out successfully", oldValue, newValue);
+        //  auditLogsService.logUpdate("ATTENDANCE", String.valueOf(attendance.getId()), employee.getEmployeeId(), employee.getEmployeeId(), "Employee checked out successfully", oldValue, newValue);
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
-        auditLogsService.logActivity(employee.getEmployeeId(), "CHECK_OUT", "ATTENDANCE", "Employee checked out successfully. " + "Total hours: " + totalHours, ActivityStatus.SUCCESS, clientInfo.getIpAddress(), clientInfo.getBrowser(), clientInfo.getOperatingSystem());
+        // auditLogsService.logActivity(employee.getEmployeeId(), "CHECK_OUT", "ATTENDANCE", "Employee checked out successfully. " + "Total hours: " + totalHours, ActivityStatus.SUCCESS, clientInfo.getIpAddress(), clientInfo.getBrowser(), clientInfo.getOperatingSystem());
         // =====================================================
         // SYSTEM LOG
         // =====================================================
-        auditLogsService.logInfo("ATTENDANCE", "AttendanceService", "Employee check-out completed successfully." + " Employee ID: " + employeeId + ", Total hours: " + totalHours);
+        //  auditLogsService.logInfo("ATTENDANCE", "AttendanceService", "Employee check-out completed successfully." + " Employee ID: " + employeeId + ", Total hours: " + totalHours);
 
         return "Check Out Successful";
     }
@@ -430,13 +430,13 @@ public class AttendanceService {
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(employee.getEmployeeId(), "VIEW_ATTENDANCE", "ATTENDANCE", "Employee attendance records viewed", ActivityStatus.SUCCESS, clientInfo.getIpAddress(), clientInfo.getBrowser(), clientInfo.getOperatingSystem());
+        // auditLogsService.logActivity(employee.getEmployeeId(), "VIEW_ATTENDANCE", "ATTENDANCE", "Employee attendance records viewed", ActivityStatus.SUCCESS, clientInfo.getIpAddress(), clientInfo.getBrowser(), clientInfo.getOperatingSystem());
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo("ATTENDANCE", "AttendanceService", "Attendance records retrieved successfully. Employee ID: " + employeeId);
+        // auditLogsService.logInfo("ATTENDANCE", "AttendanceService", "Attendance records retrieved successfully. Employee ID: " + employeeId);
 
         return attendanceList;
     }
@@ -473,9 +473,47 @@ public class AttendanceService {
 // UPDATE ATTENDANCE
 // =========================================================
 
+    @Transactional
     public String updateAttendance(Long attendanceId, Attendance attendance) {
 
+        // =====================================================
+        // 1. FIND EXISTING ATTENDANCE
+        // =====================================================
+
         Attendance existingAttendance = attendanceRepository.findById(attendanceId).orElseThrow(() -> new RuntimeException("Attendance Not Found"));
+
+
+        // =====================================================
+        // 2. CAPTURE OLD ATTENDANCE DATA
+        // =====================================================
+
+        String oldValue;
+
+        try {
+
+            oldValue = objectMapper.writeValueAsString(Map.of("id", existingAttendance.getId(),
+
+                    "employeeId", existingAttendance.getEmployee() != null ? existingAttendance.getEmployee().getEmployeeId() : "",
+
+                    "loginTime", existingAttendance.getLoginTime() != null ? existingAttendance.getLoginTime().toString() : "",
+
+                    "logoutTime", existingAttendance.getLogoutTime() != null ? existingAttendance.getLogoutTime().toString() : "",
+
+                    "attendanceStatus", existingAttendance.getAttendanceStatus() != null ? existingAttendance.getAttendanceStatus().name() : "",
+
+                    "totalHours", existingAttendance.getTotalHours() != null ? existingAttendance.getTotalHours().toString() : "",
+
+                    "remarks", existingAttendance.getRemarks() != null ? existingAttendance.getRemarks() : ""));
+
+        } catch (JsonProcessingException e) {
+
+            throw new RuntimeException("Unable to create old attendance JSON", e);
+        }
+
+
+        // =====================================================
+        // 3. UPDATE ATTENDANCE
+        // =====================================================
 
         existingAttendance.setLoginTime(attendance.getLoginTime());
 
@@ -485,86 +523,97 @@ public class AttendanceService {
 
         existingAttendance.setRemarks(attendance.getRemarks());
 
-        // Calculate Total Working Hours
 
-        if (attendance.getLoginTime() != null && attendance.getLogoutTime() != null) {
+        // =====================================================
+        // 4. CALCULATE TOTAL WORKING HOURS
+        // =====================================================
 
-            double totalHours = Duration.between(attendance.getLoginTime(), attendance.getLogoutTime()).toMinutes() / 60.0;
+        if (existingAttendance.getLoginTime() != null && existingAttendance.getLogoutTime() != null) {
 
-            existingAttendance.setTotalHours(BigDecimal.valueOf(totalHours));
+            Duration duration = Duration.between(existingAttendance.getLoginTime(), existingAttendance.getLogoutTime());
+
+            BigDecimal totalHours = BigDecimal.valueOf(duration.toMinutes() / 60.0);
+
+            existingAttendance.setTotalHours(totalHours);
+
+        } else {
+
+            existingAttendance.setTotalHours(null);
         }
-
-        attendanceRepository.save(existingAttendance);
 
 
         // =====================================================
-        // AUDIT LOG
+        // 5. SAVE ATTENDANCE
         // =====================================================
-// =====================================================
-// OLD ATTENDANCE DATA
-// =====================================================
 
-        String oldValue;
+        Attendance savedAttendance = attendanceRepository.save(existingAttendance);
 
-        try {
 
-            oldValue = objectMapper.writeValueAsString(Map.of("id", existingAttendance.getId(), "employeeId", existingAttendance.getEmployee() != null ? existingAttendance.getEmployee().getEmployeeId() : null,
-
-                    "loginTime", existingAttendance.getLoginTime(),
-
-                    "logoutTime", existingAttendance.getLogoutTime(),
-
-                    "attendanceStatus", existingAttendance.getAttendanceStatus(),
-
-                    "totalHours", existingAttendance.getTotalHours(),
-
-                    "remarks", existingAttendance.getRemarks()));
-
-        } catch (JsonProcessingException e) {
-
-            throw new RuntimeException("Unable to create old attendance JSON", e);
-        }
-// =====================================================
-// NEW ATTENDANCE DATA
-// =====================================================
+        // =====================================================
+        // 6. CREATE NEW ATTENDANCE DATA
+        // =====================================================
 
         String newValue;
 
         try {
 
-            newValue = objectMapper.writeValueAsString(Map.of("id", existingAttendance.getId(), "employeeId", existingAttendance.getEmployee() != null ? existingAttendance.getEmployee().getEmployeeId() : null,
+            newValue = objectMapper.writeValueAsString(Map.of("id", savedAttendance.getId(),
 
-                    "loginTime", existingAttendance.getLoginTime(),
+                    "employeeId", savedAttendance.getEmployee() != null ? savedAttendance.getEmployee().getEmployeeId() : "",
 
-                    "logoutTime", existingAttendance.getLogoutTime(),
+                    "loginTime", savedAttendance.getLoginTime() != null ? savedAttendance.getLoginTime().toString() : "",
 
-                    "attendanceStatus", existingAttendance.getAttendanceStatus(),
+                    "logoutTime", savedAttendance.getLogoutTime() != null ? savedAttendance.getLogoutTime().toString() : "",
 
-                    "totalHours", existingAttendance.getTotalHours(),
+                    "attendanceStatus", savedAttendance.getAttendanceStatus() != null ? savedAttendance.getAttendanceStatus().name() : "",
 
-                    "remarks", existingAttendance.getRemarks()));
+                    "totalHours", savedAttendance.getTotalHours() != null ? savedAttendance.getTotalHours().toString() : "",
+
+                    "remarks", savedAttendance.getRemarks() != null ? savedAttendance.getRemarks() : ""));
 
         } catch (JsonProcessingException e) {
 
             throw new RuntimeException("Unable to create new attendance JSON", e);
         }
 
+
+        // =====================================================
+        // 7. PERFORMED BY
+        // =====================================================
+
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logUpdate("ATTENDANCE", existingAttendance.getId().toString(), performedBy, attendance.getEmployee().getEmployeeId(), "Attendance updated successfully", oldValue, newValue);
 
 
         // =====================================================
-        // ACTIVITY LOG
+        // 8. AUDIT LOG
         // =====================================================
 
-        auditLogsService.logActivity(attendance.getEmployee().getEmployeeId(), "UPDATE_ATTENDANCE", "ATTENDANCE", "Attendance record updated successfully. Attendance ID: " + attendanceId, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
+        String employeeId = savedAttendance.getEmployee() != null ? savedAttendance.getEmployee().getEmployeeId() : null;
+
+
+        auditLogsService.logUpdate("ATTENDANCE", savedAttendance.getId().toString(), performedBy, employeeId, "Attendance updated successfully", oldValue, newValue);
 
 
         // =====================================================
-        // SYSTEM LOG
+        // 9. ACTIVITY LOG
+        // =====================================================
+
+        if (employeeId != null) {
+
+            auditLogsService.logActivity(employeeId, "UPDATE_ATTENDANCE", "ATTENDANCE", "Attendance record updated successfully. Attendance ID: " + attendanceId, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
+        }
+
+
+        // =====================================================
+        // 10. SYSTEM LOG
         // =====================================================
 
         auditLogsService.logInfo("ATTENDANCE", "AttendanceService", "Attendance updated successfully. Attendance ID: " + attendanceId);
+
+
+        // =====================================================
+        // 11. RETURN RESPONSE
+        // =====================================================
 
         return "Attendance Updated Successfully";
     }
@@ -2193,20 +2242,73 @@ public class AttendanceService {
 // OVERTIME REQUESTS
 //=========================================
 
+    @Transactional
     public String createOvertime(Long attendanceId, OvertimeRequest overtimeRequest) {
+
+        // =====================================================
+        // 1. FIND ATTENDANCE
+        // =====================================================
 
         Attendance attendance = attendanceRepository.findById(attendanceId).orElseThrow(() -> new RuntimeException("Attendance Not Found"));
 
-        // Set Attendance
+
+        // =====================================================
+        // 2. FIND EMPLOYEE
+        // =====================================================
+
+        Employee employee = attendance.getEmployee();
+
+        if (employee == null) {
+
+            throw new RuntimeException("Employee is not assigned to attendance");
+        }
+
+
+        // =====================================================
+        // 3. CHECK REPORTING MANAGER
+        // =====================================================
+
+        Employee manager = employee.getEmployee();
+
+        if (manager == null) {
+
+            throw new RuntimeException("Reporting manager is not assigned to employee");
+        }
+
+
+        // =====================================================
+        // 4. VALIDATE REQUESTED HOURS
+        // =====================================================
+
+        if (overtimeRequest.getRequestedHours() == null || overtimeRequest.getRequestedHours().compareTo(BigDecimal.ZERO) <= 0) {
+
+            throw new RuntimeException("Requested overtime hours must be greater than zero");
+        }
+
+
+        // =====================================================
+        // 5. SET SYSTEM VALUES
+        // =====================================================
+
         overtimeRequest.setAttendance(attendance);
 
-        // Automatically set Employee from Attendance
-        overtimeRequest.setEmployee(attendance.getEmployee());
+        overtimeRequest.setEmployee(employee);
 
-        // Default status
-        if (overtimeRequest.getStatus() == null) {
-            overtimeRequest.setStatus(OvertimeStatus.valueOf("PENDING"));
-        }
+        overtimeRequest.setRequestDate(LocalDate.now());
+
+        overtimeRequest.setStatus(OvertimeStatus.PENDING);
+
+        // Manager approval fields should initially be empty
+        overtimeRequest.setApprovedBy(null);
+
+        overtimeRequest.setApprovedAt(null);
+
+        overtimeRequest.setApprovedHours(null);
+
+
+        // =====================================================
+        // 6. SAVE
+        // =====================================================
 
         overtimeRequestRepository.save(overtimeRequest);
 
@@ -2214,15 +2316,17 @@ public class AttendanceService {
         // =====================================================
         // AUDIT LOG
         // =====================================================
+
         String performedBy = getLoggedInEmployeeId();
-        auditLogsService.logCreate("OVERTIME_REQUEST", String.valueOf(overtimeRequest.getId()), performedBy, attendance.getEmployee().getEmployeeId(), "Overtime request created successfully. Overtime ID: " + overtimeRequest.getId());
+
+        auditLogsService.logCreate("OVERTIME_REQUEST", String.valueOf(overtimeRequest.getId()), performedBy, employee.getEmployeeId(), "Overtime request created successfully. Overtime ID: " + overtimeRequest.getId());
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(attendance.getEmployee().getEmployeeId(), "CREATE_OVERTIME_REQUEST", "OVERTIME", "Overtime request created successfully. Attendance ID: " + attendanceId, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
+        auditLogsService.logActivity(employee.getEmployeeId(), "CREATE_OVERTIME_REQUEST", "OVERTIME", "Overtime request created successfully. Attendance ID: " + attendanceId, ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
@@ -3066,6 +3170,163 @@ public class AttendanceService {
 
         // =====================================================
         // 7. INVALID ACTION
+        // =====================================================
+
+        throw new RuntimeException("Invalid action. Use APPROVE or REJECT");
+    }
+
+    @Transactional
+    public String processOvertimeApproval(Long overtimeId, String action, String reason, BigDecimal approvedHours) {
+
+        // =====================================================
+        // 1. FIND OVERTIME REQUEST
+        // =====================================================
+
+        OvertimeRequest overtimeRequest = overtimeRequestRepository.findById(overtimeId).orElseThrow(() -> new RuntimeException("Overtime request not found"));
+
+
+        // =====================================================
+        // 2. CHECK CURRENT LOGGED-IN EMPLOYEE
+        // =====================================================
+
+        String loggedInEmployeeId = getLoggedInEmployeeId();
+
+
+        Employee manager = employeeRepository.findByEmployeeId(loggedInEmployeeId).orElseThrow(() -> new RuntimeException("Manager not found"));
+
+
+        // =====================================================
+        // 3. GET EMPLOYEE
+        // =====================================================
+
+        Employee employee = overtimeRequest.getEmployee();
+
+        if (employee == null) {
+
+            throw new RuntimeException("Employee is not assigned to overtime request");
+        }
+
+
+        // =====================================================
+        // 4. GET REPORTING MANAGER
+        // =====================================================
+
+        Employee reportingManager = employee.getEmployee();
+
+        if (reportingManager == null) {
+
+            throw new RuntimeException("Reporting manager is not assigned");
+        }
+
+
+        // =====================================================
+        // 5. VERIFY LOGGED-IN USER IS REPORTING MANAGER
+        // =====================================================
+
+        if (!reportingManager.getEmployeeId().equalsIgnoreCase(manager.getEmployeeId())) {
+
+            throw new RuntimeException("You are not authorized to approve this overtime request");
+        }
+
+
+        // =====================================================
+        // 6. CHECK CURRENT STATUS
+        // =====================================================
+
+        if (overtimeRequest.getStatus() != OvertimeStatus.PENDING) {
+
+            throw new RuntimeException("Overtime request has already been processed");
+        }
+
+
+        // =====================================================
+        // 7. APPROVE
+        // =====================================================
+
+        if ("APPROVE".equalsIgnoreCase(action)) {
+
+            if (approvedHours == null || approvedHours.compareTo(BigDecimal.ZERO) <= 0) {
+
+                throw new RuntimeException("Approved hours are required");
+            }
+
+
+            // Manager cannot approve more
+            // than employee requested
+
+            if (approvedHours.compareTo(overtimeRequest.getRequestedHours()) > 0) {
+
+                throw new RuntimeException("Approved hours cannot exceed requested hours");
+            }
+
+
+            overtimeRequest.setStatus(OvertimeStatus.APPROVED);
+
+            overtimeRequest.setApprovedHours(approvedHours);
+
+            overtimeRequest.setApprovedBy(manager);
+
+            overtimeRequest.setApprovedAt(LocalDateTime.now());
+
+            if (reason != null && !reason.isBlank()) {
+
+                overtimeRequest.setReason(reason);
+            }
+
+
+            overtimeRequestRepository.save(overtimeRequest);
+
+
+            // =================================================
+            // AUDIT LOG
+            // =================================================
+
+            auditLogsService.logUpdate("OVERTIME_REQUEST", String.valueOf(overtimeRequest.getId()), manager.getEmployeeId(), employee.getEmployeeId(), "Overtime request approved successfully", null, null);
+
+
+            return "Overtime request approved successfully";
+        }
+
+
+        // =====================================================
+        // 8. REJECT
+        // =====================================================
+
+        if ("REJECT".equalsIgnoreCase(action)) {
+
+            if (reason == null || reason.isBlank()) {
+
+                throw new RuntimeException("Rejection reason is required");
+            }
+
+
+            overtimeRequest.setStatus(OvertimeStatus.REJECTED);
+
+            overtimeRequest.setApprovedHours(BigDecimal.ZERO);
+
+            overtimeRequest.setApprovedBy(manager);
+
+            overtimeRequest.setApprovedAt(LocalDateTime.now());
+
+            overtimeRequest.setReason(reason);
+
+
+            overtimeRequestRepository.save(overtimeRequest);
+
+
+            // =================================================
+            // AUDIT LOG
+            // =================================================
+
+            auditLogsService.logUpdate("OVERTIME_REQUEST", String.valueOf(overtimeRequest.getId()), manager.getEmployeeId(), employee.getEmployeeId(), "Overtime request rejected", null, null);
+
+
+            return "Overtime request rejected successfully";
+        }
+
+
+        // =====================================================
+        // 9. INVALID ACTION
         // =====================================================
 
         throw new RuntimeException("Invalid action. Use APPROVE or REJECT");

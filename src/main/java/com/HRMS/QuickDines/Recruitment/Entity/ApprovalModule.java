@@ -1,0 +1,12 @@
+package com.HRMS.QuickDines.Recruitment.Entity;
+
+public enum ApprovalModule {
+
+    EMPLOYEE_RECRUITMENT,
+    JOB_DESCRIPTION,
+    INTERVIEW_SELECTION,
+    OFFER_LETTER,
+    SALARY_STRUCTURE,
+    EMPLOYEE_ONBOARDING,
+    PROBATION_CONFIRMATION
+}

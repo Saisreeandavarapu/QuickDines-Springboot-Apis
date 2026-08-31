@@ -1,5 +1,7 @@
 package com.HRMS.QuickDines.Employee.repo;
 
+import com.HRMS.QuickDines.Auth.model.Role;
+import com.HRMS.QuickDines.Company.model.Company;
 import com.HRMS.QuickDines.Employee.model.Employee;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -42,4 +44,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
 
     Employee findByEmail(String email);
+    Optional<Employee> findFirstByCompanyAndRole(
+            Company company,
+            String role
+    );
 }
