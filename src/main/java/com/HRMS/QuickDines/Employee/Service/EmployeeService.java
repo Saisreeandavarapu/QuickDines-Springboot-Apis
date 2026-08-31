@@ -2437,7 +2437,10 @@ public class EmployeeService {
             throw new RuntimeException("Employee company is not assigned");
         }
 
-        return employeeRepository.findHRByCompanyId(employee.getCompany().getId()).orElseThrow(() -> new RuntimeException("HR not found for company: " + employee.getCompany().getId()));
+        Employee hr = employeeRepository
+                .findByCompanyIdAndRoleName(employee.getCompany().getId(), "HR")
+                .orElseThrow(() -> new RuntimeException("HR not found for company"));
+        return hr;
     }
 
     public String managerRejectTransfer(Long id, EmployeeTransferActionRequest request) {
@@ -2519,7 +2522,10 @@ public class EmployeeService {
             throw new RuntimeException("Employee company is not assigned");
         }
 
-        return employeeRepository.findSuperAdminByCompanyId(employee.getCompany().getId()).orElseThrow(() -> new RuntimeException("Super Admin not found for company: " + employee.getCompany().getId()));
+        Employee superAdmin = employeeRepository
+                .findByCompanyIdAndRoleName(employee.getCompany().getId(), "SUPER_ADMIN")
+                .orElseThrow(() -> new RuntimeException("Super Admin not found for company"));
+        return superAdmin;
     }
 
     public String hrRejectTransfer(Long id, EmployeeTransferActionRequest request) {
