@@ -3,6 +3,7 @@ package com.HRMS.QuickDines.Attendance.Service;
 import com.HRMS.QuickDines.Attendance.DTO.AttendanceDashboardDTO;
 import com.HRMS.QuickDines.Attendance.DTO.CheckInRequest;
 import com.HRMS.QuickDines.Attendance.DTO.CheckInResponse;
+import com.HRMS.QuickDines.Attendance.DTO.EmployeeShiftRequest;
 import com.HRMS.QuickDines.Attendance.Entity.ApprovalStatus;
 import com.HRMS.QuickDines.Attendance.Entity.AttendanceStatus;
 import com.HRMS.QuickDines.Attendance.Entity.OvertimeStatus;
@@ -1406,46 +1407,58 @@ public class AttendanceService {
 // EMPLOYEE SHIFT
 //=========================================
 
-    public String assignShift(String employeeId, EmployeeShift employeeShift) {
+    @Transactional
+    public EmployeeShift assignShift(String employeeId, EmployeeShiftRequest request) {
 
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException("Employee Not Found"));
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        Shift shift = shiftRepository.findById(employeeShift.getShift().getId()).orElseThrow(() -> new RuntimeException("Shift Not Found"));
+        Shift shift = shiftRepository.findById(request.getShiftId()).orElseThrow(() -> new RuntimeException("Shift not found"));
+
+        Employee assignedBy = employeeRepository.findByEmployeeId(request.getAssignedBy()).orElseThrow(() -> new RuntimeException("Assigned employee not found"));
+
+        EmployeeShift employeeShift = new EmployeeShift();
 
         employeeShift.setEmployee(employee);
+
         employeeShift.setShift(shift);
 
-        employeeShiftRepository.save(employeeShift);
+        employeeShift.setEffectiveFrom(request.getEffectiveFrom());
+
+        employeeShift.setEffectiveTo(request.getEffectiveTo());
+
+        employeeShift.setIsCurrent(request.getIsCurrent());
+
+        employeeShift.setAssignedBy(assignedBy);
 
 
         // =====================================================
         // GET LOGGED-IN EMPLOYEE
         // =====================================================
 
-        String performedBy = getLoggedInEmployeeId();
+        // String performedBy = getLoggedInEmployeeId();
 
 
         // =====================================================
         // AUDIT LOG
         // =====================================================
 
-        auditLogsService.logCreate("EMPLOYEE_SHIFT", employeeShift.getEmployee().getEmployeeId(), performedBy, employeeId, "Shift assigned successfully. Employee ID: " + employeeId + ", Shift ID: " + shift.getId());
+        // auditLogsService.logCreate("EMPLOYEE_SHIFT", employeeShift.getEmployee().getEmployeeId(), performedBy, employeeId, "Shift assigned successfully. Employee ID: " + employeeId + ", Shift ID: " + shift.getId());
 
 
         // =====================================================
         // ACTIVITY LOG
         // =====================================================
 
-        auditLogsService.logActivity(performedBy, "ASSIGN_SHIFT", "EMPLOYEE_SHIFT", "Shift assigned successfully. Employee ID: " + employeeId + ", Shift ID: " + shift.getId(), ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
+        // auditLogsService.logActivity(performedBy, "ASSIGN_SHIFT", "EMPLOYEE_SHIFT", "Shift assigned successfully. Employee ID: " + employeeId + ", Shift ID: " + shift.getId(), ActivityStatus.SUCCESS, clientInfoService.getClientInfo().getIpAddress(), clientInfoService.getClientInfo().getBrowser(), clientInfoService.getClientInfo().getOperatingSystem());
 
 
         // =====================================================
         // SYSTEM LOG
         // =====================================================
 
-        auditLogsService.logInfo("EMPLOYEE_SHIFT", "EmployeeShiftService", "Shift assigned successfully. Employee ID: " + employeeId + ", Shift ID: " + shift.getId());
+        // auditLogsService.logInfo("EMPLOYEE_SHIFT", "EmployeeShiftService", "Shift assigned successfully. Employee ID: " + employeeId + ", Shift ID: " + shift.getId());
 
-        return "Shift Assigned Successfully";
+        return employeeShiftRepository.save(employeeShift);
     }
 
 

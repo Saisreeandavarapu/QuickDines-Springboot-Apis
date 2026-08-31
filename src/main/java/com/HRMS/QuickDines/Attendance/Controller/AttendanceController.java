@@ -3,6 +3,7 @@ package com.HRMS.QuickDines.Attendance.Controller;
 import com.HRMS.QuickDines.Attendance.DTO.AttendanceApprovalRequest;
 import com.HRMS.QuickDines.Attendance.DTO.AttendanceDashboardDTO;
 import com.HRMS.QuickDines.Attendance.DTO.CheckInRequest;
+import com.HRMS.QuickDines.Attendance.DTO.EmployeeShiftRequest;
 import com.HRMS.QuickDines.Attendance.Entity.AttendanceStatus;
 import com.HRMS.QuickDines.Attendance.Entity.OvertimeStatus;
 import com.HRMS.QuickDines.Attendance.Service.AttendanceSchedulerService;
@@ -260,7 +261,7 @@ public class AttendanceController {
 
     @PostMapping("/employee-shift/{employeeId}")
     @PreAuthorize("hasAuthority('ATTENDANCE_SHIFT_CREATE')")
-    public ResponseEntity<?> assignShift(@PathVariable String employeeId, @RequestBody EmployeeShift employeeShift) {
+    public ResponseEntity<?> assignShift(@PathVariable String employeeId, @RequestBody EmployeeShiftRequest employeeShift) {
 
         return ResponseEntity.ok(service.assignShift(employeeId, employeeShift));
     }
