@@ -592,7 +592,7 @@ public class RecruitmentController {
     // =====================================================
 
     @PreAuthorize("hasAuthority('EMPLOYEE_ONBOARDING_CREATE')")
-    @PostMapping
+    @PostMapping("/onboarding")
     public ResponseEntity<?> createOnboarding(@RequestBody EmployeeOnboardingRequest request) {
 
         return ResponseEntity.ok(service.createOnboarding(request));
