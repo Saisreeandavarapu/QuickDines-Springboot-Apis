@@ -604,7 +604,7 @@ public class RecruitmentController {
     // =====================================================
 
     @PreAuthorize("hasAuthority('EMPLOYEE_ONBOARDING_READ')")
-    @GetMapping("/{id}")
+    @GetMapping("/onboarding/{id}")
     public ResponseEntity<?> getOnboarding(@PathVariable Long id) {
 
         return ResponseEntity.ok(service.getOnboarding(id));
