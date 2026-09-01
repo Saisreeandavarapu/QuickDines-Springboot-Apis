@@ -417,7 +417,7 @@ public class RecruitmentController {
 
     @PostMapping("/recruitment/createApproval")
     @PreAuthorize("hasAuthority('RECRUITMENT_APPROVAL_CREATE')")
-    public ResponseEntity<?> createApproval(@RequestBody RecruitmentApprovalRequest request) {
+    public ResponseEntity<?> createApproval(@RequestBody RecruitmentApproval request) {
 
         return ResponseEntity.ok(service.createApproval(request));
     }
