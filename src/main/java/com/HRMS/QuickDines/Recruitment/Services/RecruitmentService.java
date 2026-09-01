@@ -147,17 +147,48 @@ public class RecruitmentService {
 // JOB OPENINGS
 //=================================
 
+    @Transactional
     public String createJobOpening(JobOpening jobOpening) {
 
-        jobOpeningRepository.save(jobOpening);
+        // Validate Company
+        if (jobOpening.getCompany() == null || jobOpening.getCompany().getId() == null) {
+            throw new RuntimeException("Company is required");
+        }
 
-        String performedBy = getLoggedInEmployeeId();
+        Company company = companyRepository.findById(jobOpening.getCompany().getId()).orElseThrow(() -> new RuntimeException("Company not found"));
 
-        auditLogsService.logCreate("JOB_OPENING", String.valueOf(jobOpening.getId()), performedBy, jobOpening.getId().toString(), "Job Opening created successfully");
+        // Validate Branch
+        if (jobOpening.getBranch() == null || jobOpening.getBranch().getId() == null) {
+            throw new RuntimeException("Branch is required");
+        }
 
-        auditLogsService.logActivity(performedBy, "CREATE_JOB_OPENING", "RECRUITMENT", "Job Opening created successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+        Branch branch = branchRepository.findById(jobOpening.getBranch().getId()).orElseThrow(() -> new RuntimeException("Branch not found"));
 
-        auditLogsService.logInfo("RECRUITMENT", "RecruitmentService", "Job Opening created successfully");
+        // Get logged-in employee
+        String employeeId = getLoggedInEmployeeId();
+
+        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        // Set relationships
+        jobOpening.setCompany(company);
+        jobOpening.setBranch(branch);
+        jobOpening.setCreatedBy(employee);
+        jobOpening.setUpdatedBy(employee);
+
+        // Set timestamps
+        jobOpening.setPostedAt(LocalDateTime.now());
+        jobOpening.setUpdatedAt(LocalDateTime.now());
+
+        JobOpening savedJobOpening = jobOpeningRepository.save(jobOpening);
+
+        // Audit
+       // String performedBy = employee.getEmployeeId();
+
+       // auditLogsService.logCreate("JOB_OPENING", String.valueOf(savedJobOpening.getId()), performedBy, savedJobOpening.getId().toString(), "Job Opening created successfully");
+
+        //auditLogsService.logActivity(performedBy, "CREATE_JOB_OPENING", "RECRUITMENT", "Job Opening created successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+
+      //  auditLogsService.logInfo("RECRUITMENT", "RecruitmentService", "Job Opening created successfully");
 
         return "Job Opening Created Successfully";
     }
@@ -175,28 +206,107 @@ public class RecruitmentService {
     }
 
 
+    @Transactional
     public String updateJobOpening(Long id, JobOpening jobOpening) {
 
         JobOpening existingJob = jobOpeningRepository.findById(id).orElseThrow(() -> new RuntimeException("Job Opening Not Found"));
 
         String oldValue = convertToJson(existingJob);
 
-        existingJob.setDesignation(jobOpening.getDesignation());
-        existingJob.setDepartment(jobOpening.getDepartment());
-        existingJob.setExperienceRequired(jobOpening.getExperienceRequired());
-        existingJob.setSalaryPackage(jobOpening.getSalaryPackage());
+        // Get logged-in employee
+        String employeeId = getLoggedInEmployeeId();
+
+        Employee updatedBy = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        /*
+         * COMPANY
+         */
+        if (jobOpening.getCompany() != null && jobOpening.getCompany().getId() != null) {
+
+            Company company = companyRepository.findById(jobOpening.getCompany().getId()).orElseThrow(() -> new RuntimeException("Company not found"));
+
+            existingJob.setCompany(company);
+        }
+
+        /*
+         * BRANCH
+         */
+        if (jobOpening.getBranch() != null && jobOpening.getBranch().getId() != null) {
+
+            Branch branch = branchRepository.findById(jobOpening.getBranch().getId()).orElseThrow(() -> new RuntimeException("Branch not found"));
+
+            existingJob.setBranch(branch);
+        }
+
+        /*
+         * DESIGNATION
+         */
+        if (jobOpening.getDesignation() != null) {
+            existingJob.setDesignation(jobOpening.getDesignation());
+        }
+
+        /*
+         * DEPARTMENT
+         */
+        if (jobOpening.getDepartment() != null) {
+            existingJob.setDepartment(jobOpening.getDepartment());
+        }
+
+        /*
+         * BASIC JOB DETAILS
+         */
+        existingJob.setJobTitle(jobOpening.getJobTitle());
+
+        existingJob.setMinimumExperience(jobOpening.getMinimumExperience());
+
+        existingJob.setMaximumExperience(jobOpening.getMaximumExperience());
+
+        existingJob.setMinimumSalary(jobOpening.getMinimumSalary());
+
+        existingJob.setMaximumSalary(jobOpening.getMaximumSalary());
+
         existingJob.setOpenings(jobOpening.getOpenings());
+
+        existingJob.setEmploymentType(jobOpening.getEmploymentType());
+
+        existingJob.setWorkMode(jobOpening.getWorkMode());
+
         existingJob.setStatus(jobOpening.getStatus());
 
-        jobOpeningRepository.save(existingJob);
+        /*
+         * JOB DESCRIPTION
+         */
+        existingJob.setJobDescription(jobOpening.getJobDescription());
 
-        String newValue = convertToJson(existingJob);
+        existingJob.setRequirements(jobOpening.getRequirements());
 
-        String performedBy = getLoggedInEmployeeId();
+        existingJob.setSkills(jobOpening.getSkills());
 
-        auditLogsService.logUpdate("JOB_OPENING", String.valueOf(id), performedBy, null, "Job Opening updated successfully", oldValue, newValue);
+        /*
+         * DEADLINE
+         */
+        existingJob.setApplicationDeadline(jobOpening.getApplicationDeadline());
 
-        auditLogsService.logActivity(performedBy, "UPDATE_JOB_OPENING", "RECRUITMENT", "Job Opening updated successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+        /*
+         * UPDATED BY
+         */
+        existingJob.setUpdatedBy(updatedBy);
+
+        /*
+         * UPDATED TIME
+         */
+        existingJob.setUpdatedAt(LocalDateTime.now());
+
+        JobOpening savedJobOpening = jobOpeningRepository.save(existingJob);
+
+        String newValue = convertToJson(savedJobOpening);
+
+        /*
+         * AUDIT
+         */
+        auditLogsService.logUpdate("JOB_OPENING", String.valueOf(id), updatedBy.getEmployeeId(), null, "Job Opening updated successfully", oldValue, newValue);
+
+        auditLogsService.logActivity(updatedBy.getEmployeeId(), "UPDATE_JOB_OPENING", "RECRUITMENT", "Job Opening updated successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
         auditLogsService.logInfo("RECRUITMENT", "RecruitmentService", "Job Opening updated successfully");
 
