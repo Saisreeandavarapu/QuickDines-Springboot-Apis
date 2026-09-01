@@ -1236,6 +1236,7 @@ public class RecruitmentService {
 
         Company company = companyRepository.findById(approval.getCompany().getId()).orElseThrow(() -> new RuntimeException("Company not found"));
 
+
         // ================================
         // MODULE
         // ================================
@@ -1243,6 +1244,7 @@ public class RecruitmentService {
         if (approval.getModule() == null) {
             throw new RuntimeException("Approval module is required");
         }
+
 
         // ================================
         // JOB OPENING
@@ -1257,7 +1259,7 @@ public class RecruitmentService {
 
             JobOpening jobOpening = jobOpeningRepository.findById(approval.getJobOpening().getId()).orElseThrow(() -> new RuntimeException("Job Opening not found"));
 
-            // Verify company
+            // Check company
             if (jobOpening.getCompany() == null || !jobOpening.getCompany().getId().equals(company.getId())) {
 
                 throw new RuntimeException("Job Opening does not belong to the selected company");
@@ -1266,27 +1268,50 @@ public class RecruitmentService {
             approval.setJobOpening(jobOpening);
         }
 
+
         // ================================
         // REQUESTED BY
         // ================================
 
-        if (approval.getRequestedBy() == null || approval.getRequestedBy().getEmployeeId() == null) {
+        if (approval.getRequestedBy() == null || approval.getRequestedBy().getEmployeeId() == null || approval.getRequestedBy().getEmployeeId().isBlank()) {
 
             throw new RuntimeException("Requested By employee is required");
         }
 
         Employee requestedBy = employeeRepository.findByEmployeeId(approval.getRequestedBy().getEmployeeId()).orElseThrow(() -> new RuntimeException("Requested By employee not found"));
 
+
+        // ================================
+        // REQUESTER COMPANY VALIDATION
+        // ================================
+
+        if (requestedBy.getCompany() == null || !requestedBy.getCompany().getId().equals(company.getId())) {
+
+            throw new RuntimeException("Requested By employee does not belong to the selected company");
+        }
+
+
         // ================================
         // APPROVER
         // ================================
 
-        if (approval.getApprover() == null || approval.getApprover().getEmployeeId() == null) {
+        if (approval.getApprover() == null || approval.getApprover().getEmployeeId() == null || approval.getApprover().getEmployeeId().isBlank()) {
 
             throw new RuntimeException("Approver is required");
         }
 
         Employee approver = employeeRepository.findByEmployeeId(approval.getApprover().getEmployeeId()).orElseThrow(() -> new RuntimeException("Approver employee not found"));
+
+
+        // ================================
+        // APPROVER COMPANY VALIDATION
+        // ================================
+
+        if (approver.getCompany() == null || !approver.getCompany().getId().equals(company.getId())) {
+
+            throw new RuntimeException("Approver does not belong to the selected company");
+        }
+
 
         // ================================
         // SET MANAGED ENTITIES
@@ -1295,6 +1320,7 @@ public class RecruitmentService {
         approval.setCompany(company);
         approval.setRequestedBy(requestedBy);
         approval.setApprover(approver);
+
 
         // ================================
         // DEFAULT VALUES
@@ -1307,6 +1333,7 @@ public class RecruitmentService {
         if (approval.getStatus() == null) {
             approval.setStatus(ApprovalStatus.PENDING);
         }
+
 
         // ================================
         // SAVE
