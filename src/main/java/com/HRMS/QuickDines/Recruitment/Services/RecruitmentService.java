@@ -1222,11 +1222,12 @@ public class RecruitmentService {
     // CREATE APPROVAL REQUEST
     // =====================================================
 
+    @Transactional
     public String createApproval(RecruitmentApproval approval) {
 
-        // ==============================
-        // Validate Company
-        // ==============================
+        // ================================
+        // COMPANY
+        // ================================
 
         if (approval.getCompany() == null || approval.getCompany().getId() == null) {
             throw new RuntimeException("Company is required");
@@ -1234,9 +1235,17 @@ public class RecruitmentService {
 
         Company company = companyRepository.findById(approval.getCompany().getId()).orElseThrow(() -> new RuntimeException("Company not found"));
 
-        // ==============================
-        // Validate Job Opening
-        // ==============================
+        // ================================
+        // MODULE
+        // ================================
+
+        if (approval.getModule() == null) {
+            throw new RuntimeException("Approval module is required");
+        }
+
+        // ================================
+        // JOB OPENING
+        // ================================
 
         if (approval.getJobOpening() == null || approval.getJobOpening().getId() == null) {
             throw new RuntimeException("Job Opening is required");
@@ -1244,54 +1253,73 @@ public class RecruitmentService {
 
         JobOpening jobOpening = jobOpeningRepository.findById(approval.getJobOpening().getId()).orElseThrow(() -> new RuntimeException("Job Opening not found"));
 
-        // ==============================
-        // Validate Requested By
-        // ==============================
+        // ================================
+        // REQUESTED BY
+        // ================================
 
-        if (approval.getRequestedBy() == null || approval.getRequestedBy().getEmployeeId() == null || approval.getRequestedBy().getEmployeeId().isBlank()) {
-
+        if (approval.getRequestedBy() == null || approval.getRequestedBy().getEmployeeId() == null) {
             throw new RuntimeException("Requested By employee is required");
         }
 
         Employee requestedBy = employeeRepository.findByEmployeeId(approval.getRequestedBy().getEmployeeId()).orElseThrow(() -> new RuntimeException("Requested By employee not found"));
 
-        // ==============================
-        // Validate Approver
-        // ==============================
+        // ================================
+        // APPROVER
+        // ================================
 
-        Employee approver = null;
-
-        if (approval.getApprover() != null && approval.getApprover().getEmployeeId() != null && !approval.getApprover().getEmployeeId().isBlank()) {
-
-            approver = employeeRepository.findByEmployeeId(approval.getApprover().getEmployeeId()).orElseThrow(() -> new RuntimeException("Approver employee not found"));
+        if (approval.getApprover() == null || approval.getApprover().getEmployeeId() == null) {
+            throw new RuntimeException("Approver is required");
         }
 
-        // ==============================
-        // Set Managed Entities
-        // ==============================
+        Employee approver = employeeRepository.findByEmployeeId(approval.getApprover().getEmployeeId()).orElseThrow(() -> new RuntimeException("Approver employee not found"));
+
+        // ================================
+        // VALIDATE COMPANY RELATION
+        // ================================
+
+        if (jobOpening.getCompany() == null || !jobOpening.getCompany().getId().equals(company.getId())) {
+
+            throw new RuntimeException("Job Opening does not belong to the selected company");
+        }
+
+        // ================================
+        // SET MANAGED ENTITIES
+        // ================================
 
         approval.setCompany(company);
         approval.setJobOpening(jobOpening);
         approval.setRequestedBy(requestedBy);
         approval.setApprover(approver);
 
-        // ==============================
-        // Save
-        // ==============================
+        // ================================
+        // DEFAULT VALUES
+        // ================================
+
+        if (approval.getApprovalLevel() == null) {
+            approval.setApprovalLevel(1);
+        }
+
+        if (approval.getStatus() == null) {
+            approval.setStatus(ApprovalStatus.PENDING);
+        }
+
+        // ================================
+        // SAVE
+        // ================================
 
         recruitmentApprovalRepository.save(approval);
 
-        // ==============================
-        // Audit
-        // ==============================
+        // ================================
+        // AUDIT
+        // ================================
 
-        String performedBy = getLoggedInEmployeeId();
+      //  String performedBy = getLoggedInEmployeeId();
 
-        auditLogsService.logCreate("RECRUITMENT_APPROVAL", String.valueOf(approval.getId()), performedBy, approval.getId().toString(), "Recruitment approval created successfully");
+       // auditLogsService.logCreate("RECRUITMENT_APPROVAL", String.valueOf(approval.getId()), performedBy, String.valueOf(approval.getId()), "Recruitment approval created successfully");
 
-        auditLogsService.logActivity(performedBy, "CREATE_RECRUITMENT_APPROVAL", "RECRUITMENT", "Recruitment approval created successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+       // auditLogsService.logActivity(performedBy, "CREATE_RECRUITMENT_APPROVAL", "RECRUITMENT", "Recruitment approval created successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-        auditLogsService.logInfo("RECRUITMENT", "RecruitmentService", "Recruitment approval created successfully");
+       // auditLogsService.logInfo("RECRUITMENT", "RecruitmentService", "Recruitment approval created successfully");
 
         return "Recruitment Approval Created Successfully";
     }
