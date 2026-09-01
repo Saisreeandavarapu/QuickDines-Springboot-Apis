@@ -164,35 +164,36 @@ public class RecruitmentService {
 
         Branch branch = branchRepository.findById(jobOpening.getBranch().getId()).orElseThrow(() -> new RuntimeException("Branch not found"));
 
-        // Get logged-in employee
-        String employeeId = getLoggedInEmployeeId();
+        // Validate Created By Employee
+        if (jobOpening.getCreatedBy() == null || jobOpening.getCreatedBy().getEmployeeId() == null) {
+            throw new RuntimeException("Created employee is required");
+        }
 
-        Employee employee = employeeRepository.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("Employee not found"));
+        Employee employee = employeeRepository.findByEmployeeId(jobOpening.getCreatedBy().getEmployeeId()).orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        // Set relationships
+        // Set managed entities
         jobOpening.setCompany(company);
         jobOpening.setBranch(branch);
         jobOpening.setCreatedBy(employee);
-        jobOpening.setUpdatedBy(employee);
 
-        // Set timestamps
-        jobOpening.setPostedAt(LocalDateTime.now());
-        jobOpening.setUpdatedAt(LocalDateTime.now());
+        // Set posting time if not provided
+        if (jobOpening.getPostedAt() == null) {
+            jobOpening.setPostedAt(LocalDateTime.now());
+        }
 
-        JobOpening savedJobOpening = jobOpeningRepository.save(jobOpening);
+        // Save
+        jobOpeningRepository.save(jobOpening);
 
-        // Audit
-       // String performedBy = employee.getEmployeeId();
+       // String performedBy = getLoggedInEmployeeId();
 
-       // auditLogsService.logCreate("JOB_OPENING", String.valueOf(savedJobOpening.getId()), performedBy, savedJobOpening.getId().toString(), "Job Opening created successfully");
+       // auditLogsService.logCreate("JOB_OPENING", String.valueOf(jobOpening.getId()), performedBy, jobOpening.getId().toString(), "Job Opening created successfully");
 
-        //auditLogsService.logActivity(performedBy, "CREATE_JOB_OPENING", "RECRUITMENT", "Job Opening created successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
+       // auditLogsService.logActivity(performedBy, "CREATE_JOB_OPENING", "RECRUITMENT", "Job Opening created successfully", ActivityStatus.SUCCESS, getIpAddress(), getBrowser(), getOperatingSystem());
 
-      //  auditLogsService.logInfo("RECRUITMENT", "RecruitmentService", "Job Opening created successfully");
+       // auditLogsService.logInfo("RECRUITMENT", "RecruitmentService", "Job Opening created successfully");
 
         return "Job Opening Created Successfully";
     }
-
 
     public Object getJobOpenings() {
 

@@ -9,6 +9,7 @@ import com.HRMS.QuickDines.Recruitment.Entity.EmploymentType;
 import com.HRMS.QuickDines.Recruitment.Entity.JobOpeningStatus;
 import com.HRMS.QuickDines.Recruitment.Entity.WorkMode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -38,15 +39,16 @@ public class JobOpening {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", nullable = false)
-    @JsonIgnore
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Company company;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "branch_id", nullable = false)
-    @JsonIgnore
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Branch branch;
 
     private Integer minimumExperience;
+
     private Integer maximumExperience;
 
     @Column(precision = 12, scale = 2)
@@ -94,13 +96,13 @@ public class JobOpening {
     // Employee who created the job
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
-    @JsonIgnore
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Employee createdBy;
 
     // Employee who last updated the job
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
-    @JsonIgnore
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Employee updatedBy;
 
     @OneToMany(
