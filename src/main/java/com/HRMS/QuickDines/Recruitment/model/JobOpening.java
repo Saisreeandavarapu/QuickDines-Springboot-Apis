@@ -111,4 +111,7 @@ public class JobOpening {
     )
     @JsonIgnore
     private List<Application> applications;
+    @OneToMany(mappedBy = "jobOpening")
+    @JsonIgnore
+    private List<RecruitmentApproval> recruitmentApprovals;
 }
